@@ -1,0 +1,99 @@
+{% extends "layout.html" %}
+
+{% block title %}광고 추가 - 관리자 페이지{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <!-- 관리자 메뉴 사이드바 -->
+        <div class="col-md-2">
+            {% include 'admin/sidebar.html' %}
+        </div>
+        
+        <!-- 메인 컨텐츠 영역 -->
+        <div class="col-md-10">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="h5 mb-0">새 광고 등록</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">제목</label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="content" class="form-label">내용</label>
+                            <textarea class="form-control" id="content" name="content" rows="4" required></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="image" class="form-label">광고 이미지</label>
+                            <div class="input-group mb-3">
+                                <input type="file" class="form-control" id="image" name="image" accept="image/*" onchange="previewImage(this);">
+                                <label class="input-group-text" for="image">이미지 선택</label>
+                            </div>
+                            <div class="form-text mb-2">지원 형식: JPG, PNG, GIF (최대 16MB)</div>
+                            <div id="imagePreview" class="mt-2 d-none">
+                                <p class="mb-2">이미지 미리보기:</p>
+                                <img id="preview" src="#" alt="이미지 미리보기" class="img-thumbnail" style="max-width: 300px; max-height: 200px;">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="link" class="form-label">링크 URL</label>
+                            <input type="url" class="form-control" id="link" name="link" placeholder="https://example.com">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="position" class="form-label">위치</label>
+                            <select class="form-select" id="position" name="position">
+                                <option value="banner">메인 배너</option>
+                                <option value="side">사이드바</option>
+                                <option value="footer">푸터</option>
+                                <option value="center">게시물과 게시물 사이</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="is_active" name="is_active" value="1" checked>
+                            <label class="form-check-label" for="is_active">활성화</label>
+                            <div class="form-text">체크 시 광고가 사이트에 표시됩니다</div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('admin.ads') }}" class="btn btn-secondary">취소</a>
+                            <button type="submit" class="btn btn-primary">등록</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function previewImage(input) {
+        var preview = document.getElementById('preview');
+        var previewDiv = document.getElementById('imagePreview');
+        
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                previewDiv.classList.remove('d-none');
+            }
+            
+            reader.readAsDataURL(input.files[0]);
+        } else {
+            preview.src = '';
+            previewDiv.classList.add('d-none');
+        }
+    }
+</script>
+{% endblock %} 

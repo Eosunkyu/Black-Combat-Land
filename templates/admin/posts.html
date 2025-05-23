@@ -1,0 +1,119 @@
+{% extends 'layout.html' %}
+
+{% block title %}게시글 관리 - 관리자 페이지{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- 관리자 메뉴 사이드바 -->
+        <div class="col-md-2">
+            {% include 'admin/sidebar.html' %}
+        </div>
+        
+        <!-- 메인 컨텐츠 영역 -->
+        <div class="col-md-10">
+            <h2 class="mb-4">게시글 관리</h2>
+            
+            <!-- 게시판 필터 -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="h5 mb-0">게시판 필터</h3>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('admin.posts') }}" method="GET" class="d-flex align-items-center">
+                        <div class="me-3">
+                            <select name="board_id" class="form-select">
+                                <option value="">전체 게시판</option>
+                                {% for board in boards %}
+                                <option value="{{ board.id }}" {% if selected_board == board.id %}selected{% endif %}>{{ board.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">필터 적용</button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- 게시글 목록 -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="h5 mb-0">게시글 목록</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>게시판</th>
+                                    <th>제목</th>
+                                    <th>작성자</th>
+                                    <th>IP 주소</th>
+                                    <th>작성일</th>
+                                    <th>조회수</th>
+                                    <th>공개여부</th>
+                                    <th>관리</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for post in posts %}
+                                <tr>
+                                    <td>{{ post.id }}</td>
+                                    <td>{{ post.board_name }}</td>
+                                    <td>
+                                        <a href="{{ url_for('board.view_post', board_route=post.board_route, post_id=post.id) }}" target="_blank">
+                                            {{ post.title }}
+                                        </a>
+                                    </td>
+                                    <td>{{ post.nickname }}</td>
+                                    <td>{{ post.ip_address }}</td>
+                                    <td>{{ post.created_at.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ post.view_count }}</td>
+                                    <td>
+                                        {% if post.is_active %}
+                                        <span class="badge bg-success">공개</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">공개</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('board.edit_post', board_route=post.board_route, post_id=post.id) }}" class="btn btn-primary me-1" target="_blank">수정</a>
+                                            <form action="{{ url_for('board.delete_post', board_route=post.board_route, post_id=post.id) }}" method="POST" onsubmit="return confirm('정말 삭제하시겠습니까?');">
+						    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                                <button type="submit" class="btn btn-danger">삭제</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- 페이지네이션 -->
+                    {% if total_pages > 1 %}
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('admin.posts', page=page-1, board_id=selected_board) }}" tabindex="-1">이전</a>
+                            </li>
+                            
+                            {% for i in range(1, total_pages + 1) %}
+                            <li class="page-item {% if page == i %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('admin.posts', page=i, board_id=selected_board) }}">{{ i }}</a>
+                            </li>
+                            {% endfor %}
+                            
+                            <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('admin.posts', page=page+1, board_id=selected_board) }}">다음</a>
+                            </li>
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

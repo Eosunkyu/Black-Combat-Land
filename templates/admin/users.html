@@ -1,0 +1,178 @@
+{% extends 'layout.html' %}
+
+{% block title %}회원 관리 - 관리자 페이지{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- 관리자 메뉴 사이드바 -->
+        <div class="col-md-2">
+            {% include 'admin/sidebar.html' %}
+        </div>
+        
+        <!-- 메인 컨텐츠 영역 -->
+        <div class="col-md-10">
+            <h2 class="mb-4">회원 관리</h2>
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="h5 mb-0">회원 목록</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>이메일</th>
+                                    <th>닉네임</th>
+                                    <th>가입일</th>
+                                    <th>상태</th>
+                                    <th>VIP</th>
+                                    <th>관리</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td>{{ user.id }}</td>
+                                    <td>{{ user.email }}</td>
+                                    <td>{{ user.nickname }}</td>
+                                    <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                                    <td>
+                                        {% if user.is_active %}
+                                        <span class="badge bg-success">활성</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">비활성</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if user.is_vip == 1 %}
+                                        <span class="vip-badge yellow-vip">노란 VIP</span>
+                                        {% elif user.is_vip == 2 %}
+                                        <span class="vip-badge blue-vip">파란 VIP</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">일반</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <div class="dropdown me-1">
+                                                <button class="btn btn-warning dropdown-toggle" type="button" id="dropdownMenuButton{{ user.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                                    VIP 관리
+                                                </button>
+                                                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ user.id }}">
+                                                    <li>
+                                                        <form action="{{ url_for('admin.toggle_vip', user_id=user.id) }}" method="POST" style="display:inline-block;">
+                                                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                                            <input type="hidden" name="vip_type" value="0">
+                                                            <button type="submit" class="dropdown-item">VIP 해제</button>
+                                                        </form>
+                                                    </li>
+                                                    <li>
+                                                        <form action="{{ url_for('admin.toggle_vip', user_id=user.id) }}" method="POST" style="display:inline-block;">
+                                                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                                            <input type="hidden" name="vip_type" value="1">
+                                                            <button type="submit" class="dropdown-item">노란 VIP 설정</button>
+                                                        </form>
+                                                    </li>
+                                                    <li>
+                                                        <form action="{{ url_for('admin.toggle_vip', user_id=user.id) }}" method="POST" style="display:inline-block;">
+                                                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                                            <input type="hidden" name="vip_type" value="2">
+                                                            <button type="submit" class="dropdown-item">파란 VIP 설정</button>
+                                                        </form>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                            <!-- 닉네임 변경 버튼 -->
+                                            <button type="button" class="btn btn-info me-1" data-bs-toggle="modal" data-bs-target="#nicknameModal{{ user.id }}">닉네임 변경</button>
+                                            <!-- 이메일 변경 버튼 -->
+                                            <button type="button" class="btn btn-secondary me-1" data-bs-toggle="modal" data-bs-target="#emailModal{{ user.id }}">이메일 변경</button>
+                                            <!-- 계정 삭제 버튼 -->
+                                            <form action="{{ url_for('admin.delete_user', user_id=user.id) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('정말로 삭제하시겠습니까?');">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                                <button type="submit" class="btn btn-danger">삭제</button>
+                                            </form>
+                                        </div>
+                                        <!-- 닉네임 변경 모달 -->
+                                        <div class="modal fade" id="nicknameModal{{ user.id }}" tabindex="-1" aria-labelledby="nicknameModalLabel{{ user.id }}" aria-hidden="true">
+                                          <div class="modal-dialog">
+                                            <div class="modal-content">
+                                              <form action="{{ url_for('admin.change_nickname', user_id=user.id) }}" method="POST">
+                                                <div class="modal-header">
+                                                  <h5 class="modal-title" id="nicknameModalLabel{{ user.id }}">닉네임 변경</h5>
+                                                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                                  <div class="mb-3">
+                                                    <label for="new_nickname{{ user.id }}" class="form-label">새 닉네임</label>
+                                                    <input type="text" class="form-control" id="new_nickname{{ user.id }}" name="new_nickname" value="{{ user.nickname }}" required>
+                                                  </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                                                  <button type="submit" class="btn btn-primary">변경</button>
+                                                </div>
+                                              </form>
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <!-- 이메일 변경 모달 -->
+                                        <div class="modal fade" id="emailModal{{ user.id }}" tabindex="-1" aria-labelledby="emailModalLabel{{ user.id }}" aria-hidden="true">
+                                          <div class="modal-dialog">
+                                            <div class="modal-content">
+                                              <form action="{{ url_for('admin.change_email', user_id=user.id) }}" method="POST">
+                                                <div class="modal-header">
+                                                  <h5 class="modal-title" id="emailModalLabel{{ user.id }}">이메일 변경</h5>
+                                                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                                  <div class="mb-3">
+                                                    <label for="new_email{{ user.id }}" class="form-label">새 이메일</label>
+                                                    <input type="email" class="form-control" id="new_email{{ user.id }}" name="new_email" value="{{ user.email }}" required>
+                                                  </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                                                  <button type="submit" class="btn btn-primary">변경</button>
+                                                </div>
+                                              </form>
+                                            </div>
+                                          </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- 페이지네이션 -->
+                    {% if total_pages > 1 %}
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('admin.users', page=page-1) }}" tabindex="-1">이전</a>
+                            </li>
+                            
+                            {% for i in range(1, total_pages + 1) %}
+                            <li class="page-item {% if page == i %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('admin.users', page=i) }}">{{ i }}</a>
+                            </li>
+                            {% endfor %}
+                            
+                            <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('admin.users', page=page+1) }}">다음</a>
+                            </li>
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

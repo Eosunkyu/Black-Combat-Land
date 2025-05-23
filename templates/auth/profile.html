@@ -1,0 +1,116 @@
+{% extends "layout.html" %}
+
+{% block title %}내 프로필 - BLACK COMBAT LAND{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">회원 정보</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>아이디:</strong> {{ session.username }}</p>
+                <p><strong>닉네임:</strong> {{ session.nickname }}</p>
+                <p><strong>이메일:</strong> {{ user.email }}</p>
+                <p><strong>가입일:</strong> {{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '-' }}</p>
+                <p><strong>최근 로그인:</strong> {{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else '-' }}</p>
+                {% if session.is_vip == 1 %}
+                <p><span class="vip-badge yellow-vip">VIP 회원</span></p>
+                {% elif session.is_vip == 2 %}
+                <p><span class="vip-badge blue-vip">VIP 회원</span></p>
+                {% endif %}
+                <div class="d-grid gap-2 mt-3">
+                    <a href="{{ url_for('auth.edit_profile') }}" class="btn btn-outline-primary">회원 정보 수정</a>
+                    <a href="{{ url_for('auth.messages') }}" class="btn btn-outline-secondary position-relative">
+                        쪽지함
+                        {% if unread_count > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            {{ unread_count }}
+                            <span class="visually-hidden">읽지 않은 쪽지</span>
+                        </span>
+                        {% endif %}
+                    </a>
+                    <a href="{{ url_for('auth.friends') }}" class="btn btn-outline-secondary position-relative">
+                        친구 관리
+                        {% if friend_request_count > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            {{ friend_request_count }}
+                            <span class="visually-hidden">친구 요청</span>
+                        </span>
+                        {% endif %}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">내가 작성한 게시글</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>게시판</th>
+                                <th>제목</th>
+                                <th>작성일</th>
+                                <th>조회수</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for post in posts %}
+                            <tr>
+                                <td>{{ post.board_name }}</td>
+                                <td><a href="{{ url_for('board.view_post', board_route=post.board_route, post_id=post.id) }}">{{ post.title }}</a></td>
+                                <td>{{ post.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ post.view_count }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-3">작성한 게시글이 없습니다.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">내가 작성한 댓글</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>게시글</th>
+                                <th>댓글 내용</th>
+                                <th>작성일</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for comment in comments %}
+                            <tr>
+                                <td><a href="{{ url_for('board.view_post', board_route=comment.board_route, post_id=comment.post_id) }}">{{ comment.post_title }}</a></td>
+                                <td>{{ comment.content }}</td>
+                                <td>{{ comment.created_at.strftime('%Y-%m-%d') }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center py-3">작성한 댓글이 없습니다.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

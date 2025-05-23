@@ -1,0 +1,194 @@
+{% extends "layout.html" %}
+
+{% block title %}친구 관리 - BLACK COMBAT LAND{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3">
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">친구 및 쪽지</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('auth.friends') }}" class="list-group-item list-group-item-action active">친구 관리</a>
+                <a href="{{ url_for('auth.messages') }}" class="list-group-item list-group-item-action">쪽지함</a>
+                <a href="{{ url_for('auth.profile') }}" class="list-group-item list-group-item-action">내 프로필</a>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">친구 추가</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('auth.add_friend') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="mb-3">
+                        <label for="nickname" class="form-label">닉네임</label>
+                        <input type="text" class="form-control" id="nickname" name="nickname" required>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">친구 요청 보내기</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-9">
+        <!-- 친구 요청 받은 목록 -->
+        {% if friend_requests %}
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">받은 친구 요청</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>닉네임</th>
+                                <th style="width: 180px;">요청일</th>
+                                <th style="width: 200px;" class="text-center">작업</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for request in friend_requests %}
+                            <tr>
+                                <td>{{ request.user_nickname }}</td>
+                                <td>{{ request.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td class="text-center">
+                                    <form method="post" action="{{ url_for('auth.respond_friend_request', request_id=request.id, action='accept') }}" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                        <button type="submit" class="btn btn-sm btn-success">수락</button>
+                                    </form>
+                                    <form method="post" action="{{ url_for('auth.respond_friend_request', request_id=request.id, action='reject') }}" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                        <button type="submit" class="btn btn-sm btn-danger">거절</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- 친구 목록 -->
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">내 친구 목록</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if friends %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>닉네임</th>
+                                <th style="width: 180px;">친구 추가일</th>
+                                <th style="width: 240px;" class="text-center">작업</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for friend in friends %}
+                            <tr>
+                                <td>{{ friend.friend_nickname }}</td>
+                                <td>{{ friend.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td class="text-center">
+                                    <a href="{{ url_for('auth.send_message', to=friend.friend_id) }}" class="btn btn-sm btn-primary">쪽지 보내기</a>
+                                    <form method="post" action="{{ url_for('auth.remove_friend', friend_id=friend.id) }}" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                        <button type="submit" class="btn btn-sm btn-secondary" onclick="return confirm('정말로 이 친구를 삭제하시겠습니까?');">삭제</button>
+                                    </form>
+                                    <form method="post" action="{{ url_for('auth.block_user', user_id=friend.friend_id) }}" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('이 사용자를 차단하시겠습니까? 차단하면 친구 목록에서 삭제됩니다.');">차단</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center p-4">
+                    <p class="mb-0">친구 목록이 비어 있습니다. 친구 요청을 보내보세요!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- 보낸 친구 요청 목록 -->
+        {% if sent_requests %}
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">보낸 친구 요청</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>닉네임</th>
+                                <th style="width: 180px;">요청일</th>
+                                <th style="width: 120px;" class="text-center">상태</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for request in sent_requests %}
+                            <tr>
+                                <td>{{ request.friend_nickname }}</td>
+                                <td>{{ request.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-warning text-dark">대기중</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- 차단한 사용자 목록 -->
+        {% if blocked_users %}
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">차단한 사용자</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>닉네임</th>
+                                <th style="width: 180px;">차단일</th>
+                                <th style="width: 120px;" class="text-center">작업</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in blocked_users %}
+                            <tr>
+                                <td>{{ user.friend_nickname }}</td>
+                                <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td class="text-center">
+                                    <form method="post" action="{{ url_for('auth.unblock_user', block_id=user.id) }}" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                        <button type="submit" class="btn btn-sm btn-secondary">차단 해제</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

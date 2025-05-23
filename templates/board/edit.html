@@ -1,0 +1,573 @@
+{% extends "layout.html" %}
+
+{% block title %}게시글 수정 - {{ board.name }} - BLACK COMBAT LAND{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 좌측 칼럼 (로그인 영역) -->
+    <div class="col-lg-2 left-column d-none d-lg-block content-padding">
+        {% if not session.loggedin %}
+        <div class="login-form-container">
+            <!-- 로그인 제목 추가 -->
+            <h5 class="mb-2 text-nowrap">회원 로그인</h5>
+            <div class="login-highlighted mb-3"></div>
+            <!-- 폼 요소 먼저 배치 -->
+            <form action="{{ url_for('auth.login') }}" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="mb-2">
+                    <input type="text" class="form-control" name="username" placeholder="ID" required>
+                </div>
+                <div class="mb-2">
+                    <input type="password" class="form-control" name="password" placeholder="비밀번호" required>
+                </div>
+                <div class="d-flex flex-column mb-2">
+                    <button type="submit" class="btn btn-dark">로그인</button>
+                </div>
+                <div class="small mb-3">
+                    <a href="{{ url_for('auth.register') }}" class="text-decoration-none text-nowrap">회원가입</a>
+                    <a href="{{ url_for('auth.find_account') }}" class="text-decoration-none text-nowrap">아이디/비밀번호찾기</a>
+                </div>
+            </form>
+        </div>
+        {% else %}
+        <div class="login-form-container">
+            <div class="member-info mb-3">
+                <p class="mb-2"><strong>{{ session.nickname }}님</strong> 환영합니다</p>
+                {% if session.is_vip == 1 %}
+                <span class="vip-badge yellow-vip">VIP 회원</span>
+                {% elif session.is_vip == 2 %}
+                <span class="vip-badge blue-vip">VIP 회원</span>
+                {% endif %}
+            </div>
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('auth.profile') }}"class="btn btn-outline-secondary btn-sm d-none d-lg-block">내 정보</a>
+                <a href="{{ url_for('auth.messages') }}" class="btn btn-outline-secondary btn-sm d-none d-lg-block">쪽지함</a>
+                <a href="{{ url_for('auth.friends') }}" class="btn btn-outline-secondary btn-sm d-none d-lg-block">친구관리</a>
+                {% if session.is_admin %}
+                <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-primary btn-sm d-none d-lg-block">관리자 페이지</a>
+                {% endif %}
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-sm d-none d-lg-block">로그아웃</a>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- 사이드바 광고 -->
+        {% if sidebar_ad %}
+        <div class="card mb-4 mt-4 sidebar-ad p-0 border-0">
+            <div class="text-center p-0">
+                {% if sidebar_ad.link_url and sidebar_ad.image_path %}
+                <a href="{{ sidebar_ad.link_url }}" target="_blank" style="display:block; width:100%;">
+                    <img src="{{ url_for('static', filename=sidebar_ad.image_path) }}" alt="{{ sidebar_ad.title }}" class="img-fluid" style="width:100%; max-width:100%; height:auto; display:block;">
+                </a>
+                {% elif sidebar_ad.image_path %}
+                <img src="{{ url_for('static', filename=sidebar_ad.image_path) }}" alt="{{ sidebar_ad.title }}" class="img-fluid" style="width:100%; max-width:100%; height:auto; display:block;">
+                {% else %}
+                <p class="mb-1"><strong>{{ sidebar_ad.title }}</strong></p>
+                <p class="small">{{ sidebar_ad.content }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- 중앙 컨텐츠 영역 -->
+    <div class="col-lg-10 content-padding">
+        <!-- 배너 광고 -->
+        {% if banner_ad %}
+        <div class="card mb-4 banner-ad">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">광고</h5>
+            </div>
+            <div class="card-body text-center">
+                {% if banner_ad.link_url and banner_ad.image_path %}
+                <a href="{{ banner_ad.link_url }}" target="_blank">
+                    <img src="{{ url_for('static', filename=banner_ad.image_path) }}" alt="{{ banner_ad.title }}" class="img-fluid rounded">
+                </a>
+                {% elif banner_ad.image_path %}
+                <img src="{{ url_for('static', filename=banner_ad.image_path) }}" alt="{{ banner_ad.title }}" class="img-fluid rounded">
+                {% else %}
+                <h5>{{ banner_ad.title }}</h5>
+                <p>{{ banner_ad.content }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="card">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{{ board.name }} - 게시글 수정</h5>
+                <a href="{{ url_for('board.view_post', board_route=board.route, post_id=post.id) }}" class="btn btn-sm btn-secondary">돌아가기</a>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('board.edit_post', board_route=board.route, post_id=post.id) }}" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">제목</label>
+                        <input type="text" class="form-control" id="title" name="title" maxLength="40" value="{{ post.title }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="content" class="form-label">내용</label>
+                        <textarea class="form-control" id="content" name="content" rows="10" required>{{ post.content }}</textarea>
+                    </div>
+                    
+                    <!-- 다중 이미지 업로드 -->
+                    <div class="mb-3">
+                        <label class="form-label">이미지 첨부 (여러 장 선택 가능)</label>
+                        <div class="d-flex justify-content-between mb-2">
+                            <input class="form-control me-2" type="file" id="multipleImages" name="image_files" multiple accept="image/*">
+                            <button type="button" class="btn btn-outline-secondary" id="addImagesBtn">추가</button>
+                        </div>
+                        <div id="imageContainer" class="row row-cols-1 row-cols-md-3 g-3 mb-3">
+                            <!-- 기존 이미지가 있으면 표시 -->
+                            {% if post.images_data %}
+                            {% set images = post.images_data|fromjson %}
+                            {% for path in images.paths %}
+                            <div class="col existing-image" data-index="existing-{{ loop.index0 }}">
+                                <div class="card h-100 position-relative">
+                                    <img src="/{{ path }}" class="card-img-top" style="height: 150px; object-fit: cover;">
+                                    <div class="card-body p-2">
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" class="form-control form-control-sm" placeholder="이미지 설명" 
+                                                   name="existing_image_caption_{{ loop.index0 }}" value="{{ images.captions[loop.index0] }}">
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn-close position-absolute top-0 end-0 bg-light m-1" 
+                                            onclick="removeExistingImage('existing-{{ loop.index0 }}')"></button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            {% elif post.image_path %}
+                            <div class="col existing-image" data-index="existing-0">
+                                <div class="card h-100 position-relative">
+                                    <img src="/{{ post.image_path }}" class="card-img-top" style="height: 150px; object-fit: cover;">
+                                    <div class="card-body p-2">
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" class="form-control form-control-sm" placeholder="이미지 설명" 
+                                                   name="existing_image_caption_0">
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn-close position-absolute top-0 end-0 bg-light m-1" 
+                                            onclick="removeExistingImage('existing-0')"></button>
+                                </div>
+                            </div>
+                            {% endif %}
+                            <!-- 여기에 새 이미지 미리보기가 추가됩니다 -->
+                        </div>
+                        <input type="hidden" name="image_count" id="image_count" value="0">
+                        <input type="hidden" name="existing_images" id="existing_images" value="{{ '1' if post.image_path or post.images_data else '0' }}">
+                    </div>
+                    
+                    <!-- 내용에 이미지 삽입 도구 -->
+                    <div class="mb-3">
+                        <label class="form-label">내용에 이미지 삽입</label>
+                        <div class="alert alert-info">
+                            첨부된 이미지를 본문에 삽입하려면, 텍스트 커서를 위치시킨 후 삽입하려는 이미지의 '본문에 삽입' 버튼을 클릭하세요.
+                        </div>
+                    </div>
+                    
+                    <!-- 동영상 삽입 -->
+                    <div class="mb-3">
+                        <label class="form-label">동영상 삽입</label>
+                        <ul class="nav nav-tabs mb-2" id="videoTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="url-tab" data-bs-toggle="tab" data-bs-target="#url-panel" type="button" role="tab">URL 링크</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="embed-tab" data-bs-toggle="tab" data-bs-target="#embed-panel" type="button" role="tab">임베드 코드</button>
+                            </li>
+                        </ul>
+                        <div class="tab-content" id="videoTabContent">
+                            <div class="tab-pane fade show active" id="url-panel" role="tabpanel">
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control" id="videoUrl" placeholder="YouTube, Vimeo 등의 동영상 URL을 붙여넣으세요">
+                                    <button type="button" class="btn btn-outline-secondary" id="addVideoUrlBtn">추가</button>
+                                </div>
+                                <small class="text-muted">지원: YouTube, Vimeo, 네이버TV 등</small>
+                            </div>
+                            <div class="tab-pane fade" id="embed-panel" role="tabpanel">
+                                <div class="input-group mb-2">
+                                    <textarea class="form-control" id="embedCode" rows="3" placeholder="<iframe> 등의 임베드 코드를 붙여넣으세요"></textarea>
+                                    <button type="button" class="btn btn-outline-secondary" id="addEmbedBtn">추가</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="videoPreviewContainer" class="mt-3">
+                            <!-- 여기에 기존 동영상 및 새 동영상 미리보기가 추가됩니다 -->
+                        </div>
+                        <input type="hidden" id="videoData" name="video_data" value="{{ post.video_data if post.video_data else '[]' }}">
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('board.view_post', board_route=board.route, post_id=post.id) }}" class="btn btn-secondary">취소</a>
+                        <button type="submit" class="btn btn-primary">수정 완료</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 푸터 광고 -->
+{% if footer_ad %}
+<div class="container mt-4">
+    <div class="card mb-4 footer-ad">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">광고</h5>
+        </div>
+        <div class="card-body text-center">
+            {% if footer_ad.link_url and footer_ad.image_path %}
+            <a href="{{ footer_ad.link_url }}" target="_blank">
+                <img src="{{ url_for('static', filename=footer_ad.image_path) }}" alt="{{ footer_ad.title }}" class="img-fluid rounded">
+            </a>
+            {% elif footer_ad.image_path %}
+            <img src="{{ url_for('static', filename=footer_ad.image_path) }}" alt="{{ footer_ad.title }}" class="img-fluid rounded">
+            {% else %}
+            <h5>{{ footer_ad.title }}</h5>
+            <p>{{ footer_ad.content }}</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock content %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 이미지 업로드 관련 기능
+        const multipleImagesInput = document.getElementById('multipleImages');
+        const addImagesBtn = document.getElementById('addImagesBtn');
+        const imageContainer = document.getElementById('imageContainer');
+        const contentTextarea = document.getElementById('content');
+        const MAX_FILE_SIZE = 16 * 1024 * 1024; // 16MB in bytes
+        let imageCount = 0;
+        
+        // 기존 이미지 카운트
+        const existingImagesCount = document.querySelectorAll('.existing-image').length;
+        document.getElementById('existing_images').value = existingImagesCount > 0 ? '1' : '0';
+        
+        // 파일 선택 시 크기 체크
+        if (multipleImagesInput) {
+            multipleImagesInput.addEventListener('change', function(e) {
+                const files = e.target.files;
+                
+                for (let i = 0; i < files.length; i++) {
+                    if (files[i].size > MAX_FILE_SIZE) {
+                        alert(`파일 '${files[i].name}'의 크기가 16MB를 초과합니다. 16MB 이하의 파일만 업로드할 수 있습니다.`);
+                        // 파일 선택 초기화
+                        e.target.value = '';
+                        return;
+                    }
+                }
+            });
+        }
+        
+        if (addImagesBtn) {
+            addImagesBtn.addEventListener('click', function() {
+                const files = multipleImagesInput.files;
+                if (files.length === 0) return;
+                
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    if (!file.type.startsWith('image/')) {
+                        alert('이미지 파일만 업로드 가능합니다.');
+                        continue;
+                    }
+                    
+                    // 파일 크기 검사
+                    if (file.size > MAX_FILE_SIZE) {
+                        alert(`파일 '${file.name}'의 크기가 16MB를 초과합니다. 16MB 이하의 파일만 업로드할 수 있습니다.`);
+                        continue;
+                    }
+                    
+                    addImagePreview(file, i);
+                }
+                
+                // 이미지 개수 업데이트
+                updateImageCount();
+            });
+        }
+        
+        // 이미지 미리보기 추가
+        function addImagePreview(file, index) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imgIndex = imageCount++;
+                
+                // 이미지 컨테이너에 미리보기 추가
+                const imgCol = document.createElement('div');
+                imgCol.className = 'col';
+                imgCol.dataset.index = imgIndex;
+                imgCol.innerHTML = `
+                    <div class="card h-100 position-relative">
+                        <img src="${e.target.result}" class="card-img-top" style="height: 150px; object-fit: cover;">
+                        <div class="card-body p-2">
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control form-control-sm" placeholder="이미지 설명" 
+                                       name="image_caption_${imgIndex}" id="image_caption_${imgIndex}">
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary mt-2 w-100" 
+                                    onclick="insertImageToContent(${imgIndex}, '${e.target.result}')">
+                                본문에 삽입
+                            </button>
+                        </div>
+                        <button type="button" class="btn-close position-absolute top-0 end-0 bg-light m-1" 
+                                onclick="removeImage(${imgIndex})"></button>
+                    </div>
+                `;
+                
+                imageContainer.appendChild(imgCol);
+                
+                // 이미지 개수 업데이트
+                updateImageCount();
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // 기존 이미지에도 '본문에 삽입' 버튼 추가
+        const existingImageCards = document.querySelectorAll('.existing-image .card-body');
+        existingImageCards.forEach((card, index) => {
+            const imgSrc = card.parentElement.querySelector('img').src;
+            const insertBtn = document.createElement('button');
+            insertBtn.type = 'button';
+            insertBtn.className = 'btn btn-sm btn-outline-primary mt-2 w-100';
+            insertBtn.textContent = '본문에 삽입';
+            insertBtn.onclick = function() { 
+                insertExistingImageToContent(index, imgSrc); 
+            };
+            card.appendChild(insertBtn);
+        });
+        
+        // 이미지 개수 업데이트 함수
+        function updateImageCount() {
+            const newImageCount = document.querySelectorAll('#imageContainer .col:not(.existing-image)').length;
+            document.getElementById('image_count').value = newImageCount;
+        }
+        
+        // 내용에 이미지 삽입 기능
+        window.insertImageToContent = function(index, imgSrc) {
+            const caption = document.getElementById(`image_caption_${index}`).value;
+            const imageTag = `\n[이미지:${index}${caption ? `:${caption}` : ''}]\n`;
+            
+            // 현재 커서 위치에 이미지 태그 삽입
+            const cursorPos = contentTextarea.selectionStart;
+            const textBefore = contentTextarea.value.substring(0, cursorPos);
+            const textAfter = contentTextarea.value.substring(cursorPos);
+            
+            contentTextarea.value = textBefore + imageTag + textAfter;
+            contentTextarea.focus();
+            contentTextarea.setSelectionRange(cursorPos + imageTag.length, cursorPos + imageTag.length);
+        }
+        
+        // 기존 이미지를 내용에 삽입
+        window.insertExistingImageToContent = function(index, imgSrc) {
+            const caption = document.querySelector(`[name="existing_image_caption_${index}"]`).value;
+            const imageTag = `\n[기존이미지:${index}${caption ? `:${caption}` : ''}]\n`;
+            
+            // 현재 커서 위치에 이미지 태그 삽입
+            const cursorPos = contentTextarea.selectionStart;
+            const textBefore = contentTextarea.value.substring(0, cursorPos);
+            const textAfter = contentTextarea.value.substring(cursorPos);
+            
+            contentTextarea.value = textBefore + imageTag + textAfter;
+            contentTextarea.focus();
+            contentTextarea.setSelectionRange(cursorPos + imageTag.length, cursorPos + imageTag.length);
+        }
+        
+        // 기존 이미지 삭제 기능
+        window.removeExistingImage = function(index) {
+            const existingImageElement = document.querySelector(`[data-index="${index}"]`);
+            if (existingImageElement) {
+                existingImageElement.remove();
+                
+                // 남아있는 기존 이미지 확인
+                const remainingExistingImages = document.querySelectorAll('.existing-image').length;
+                document.getElementById('existing_images').value = remainingExistingImages > 0 ? '1' : '0';
+                
+                // 본문에서 관련 태그도 제거
+                const regex = new RegExp(`\\[기존이미지:${index.split('-')[1]}(?::[^\\]]*)?\\]`, 'g');
+                contentTextarea.value = contentTextarea.value.replace(regex, '');
+            }
+        };
+        
+        // 새 이미지 삭제 기능
+        window.removeImage = function(index) {
+            const imageElement = document.querySelector(`[data-index="${index}"]`);
+            if (imageElement) {
+                imageElement.remove();
+                
+                // 이미지 개수 업데이트
+                updateImageCount();
+                
+                // 본문에서 관련 태그도 제거
+                const regex = new RegExp(`\\[이미지:${index}(?::[^\\]]*)?\\]`, 'g');
+                contentTextarea.value = contentTextarea.value.replace(regex, '');
+            }
+        };
+        
+        // 폼 제출 전 처리
+        document.querySelector('form').addEventListener('submit', function(e) {
+            // 이미지 개수 최종 업데이트
+            updateImageCount();
+            
+            // 동영상 데이터 최종 업데이트
+            if (typeof videoData !== 'undefined') {
+                document.getElementById('videoData').value = JSON.stringify(videoData);
+            }
+        });
+        
+        // 동영상 관련 기능 
+        const videoUrl = document.getElementById('videoUrl');
+        const embedCode = document.getElementById('embedCode');
+        const addVideoUrlBtn = document.getElementById('addVideoUrlBtn');
+        const addEmbedBtn = document.getElementById('addEmbedBtn');
+        const videoPreviewContainer = document.getElementById('videoPreviewContainer');
+        const videoDataInput = document.getElementById('videoData');
+        
+        // 초기 동영상 데이터 로드
+        let videoData = [];
+        try {
+            if (videoDataInput.value) {
+                videoData = JSON.parse(videoDataInput.value);
+                
+                // 기존 동영상 미리보기 생성
+                videoData.forEach((video, index) => {
+                    createVideoPreview(video, index);
+                });
+            }
+        } catch (e) {
+            console.error('비디오 데이터 파싱 오류:', e);
+        }
+        
+        // URL 동영상 추가
+        if (addVideoUrlBtn) {
+            addVideoUrlBtn.addEventListener('click', function() {
+                const url = videoUrl.value.trim();
+                if (!url) {
+                    alert('URL을 입력해주세요.');
+                    return;
+                }
+                
+                addVideo({
+                    type: 'url',
+                    content: url
+                });
+                
+                videoUrl.value = '';
+            });
+        }
+        
+        // 임베드 코드 추가
+        if (addEmbedBtn) {
+            addEmbedBtn.addEventListener('click', function() {
+                const code = embedCode.value.trim();
+                if (!code) {
+                    alert('임베드 코드를 입력해주세요.');
+                    return;
+                }
+                
+                addVideo({
+                    type: 'embed',
+                    content: code
+                });
+                
+                embedCode.value = '';
+            });
+        }
+        
+        // 동영상 추가 함수
+        function addVideo(video) {
+            const index = videoData.length;
+            videoData.push(video);
+            
+            createVideoPreview(video, index);
+            
+            // 동영상 데이터 업데이트
+            videoDataInput.value = JSON.stringify(videoData);
+        }
+        
+        // 동영상 미리보기 생성 함수
+        function createVideoPreview(video, index) {
+            const videoPreview = document.createElement('div');
+            videoPreview.className = 'card mb-3';
+            videoPreview.dataset.index = index;
+            
+            let previewContent = '';
+            
+            if (video.type === 'url') {
+                // URL 기반 동영상은 임베드 미리보기 생성
+                // 간단한 URL 체크 (실제로는 더 복잡한 검증이 필요할 수 있음)
+                let embedUrl = video.content;
+                
+                // YouTube URL 처리
+                if (video.content.includes('youtube.com') || video.content.includes('youtu.be')) {
+                    let videoId = '';
+                    
+                    if (video.content.includes('youtube.com/watch?v=')) {
+                        videoId = new URL(video.content).searchParams.get('v');
+                    } else if (video.content.includes('youtu.be/')) {
+                        videoId = video.content.split('youtu.be/')[1].split('?')[0];
+                    }
+                    
+                    if (videoId) {
+                        embedUrl = `https://www.youtube.com/embed/${videoId}`;
+                    }
+                }
+                
+                previewContent = `
+                    <div class="card-body">
+                        <div class="ratio ratio-16x9 mb-2">
+                            <iframe src="${embedUrl}" allowfullscreen></iframe>
+                        </div>
+                        <p class="mb-2 small">URL: ${video.content}</p>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="removeVideo(${index})">삭제</button>
+                    </div>
+                `;
+            } else if (video.type === 'embed') {
+                // 임베드 코드는 그대로 표시 (보안 주의가 필요)
+                previewContent = `
+                    <div class="card-body">
+                        <div class="embed-responsive mb-2">
+                            ${video.content}
+                        </div>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="removeVideo(${index})">삭제</button>
+                    </div>
+                `;
+            }
+            
+            videoPreview.innerHTML = previewContent;
+            videoPreviewContainer.appendChild(videoPreview);
+        }
+        
+        // 동영상 삭제 함수
+        window.removeVideo = function(index) {
+            // 화면에서 미리보기 제거
+            const previewElement = document.querySelector(`#videoPreviewContainer [data-index="${index}"]`);
+            if (previewElement) {
+                previewElement.remove();
+            }
+            
+            // 데이터에서 제거 (빈 슬롯으로 두기)
+            if (index < videoData.length) {
+                videoData.splice(index, 1);
+                
+                // 남은 미리보기 요소들의 인덱스 업데이트
+                const previews = document.querySelectorAll('#videoPreviewContainer [data-index]');
+                previews.forEach((preview, i) => {
+                    preview.dataset.index = i;
+                    
+                    // 삭제 버튼의 onclick 핸들러도 업데이트
+                    const deleteBtn = preview.querySelector('.btn-danger');
+                    if (deleteBtn) {
+                        deleteBtn.setAttribute('onclick', `removeVideo(${i})`);
+                    }
+                });
+                
+                // 동영상 데이터 업데이트
+                videoDataInput.value = JSON.stringify(videoData);
+            }
+        };
+    });
+</script>
+{% endblock scripts %}

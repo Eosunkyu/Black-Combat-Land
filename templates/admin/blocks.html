@@ -1,0 +1,205 @@
+{% extends 'layout.html' %}
+
+{% block title %}차단 관리 - 관리자 페이지{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- 관리자 메뉴 사이드바 -->
+        <div class="col-md-2">
+            {% include 'admin/sidebar.html' %}
+        </div>
+        
+        <!-- 메인 컨텐츠 영역 -->
+        <div class="col-md-10">
+            <h2 class="mb-4">차단 관리</h2>
+            
+            <!-- 탭 네비게이션 -->
+            <ul class="nav nav-tabs mb-4" id="blockTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="ip-tab" data-bs-toggle="tab" data-bs-target="#ip-content" type="button" role="tab" aria-controls="ip-content" aria-selected="true">IP 주소 차단</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="user-tab" data-bs-toggle="tab" data-bs-target="#user-content" type="button" role="tab" aria-controls="user-content" aria-selected="false">사용자 차단</button>
+                </li>
+            </ul>
+            
+            <!-- 탭 컨텐츠 -->
+            <div class="tab-content" id="blockTabsContent">
+                <!-- IP 주소 차단 탭 -->
+                <div class="tab-pane fade show active" id="ip-content" role="tabpanel" aria-labelledby="ip-tab">
+                    <!-- IP 차단 추가 폼 -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h3 class="h5 mb-0">IP 주소 차단 추가</h3>
+                        </div>
+                        <div class="card-body">
+                            <form action="{{ url_for('admin.add_ip_block') }}" method="POST">
+				    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label for="ip_address" class="form-label">IP 주소</label>
+                                        <input type="text" class="form-control" id="ip_address" name="ip_address" required placeholder="예: 123.123.123.123">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="ip_expires_at" class="form-label">차단 기간 (선택)</label>
+                                        <input type="datetime-local" class="form-control" id="ip_expires_at" name="expires_at">
+                                        <small class="text-muted">비워두면 영구 차단</small>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="ip_reason" class="form-label">차단 사유</label>
+                                        <input type="text" class="form-control" id="ip_reason" name="reason" placeholder="차단 사유 입력">
+                                    </div>
+                                    <div class="col-12">
+                                        <button type="submit" class="btn btn-primary">IP 주소 차단하기</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <!-- 차단된 IP 목록 -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                            <h3 class="h5 mb-0">차단된 IP 목록</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>IP 주소</th>
+                                            <th>차단 사유</th>
+                                            <th>차단일</th>
+                                            <th>만료일</th>
+                                            <th>차단한 관리자</th>
+                                            <th>관리</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for block in ip_blocks %}
+                                        <tr>
+                                            <td>{{ block.ip_address }}</td>
+                                            <td>{{ block.reason or '(사유 없음)' }}</td>
+                                            <td>{{ block.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                            <td>
+                                                {% if block.expires_at %}
+                                                    {{ block.expires_at.strftime('%Y-%m-%d %H:%M') }}
+                                                {% else %}
+                                                    <span class="badge bg-danger">영구</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ block.admin_nickname }}</td>
+                                            <td>
+                                                <form action="{{ url_for('admin.remove_ip_block', block_id=block.id) }}" method="POST" class="d-inline">
+							<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('이 IP 차단을 해제하시겠습니까?');">차단 해제</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="6" class="text-center">차단된 IP 주소가 없습니다.</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 사용자 차단 탭 -->
+                <div class="tab-pane fade" id="user-content" role="tabpanel" aria-labelledby="user-tab">
+                    <!-- 사용자 차단 추가 폼 -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h3 class="h5 mb-0">사용자 차단 추가</h3>
+                        </div>
+                        <div class="card-body">
+                            <form action="{{ url_for('admin.add_user_block') }}" method="POST">
+				    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label for="user_id" class="form-label">사용자 선택</label>
+                                        <select class="form-select" id="user_id" name="user_id" required>
+                                            <option value="" selected disabled>사용자 선택</option>
+                                            {% for user in users %}
+                                            <option value="{{ user.id }}">{{ user.nickname }} ({{ user.username }})</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="user_expires_at" class="form-label">차단 기간 (선택)</label>
+                                        <input type="datetime-local" class="form-control" id="user_expires_at" name="expires_at">
+                                        <small class="text-muted">비워두면 영구 차단</small>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="user_reason" class="form-label">차단 사유</label>
+                                        <input type="text" class="form-control" id="user_reason" name="reason" placeholder="차단 사유 입력">
+                                    </div>
+                                    <div class="col-12">
+                                        <button type="submit" class="btn btn-primary">사용자 차단하기</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <!-- 차단된 사용자 목록 -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h3 class="h5 mb-0">차단된 사용자 목록</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>사용자 ID</th>
+                                            <th>닉네임</th>
+                                            <th>차단 사유</th>
+                                            <th>차단일</th>
+                                            <th>만료일</th>
+                                            <th>차단한 관리자</th>
+                                            <th>관리</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for block in user_blocks %}
+                                        <tr>
+                                            <td>{{ block.user_id }}</td>
+                                            <td>{{ block.nickname }}</td>
+                                            <td>{{ block.reason or '(사유 없음)' }}</td>
+                                            <td>{{ block.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                            <td>
+                                                {% if block.expires_at %}
+                                                    {{ block.expires_at.strftime('%Y-%m-%d %H:%M') }}
+                                                {% else %}
+                                                    <span class="badge bg-danger">영구</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ block.admin_nickname }}</td>
+                                            <td>
+                                                <form action="{{ url_for('admin.remove_user_block', block_id=block.id) }}" method="POST" class="d-inline">
+							<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('이 사용자 차단을 해제하시겠습니까?');">차단 해제</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="7" class="text-center">차단된 사용자가 없습니다.</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

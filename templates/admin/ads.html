@@ -1,0 +1,97 @@
+{% extends 'layout.html' %}
+
+{% block title %}광고 관리 - 관리자 페이지{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- 관리자 메뉴 사이드바 -->
+        <div class="col-md-2">
+            {% include 'admin/sidebar.html' %}
+        </div>
+        
+        <!-- 메인 컨텐츠 영역 -->
+        <div class="col-md-10">
+            <h2 class="mb-4">광고 관리</h2>
+            
+            <!-- 광고 추가 버튼 -->
+            <div class="mb-4 text-end">
+                <a href="{{ url_for('admin.add_ad') }}" class="btn btn-success">
+                    <i class="fas fa-plus"></i> 새 광고 등록
+                </a>
+            </div>
+            
+            <!-- 광고 목록 -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="h5 mb-0">광고 목록</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>위치</th>
+                                    <th>이미지</th>
+                                    <th>링크</th>
+                                    <th>상태</th>
+                                    <th>노출 시작일</th>
+                                    <th>노출 종료일</th>
+                                    <th>관리</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ad in ads %}
+                                <tr>
+                                    <td>{{ ad.id }}</td>
+                                    <td>
+                                        {% if ad.position == 'banner' %}메인 배너
+                                        {% elif ad.position == 'side' %}사이드바
+                                        {% elif ad.position == 'footer' %}푸터
+                                        {% elif ad.position == 'center' %}게시물과 댓글 사이
+                                        {% else %}{{ ad.position }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if ad.image_path %}
+                                        <img src="{{ url_for('static', filename=ad.image_path) }}" 
+                                            alt="광고이미지" class="img-thumbnail" style="max-width: 150px;">
+                                        {% else %}
+                                        <span class="text-muted">이미지 없음</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ ad.link_url }}" target="_blank" class="text-truncate d-inline-block" style="max-width: 200px;">
+                                            {{ ad.link_url }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if ad.is_active %}
+                                        <span class="badge bg-success">활성</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">비활성</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ ad.start_date.strftime('%Y-%m-%d') if ad.start_date else '-' }}</td>
+                                    <td>{{ ad.end_date.strftime('%Y-%m-%d') if ad.end_date else '-' }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('admin.edit_ad', ad_id=ad.id) }}" class="btn btn-primary me-1">수정</a>
+                                            <form action="{{ url_for('admin.delete_ad', ad_id=ad.id) }}" method="POST" onsubmit="return confirm('정말 삭제하시겠습니까?');">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                                <button type="submit" class="btn btn-danger">삭제</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

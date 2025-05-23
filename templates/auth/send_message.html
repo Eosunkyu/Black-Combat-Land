@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+
+{% block title %}쪽지 보내기 - BLACK COMBAT LAND{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3">
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">쪽지함</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('auth.messages', type='received') }}" class="list-group-item list-group-item-action">받은 쪽지</a>
+                <a href="{{ url_for('auth.messages', type='sent') }}" class="list-group-item list-group-item-action">보낸 쪽지</a>
+                <a href="{{ url_for('auth.send_message') }}" class="list-group-item list-group-item-action active">쪽지 보내기</a>
+                <a href="{{ url_for('auth.profile') }}" class="list-group-item list-group-item-action">내 프로필</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-9">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">쪽지 보내기</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('auth.send_message') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    
+                    <div class="mb-3">
+                        <label for="receiver" class="form-label">받는 사람 (닉네임)</label>
+                        <input type="text" class="form-control" id="receiver" name="receiver" value="{{ receiver_nickname }}" required {% if receiver_nickname %}readonly{% endif %}>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="title" class="form-label">제목</label>
+                        <input type="text" class="form-control" id="title" name="title" required maxlength="100">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="content" class="form-label">내용</label>
+                        <textarea class="form-control" id="content" name="content" rows="8" required maxlength="2000"></textarea>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('auth.messages') }}" class="btn btn-secondary">취소</a>
+                        <button type="submit" class="btn btn-primary">보내기</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

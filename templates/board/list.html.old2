@@ -1,0 +1,328 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ board.name }} 게시판 - BLACK COMBAT LAND{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 좌측 칼럼 (로그인 영역) -->
+    <div class="col-lg-2 left-column d-none d-lg-block content-padding">
+        {% if not session.loggedin %}
+        <div class="login-form-container">
+            <!-- 로그인 제목 추가 -->
+            <h5 class="mb-2 text-nowrap">회원 로그인</h5>
+            <div class="login-highlighted mb-3"></div>
+            <!-- 폼 요소 먼저 배치 -->
+            <form action="{{ url_for('auth.login') }}" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="mb-2">
+                    <input type="text" class="form-control" name="username" placeholder="ID" required>
+                </div>
+                <div class="mb-2">
+                    <input type="password" class="form-control" name="password" placeholder="비밀번호" required>
+                </div>
+                <div class="d-flex flex-column mb-2">
+                    <button type="submit" class="btn btn-dark">로그인</button>
+                </div>
+                <div class="small mb-3">
+                    <a href="{{ url_for('auth.register') }}" class="text-decoration-none text-nowrap">회원가입</a>
+		    </br>
+                    <a href="{{ url_for('auth.find_account') }}" class="text-decoration-none text-nowrap">아이디/비밀번호찾기</a>
+                </div>
+            </form>
+        </div>
+        {% else %}
+        <div class="login-form-container">
+            <div class="member-info mb-3">
+                <p class="mb-2"><strong>{{ session.nickname }}님</strong> 환영합니다</p>
+                {% if session.is_vip %}
+                <span class="badge bg-warning text-dark">VIP 회원</span>
+                {% endif %}
+            </div>
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('auth.profile') }}"class="btn btn-outline-secondary btn-sm d-none d-lg-block">내 정보</a>
+                <a href="{{ url_for('auth.messages') }}" class="btn btn-outline-secondary btn-sm d-none d-lg-block">쪽지함</a>
+                <a href="{{ url_for('auth.friends') }}" class="btn btn-outline-secondary btn-sm d-none d-lg-block">친구관리</a>
+                {% if session.is_admin %}
+                <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-primary btn-sm d-none d-lg-block">관리자 페이지</a>
+                {% endif %}
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-sm d-none d-lg-block">로그아웃</a>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- 사이드바 광고 -->
+        {% if sidebar_ad %}
+        <div class="card mb-4 mt-4 sidebar-ad">
+            
+            <div class="card-body text-center p-2">
+                {% if sidebar_ad.link_url and sidebar_ad.image_path %}
+                <a href="{{ sidebar_ad.link_url }}" target="_blank">
+                    <img src="{{ url_for('static', filename=sidebar_ad.image_path) }}" alt="{{ sidebar_ad.title }}" class="img-fluid rounded">
+                </a>
+                {% elif sidebar_ad.image_path %}
+                <img src="{{ url_for('static', filename=sidebar_ad.image_path) }}" alt="{{ sidebar_ad.title }}" class="img-fluid rounded">
+                {% else %}
+                <p class="mb-1"><strong>{{ sidebar_ad.title }}</strong></p>
+                <p class="small">{{ sidebar_ad.content }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- 중앙 컨텐츠 영역 -->
+    <div class="col-lg-10 content-padding">
+        <!-- 배너 광고 -->
+        {% if banner_ad %}
+        <div class="card mb-4 banner-ad">
+            
+            <div class="card-body text-center">
+                {% if banner_ad.link_url and banner_ad.image_path %}
+                <a href="{{ banner_ad.link_url }}" target="_blank">
+                    <img src="{{ url_for('static', filename=banner_ad.image_path) }}" alt="{{ banner_ad.title }}" class="img-fluid rounded">
+                </a>
+                {% elif banner_ad.image_path %}
+                <img src="{{ url_for('static', filename=banner_ad.image_path) }}" alt="{{ banner_ad.title }}" class="img-fluid rounded">
+                {% else %}
+                <h5>{{ banner_ad.title }}</h5>
+                <p>{{ banner_ad.content }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="card mb-3">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{{ board.name }} 게시판</h5>
+                <a href="{{ url_for('board.write_post', board_route=board.route) }}" class="btn btn-sm btn-primary">글쓰기</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-board mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                
+                                <th>제목</th>
+				<th class="d-lg-none"  style="width: 80px;">글쓴이</th>
+                                <th class="d-none d-md-table-cell"  style="width: 80px;">글쓴이</th>
+                                <th style="width: 70px;">작성일</th>
+                                <th class="d-none d-md-table-cell"  style="width: 70px;">조회</th>
+                                <th class="d-none d-md-table-cell" style="width: 70px;">좋아요</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- 공지사항 표시 -->
+                            {% for notice in notices %}
+                            <tr class="table-secondary">
+                              
+                                <td>
+				<span class="badge bg-danger">공지</span>
+                                    <a href="#" class="post-title fw-bold" data-bs-toggle="modal" data-bs-target="#noticeModal{{ notice.id }}">
+                                        <span class="post-title-text" data-full-title="{{ notice.title }}">
+                                            {{ notice.title }}
+                                        </span>
+                                    </a>
+                                </td>
+                                <td class="text-left d-none d-md-table-cell">
+                                    {{ notice.nickname }}
+				    
+                                    {% if notice.is_admin %}
+                                    <span class="badge bg-danger">관리자</span>
+                                    {% endif %}
+				    
+                                </td>
+                                <td class="text-center small d-none d-md-table-cell">{{ notice.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td class="text-center small">-</td>
+                                <td class="text-center small">-</td>
+                            </tr>
+                            {% endfor %}
+                            
+                            <!-- 일반 게시글 표시 -->
+                            {% for post in posts %}
+                            <tr>
+                                
+                                <td>
+                                    <a href="{{ url_for('board.view_post', board_route=board.route, post_id=post.id) }}" class="post-title">
+                                        <span class="post-title-text" data-full-title="{{ post.title }}">
+                                            {{ post.title }}
+                                        </span>
+                                        {% if post.comment_count > 0 %}
+                                        <span class="text-primary">[{{ post.comment_count }}]</span>
+                                        {% endif %}
+                                        {% if (post.created_at|string)[:10] == now[:10] %}
+                                        <span class="badge bg-danger">N</span>
+                                        {% endif %}
+                                    </a>
+                                </td>
+                                <td class="text-left small d-lg-none" style="width: 80px;">{{ post.nickname }}{% if post.is_vip %}
+                                <span class="badge bg-warning text-dark me-2">VIP</span>
+                                {% endif %} </td>
+                                <td class="text-left small d-none d-md-table-cell" style="width: 80px;">{{ post.nickname }}
+                                {% if post.is_vip %}
+                                <span class="badge bg-warning text-dark me-2">VIP</span>
+                                {% endif %}</td>
+
+                                <td class="text-center small" style="width: 70px;">{{ post.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td class="text-center small d-none d-md-table-cell">{{ post.view_count }}</td>
+                                <td class="text-center small d-none d-md-table-cell">{{ post.like_count }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4">게시글이 없습니다.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 페이지네이션 -->
+        {% if total_pages > 1 %}
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if page > 1 %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('board.board_main', board_route=board.route, page=page-1) }}">이전</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">이전</span>
+                </li>
+                {% endif %}
+                
+                {% for p in range(1, total_pages + 1) %}
+                {% if p == page %}
+                <li class="page-item active">
+                    <span class="page-link">{{ p }}</span>
+                </li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('board.board_main', board_route=board.route, page=p) }}">{{ p }}</a>
+                </li>
+                {% endif %}
+                {% endfor %}
+                
+                {% if page < total_pages %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('board.board_main', board_route=board.route, page=page+1) }}">다음</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">다음</span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        
+        <!-- 검색 폼 -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <form action="{{ url_for('board.board_main', board_route=board.route) }}" method="get" class="row g-2 justify-content-center">
+                    <div class="col-auto">
+                        <select name="search_type" class="form-select form-select-sm">
+                            <option value="title">제목</option>
+                            <option value="content">내용</option>
+                            <option value="title_content">제목+내용</option>
+                            <option value="nickname">글쓴이</option>
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <input type="text" name="search_query" class="form-control form-control-sm" placeholder="검색어" value="{{ request.args.get('search_query', '') }}">
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary btn-sm">검색</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 푸터 광고 -->
+{% if footer_ad %}
+<div class="container mt-4">
+    <div class="card mb-4 footer-ad">
+        
+        <div class="card-body text-center">
+            {% if footer_ad.link_url and footer_ad.image_path %}
+            <a href="{{ footer_ad.link_url }}" target="_blank">
+                <img src="{{ url_for('static', filename=footer_ad.image_path) }}" alt="{{ footer_ad.title }}" class="img-fluid rounded">
+            </a>
+            {% elif footer_ad.image_path %}
+            <img src="{{ url_for('static', filename=footer_ad.image_path) }}" alt="{{ footer_ad.title }}" class="img-fluid rounded">
+            {% else %}
+            <h5>{{ footer_ad.title }}</h5>
+            <p>{{ footer_ad.content }}</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- 공지사항 모달 -->
+{% for notice in notices %}
+<div class="modal fade" id="noticeModal{{ notice.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title">공지사항: {{ notice.title }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <small>작성자: {{ notice.nickname }} | 작성일: {{ notice.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                </div>
+                <div class="notice-content">
+                    {{ notice.content|nl2br }}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 화면 크기에 따라 제목 생략 처리
+        const truncatePostTitles = function() {
+            const postTitles = document.querySelectorAll('.post-title-text');
+            
+            postTitles.forEach(function(titleElement) {
+                const fullTitle = titleElement.getAttribute('data-full-title');
+                const cssWidth = window.innerWidth;
+                
+                // 화면 크기별 최대 길이 조정
+                let maxLength;
+                if (cssWidth > 1500) {
+                    maxLength = 40;
+                } else if (cssWidth > 1200) {
+                    maxLength = 32;
+                } else if (cssWidth > 992) {
+                    maxLength = 25;
+                } else if (cssWidth > 576) {
+                    maxLength = 37;
+                } else {
+                    maxLength = 30;
+                }
+                
+                if (fullTitle.length <= maxLength) {
+                    titleElement.textContent = fullTitle;
+                } else {
+                    titleElement.textContent = fullTitle.substring(0, maxLength) + '...';
+                }
+            });
+        };
+        
+        // 초기 실행
+        truncatePostTitles();
+        
+        // 화면 크기 변경 시 다시 실행
+        window.addEventListener('resize', truncatePostTitles);
+    });
+</script>
+{% endblock %}

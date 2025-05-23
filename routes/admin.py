@@ -1,0 +1,688 @@
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, abort
+from functools import wraps
+import os
+from werkzeug.utils import secure_filename
+from datetime import datetime
+
+admin_bp = Blueprint('admin', __name__)
+
+# 필요한 객체 가져오기 (모듈 레벨에서 가져오지 않고 라우트 내부에서 가져옴)
+from app import mysql
+
+# 관리자 접근 데코레이터
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'loggedin' not in session or not session.get('is_admin'):
+            flash('관리자 권한이 필요합니다.', 'danger')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# 관리자 대시보드
+@admin_bp.route('/admin')
+@admin_required
+def dashboard():
+    # 필요한 객체 가져오기
+    cur = mysql.connection.cursor()
+    
+    # 전체 회원 수, 게시글 수, 댓글 수, 오늘 작성된 게시글 수
+    cur.execute('SELECT COUNT(*) as count FROM users')
+    user_count = cur.fetchone()['count']
+    
+    cur.execute('SELECT COUNT(*) as count FROM posts')
+    post_count = cur.fetchone()['count']
+    
+    cur.execute('SELECT COUNT(*) as count FROM comments')
+    comment_count = cur.fetchone()['count']
+    
+    cur.execute("SELECT COUNT(*) as count FROM posts WHERE DATE(created_at) = CURDATE()")
+    today_post_count = cur.fetchone()['count']
+    
+    # 최근 등록된 회원
+    cur.execute('SELECT * FROM users ORDER BY created_at DESC LIMIT 5')
+    recent_users = cur.fetchall()
+    
+    # 최근 작성된 게시글
+    cur.execute('''
+        SELECT posts.*, users.nickname, boards.name as board_name
+        FROM posts
+        JOIN users ON posts.user_id = users.id
+        JOIN boards ON posts.board_id = boards.id
+        ORDER BY posts.created_at DESC
+        LIMIT 10
+    ''')
+    recent_posts = cur.fetchall()
+    
+    # 광고 목록
+    cur.execute('SELECT * FROM ads ORDER BY id DESC')
+    ads = cur.fetchall()
+    
+    cur.close()
+    
+    return render_template('admin/dashboard.html', user_count=user_count,
+                          post_count=post_count, comment_count=comment_count,
+                          today_post_count=today_post_count, recent_users=recent_users,
+                          recent_posts=recent_posts, ads=ads)
+
+# 회원 관리
+@admin_bp.route('/admin/users')
+@admin_required
+def users():
+    # 필요한 객체 가져오기
+    cur = mysql.connection.cursor()
+    
+    # 페이지네이션
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+    offset = (page - 1) * per_page
+    
+    # 전체 회원 조회
+    cur.execute('''
+        SELECT * FROM users
+        ORDER BY created_at DESC
+        LIMIT %s OFFSET %s
+    ''', (per_page, offset))
+    
+    users = cur.fetchall()
+    
+    # 총 회원 수 조회 (페이지네이션용)
+    cur.execute('SELECT COUNT(*) as count FROM users')
+    total_count = cur.fetchone()['count']
+    total_pages = (total_count + per_page - 1) // per_page
+    
+    cur.close()
+    
+    return render_template('admin/users.html', users=users, 
+                          page=page, total_pages=total_pages)
+
+# VIP 설정/해제 기능
+@admin_bp.route('/toggle_vip/<int:user_id>', methods=['POST'])
+def toggle_vip(user_id):
+    if 'loggedin' not in session or not session.get('is_admin'):
+        flash('접근 권한이 없습니다.', 'danger')
+        return redirect(url_for('index'))
+
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute('SELECT * FROM users WHERE id = %s', (user_id,))
+        user = cur.fetchone()
+        
+        if not user:
+            flash('사용자를 찾을 수 없습니다.', 'danger')
+            return redirect(url_for('admin.users'))
+        
+        # 현재 VIP 상태에 따라 변경
+        vip_type = request.form.get('vip_type', '0')
+        cur.execute('UPDATE users SET is_vip = %s WHERE id = %s', (vip_type, user_id))
+        mysql.connection.commit()
+        
+        # 설정된 VIP 타입에 따른 메시지 표시
+        vip_message = {
+            '0': f"{user['nickname']} 사용자의 VIP 권한이 해제되었습니다.",
+            '1': f"{user['nickname']} 사용자를 노란색 VIP로 설정했습니다.",
+            '2': f"{user['nickname']} 사용자를 파란색 VIP로 설정했습니다."
+        }
+        flash(vip_message.get(vip_type, "VIP 상태가 변경되었습니다."), 'success')
+        
+        cur.close()
+        return redirect(url_for('admin.users'))
+    except Exception as e:
+        flash(f'오류가 발생했습니다: {str(e)}', 'danger')
+        return redirect(url_for('admin.users'))
+
+# 게시글 관리
+@admin_bp.route('/admin/posts')
+@admin_required
+def posts():
+    # 필요한 객체 가져오기
+    cur = mysql.connection.cursor()
+    
+    # 페이지네이션
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+    offset = (page - 1) * per_page
+    
+    # 게시판 필터
+    board_id = request.args.get('board_id', type=int)
+    
+    # 게시판 목록 조회
+    cur.execute('SELECT * FROM boards')
+    boards = cur.fetchall()
+    
+    # 총 게시글 수 조회 (페이지네이션용)
+    if board_id:
+        cur.execute('SELECT COUNT(*) as count FROM posts WHERE board_id = %s', (board_id,))
+    else:
+        cur.execute('SELECT COUNT(*) as count FROM posts')
+    
+    total_count = cur.fetchone()['count']
+    total_pages = (total_count + per_page - 1) // per_page
+    
+    # 게시글 조회
+    if board_id:
+        cur.execute('''
+            SELECT posts.*, CASE WHEN posts.is_anonymous = 1 THEN '익명' ELSE users.nickname END as nickname, 
+                  boards.name as board_name, boards.route as board_route
+            FROM posts
+            LEFT JOIN users ON posts.user_id = users.id
+            JOIN boards ON posts.board_id = boards.id
+            WHERE posts.board_id = %s
+            ORDER BY posts.created_at DESC
+            LIMIT %s OFFSET %s
+        ''', (board_id, per_page, offset))
+    else:
+        cur.execute('''
+            SELECT posts.*, CASE WHEN posts.is_anonymous = 1 THEN '익명' ELSE users.nickname END as nickname, 
+                  boards.name as board_name, boards.route as board_route
+            FROM posts
+            LEFT JOIN users ON posts.user_id = users.id
+            JOIN boards ON posts.board_id = boards.id
+            ORDER BY posts.created_at DESC
+            LIMIT %s OFFSET %s
+        ''', (per_page, offset))
+    
+    posts = cur.fetchall()
+    
+    cur.close()
+    
+    return render_template('admin/posts.html', posts=posts, boards=boards,
+                          selected_board=board_id, page=page, total_pages=total_pages)
+
+# 광고 관리
+@admin_bp.route('/admin/ads')
+@admin_required
+def ads():
+    # 필요한 객체 가져오기
+    cur = mysql.connection.cursor()
+    
+    # 광고 목록 조회
+    cur.execute('SELECT * FROM ads ORDER BY id DESC')
+    ads = cur.fetchall()
+    
+    cur.close()
+    
+    return render_template('admin/ads.html', ads=ads)
+
+# 공지사항 관리
+@admin_bp.route('/admin/notices')
+@admin_required
+def notices():
+    cur = mysql.connection.cursor()
+    
+    # 공지사항 목록 조회
+    cur.execute('''
+        SELECT notices.*, users.nickname
+        FROM notices
+        JOIN users ON notices.user_id = users.id
+        ORDER BY notices.created_at DESC
+    ''')
+    notices = cur.fetchall()
+    
+    cur.close()
+    
+    return render_template('admin/notices.html', notices=notices)
+
+# 공지사항 추가
+@admin_bp.route('/admin/notices/add', methods=['GET', 'POST'])
+@admin_required
+def add_notice():
+    if request.method == 'POST':
+        title = request.form['title']
+        content = request.form['content']
+        is_active = request.form.get('is_active', '0') == '1'
+        
+        # 입력값 검증
+        if not title or not content:
+            flash('제목과 내용을 모두 입력해주세요.', 'danger')
+            return render_template('admin/notice_form.html', notice=None)
+        
+        # 공지사항 저장
+        cur = mysql.connection.cursor()
+        cur.execute('''
+            INSERT INTO notices (title, content, user_id, created_at, is_active)
+            VALUES (%s, %s, %s, NOW(), %s)
+        ''', (title, content, session['id'], 1 if is_active else 0))
+        
+        mysql.connection.commit()
+        cur.close()
+        
+        flash('공지사항이 등록되었습니다.', 'success')
+        return redirect(url_for('admin.notices'))
+    
+    return render_template('admin/notice_form.html', notice=None)
+
+# 공지사항 수정
+@admin_bp.route('/admin/notices/<int:notice_id>/edit', methods=['GET', 'POST'])
+@admin_required
+def edit_notice(notice_id):
+    cur = mysql.connection.cursor()
+    
+    # 공지사항 조회
+    cur.execute('SELECT * FROM notices WHERE id = %s', (notice_id,))
+    notice = cur.fetchone()
+    
+    if not notice:
+        cur.close()
+        abort(404)
+    
+    if request.method == 'POST':
+        title = request.form['title']
+        content = request.form['content']
+        is_active = request.form.get('is_active', '0') == '1'
+        
+        # 입력값 검증
+        if not title or not content:
+            flash('제목과 내용을 모두 입력해주세요.', 'danger')
+            return render_template('admin/notice_form.html', notice=notice)
+        
+        # 공지사항 업데이트
+        cur.execute('''
+            UPDATE notices
+            SET title = %s, content = %s, updated_at = NOW(), is_active = %s
+            WHERE id = %s
+        ''', (title, content, 1 if is_active else 0, notice_id))
+        
+        mysql.connection.commit()
+        cur.close()
+        
+        flash('공지사항이 수정되었습니다.', 'success')
+        return redirect(url_for('admin.notices'))
+    
+    cur.close()
+    
+    return render_template('admin/notice_form.html', notice=notice)
+
+# 공지사항 삭제
+@admin_bp.route('/admin/notices/<int:notice_id>/delete', methods=['POST'])
+@admin_required
+def delete_notice(notice_id):
+    cur = mysql.connection.cursor()
+    
+    # 공지사항 삭제
+    cur.execute('DELETE FROM notices WHERE id = %s', (notice_id,))
+    mysql.connection.commit()
+    
+    cur.close()
+    
+    flash('공지사항이 삭제되었습니다.', 'success')
+    return redirect(url_for('admin.notices'))
+
+# 광고 추가
+@admin_bp.route('/admin/ads/add', methods=['GET', 'POST'])
+@admin_required
+def add_ad():
+    # 필요한 객체 가져오기
+    from flask import current_app
+    
+    if request.method == 'POST':
+        # 폼 데이터 가져오기
+        title = request.form['title']
+        content = request.form['content']
+        link = request.form['link']
+        position = request.form['position']
+        is_active = 1 if 'is_active' in request.form else 0
+        
+        # 입력값 검증
+        if not title or not content:
+            flash('제목과 내용을 모두 입력해주세요.', 'danger')
+            return render_template('admin/add_ad.html')
+        
+        # 이미지 업로드 처리
+        image_path = None
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and file.filename != '':
+                # 허용된 파일 확장자 체크
+                allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+                try:
+                    file_ext = file.filename.rsplit('.', 1)[1].lower()
+                    if file_ext in allowed_extensions:
+                        filename = secure_filename(file.filename)
+                        # 파일명이 중복되지 않도록 타임스탬프 추가
+                        filename = f"ad_{datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}"
+                        # 업로드 폴더 경로 확인 및 생성
+                        upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'ads')
+                        if not os.path.exists(upload_dir):
+                            os.makedirs(upload_dir)
+                        file_path = os.path.join(upload_dir, filename)
+                        file.save(file_path)
+                        image_path = f"uploads/ads/{filename}"
+                        print(f"광고 이미지 저장 성공: {file_path}")
+                    else:
+                        flash('허용되지 않는 파일 형식입니다. (PNG, JPG, JPEG, GIF만 가능)', 'danger')
+                        return render_template('admin/add_ad.html')
+                except Exception as e:
+                    print(f"파일 업로드 오류: {str(e)}")
+                    flash(f'파일 업로드 중 오류가 발생했습니다: {str(e)}', 'danger')
+                    return render_template('admin/add_ad.html')
+        
+        # 광고 저장
+        cur = mysql.connection.cursor()
+        cur.execute('''
+            INSERT INTO ads (title, content, image_path, link_url, position, is_active, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, NOW())
+        ''', (title, content, image_path, link, position, is_active))
+        
+        mysql.connection.commit()
+        cur.close()
+        
+        flash('광고가 등록되었습니다.', 'success')
+        return redirect(url_for('admin.ads'))
+    
+    return render_template('admin/add_ad.html')
+
+# 광고 수정
+@admin_bp.route('/admin/ads/<int:ad_id>/edit', methods=['GET', 'POST'])
+@admin_required
+def edit_ad(ad_id):
+    # 필요한 객체 가져오기
+    from flask import current_app
+    
+    cur = mysql.connection.cursor()
+    
+    # 광고 데이터 조회
+    cur.execute('SELECT * FROM ads WHERE id = %s', (ad_id,))
+    ad = cur.fetchone()
+    
+    if not ad:
+        cur.close()
+        abort(404)
+    
+    if request.method == 'POST':
+        # 폼 데이터 가져오기
+        title = request.form['title']
+        content = request.form['content']
+        link = request.form['link']
+        position = request.form['position']
+        is_active = 1 if 'is_active' in request.form else 0
+        
+        # 입력값 검증
+        if not title or not content:
+            flash('제목과 내용을 모두 입력해주세요.', 'danger')
+            return render_template('admin/edit_ad.html', ad=ad)
+        
+        # 이미지 업로드 처리
+        image_path = ad['image_path']
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and file.filename != '':
+                # 허용된 파일 확장자 체크
+                allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+                try:
+                    file_ext = file.filename.rsplit('.', 1)[1].lower()
+                    if file_ext in allowed_extensions:
+                        filename = secure_filename(file.filename)
+                        # 파일명이 중복되지 않도록 타임스탬프 추가
+                        filename = f"ad_{datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}"
+                        # 업로드 폴더 경로 확인 및 생성
+                        upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'ads')
+                        if not os.path.exists(upload_dir):
+                            os.makedirs(upload_dir)
+                        file_path = os.path.join(upload_dir, filename)
+                        file.save(file_path)
+                        image_path = f"uploads/ads/{filename}"
+                        print(f"광고 이미지 업데이트 성공: {file_path}")
+                    else:
+                        flash('허용되지 않는 파일 형식입니다. (PNG, JPG, JPEG, GIF만 가능)', 'danger')
+                        return render_template('admin/edit_ad.html', ad=ad)
+                except Exception as e:
+                    print(f"파일 업로드 오류: {str(e)}")
+                    flash(f'파일 업로드 중 오류가 발생했습니다: {str(e)}', 'danger')
+                    return render_template('admin/edit_ad.html', ad=ad)
+        
+        # 광고 수정
+        cur.execute('''
+            UPDATE ads
+            SET title = %s, content = %s, image_path = %s, link_url = %s, position = %s, is_active = %s
+            WHERE id = %s
+        ''', (title, content, image_path, link, position, is_active, ad_id))
+        
+        mysql.connection.commit()
+        cur.close()
+        
+        flash('광고가 수정되었습니다.', 'success')
+        return redirect(url_for('admin.ads'))
+    
+    cur.close()
+    return render_template('admin/edit_ad.html', ad=ad)
+
+# 광고 삭제
+@admin_bp.route('/admin/ads/<int:ad_id>/delete', methods=['POST'])
+@admin_required
+def delete_ad(ad_id):
+    # 필요한 객체 가져오기
+    cur = mysql.connection.cursor()
+    
+    # 광고 데이터 조회
+    cur.execute('SELECT * FROM ads WHERE id = %s', (ad_id,))
+    ad = cur.fetchone()
+    
+    if not ad:
+        cur.close()
+        abort(404)
+    
+    # 광고 삭제
+    cur.execute('DELETE FROM ads WHERE id = %s', (ad_id,))
+    
+    mysql.connection.commit()
+    cur.close()
+    
+    flash('광고가 삭제되었습니다.', 'success')
+    return redirect(url_for('admin.ads'))
+
+# 차단 관리 페이지
+@admin_bp.route('/admin/blocks')
+@admin_required
+def blocks():
+    # 필요한 객체 가져오기
+    cur = mysql.connection.cursor()
+
+    # 차단된 IP 조회
+    cur.execute('''
+        SELECT blocked_ips.*, users.nickname as admin_nickname
+        FROM blocked_ips
+        JOIN users ON blocked_ips.created_by = users.id
+        ORDER BY blocked_ips.created_at DESC
+    ''')
+    ip_blocks = cur.fetchall()
+
+    # 차단된 사용자 조회
+    cur.execute('''
+        SELECT blocked_users.*,
+               users.nickname as admin_nickname,
+               blocked.nickname
+        FROM blocked_users
+        JOIN users ON blocked_users.created_by = users.id
+        JOIN users as blocked ON blocked_users.user_id = blocked.id
+        ORDER BY blocked_users.created_at DESC
+    ''')
+    user_blocks = cur.fetchall()
+
+    # 사용자 목록 조회 (차단 대상 선택용)
+    cur.execute('SELECT id, username, nickname FROM users ORDER BY nickname')
+    users = cur.fetchall()
+
+    cur.close()
+
+    return render_template('admin/blocks.html', ip_blocks=ip_blocks, user_blocks=user_blocks, users=users)
+
+# IP 차단 추가
+@admin_bp.route('/admin/blocks/ip/add', methods=['POST'])
+@admin_required
+def add_ip_block():
+    # 필요한 객체 가져오기
+    cur = mysql.connection.cursor()
+
+    # 폼 데이터 가져오기
+    ip_address = request.form['ip_address']
+    reason = request.form['reason']
+    expires_at = request.form['expires_at'] if request.form.get('expires_at') else None
+
+    try:
+        # IP 주소 차단 추가
+        cur.execute('''
+            INSERT INTO blocked_ips (ip_address, reason, expires_at, created_at, created_by)
+            VALUES (%s, %s, %s, NOW(), %s)
+        ''', (ip_address, reason, expires_at, session['id']))
+
+        mysql.connection.commit()
+        flash(f'IP 주소 {ip_address}가 차단되었습니다.', 'success')
+    except Exception as e:
+        mysql.connection.rollback()
+        flash(f'IP 주소 차단 중 오류가 발생했습니다: {str(e)}', 'danger')
+    finally:
+        cur.close()
+
+    return redirect(url_for('admin.blocks'))
+
+# IP 차단 해제
+@admin_bp.route('/admin/blocks/ip/<int:block_id>/remove', methods=['POST'])
+@admin_required
+def remove_ip_block(block_id):
+    # 필요한 객체 가져오기
+    cur = mysql.connection.cursor()
+
+    try:
+        # 차단된 IP 정보 조회
+        cur.execute('SELECT * FROM blocked_ips WHERE id = %s', (block_id,))
+        block = cur.fetchone()
+
+        if not block:
+            flash('존재하지 않는 차단 정보입니다.', 'danger')
+            return redirect(url_for('admin.blocks'))
+
+        # IP 차단 해제
+        cur.execute('DELETE FROM blocked_ips WHERE id = %s', (block_id,))
+        mysql.connection.commit()
+
+        flash(f'IP 주소 {block["ip_address"]}의 차단이 해제되었습니다.', 'success')
+    except Exception as e:
+        mysql.connection.rollback()
+        flash(f'IP 주소 차단 해제 중 오류가 발생했습니다: {str(e)}', 'danger')
+    finally:
+        cur.close()
+
+    return redirect(url_for('admin.blocks'))
+
+# 사용자 차단 추가
+@admin_bp.route('/admin/blocks/user/add', methods=['POST'])
+@admin_required
+def add_user_block():
+    # 필요한 객체 가져오기
+    cur = mysql.connection.cursor()
+
+    # 폼 데이터 가져오기
+    user_id = request.form['user_id']
+    reason = request.form['reason']
+    expires_at = request.form['expires_at'] if request.form.get('expires_at') else None
+
+    try:
+        # 사용자 존재 여부 확인
+        cur.execute('SELECT * FROM users WHERE id = %s', (user_id,))
+        user = cur.fetchone()
+
+        if not user:
+            flash('존재하지 않는 사용자입니다.', 'danger')
+            return redirect(url_for('admin.blocks'))
+
+        # 관리자는 차단할 수 없음
+        if user['is_admin']:
+            flash('관리자는 차단할 수 없습니다.', 'danger')
+            return redirect(url_for('admin.blocks'))
+
+        # 사용자 차단 추가
+        cur.execute('''
+            INSERT INTO blocked_users (user_id, reason, expires_at, created_at, created_by)
+            VALUES (%s, %s, %s, NOW(), %s)
+        ''', (user_id, reason, expires_at, session['id']))
+
+        mysql.connection.commit()
+        flash(f'사용자 {user["nickname"]}이(가) 차단되었습니다.', 'success')
+    except Exception as e:
+        mysql.connection.rollback()
+        flash(f'사용자 차단 중 오류가 발생했습니다: {str(e)}', 'danger')
+    finally:
+        cur.close()
+
+    return redirect(url_for('admin.blocks'))
+
+# 사용자 차단 해제
+@admin_bp.route('/admin/blocks/user/<int:block_id>/remove', methods=['POST'])
+@admin_required
+def remove_user_block(block_id):
+    # 필요한 객체 가져오기
+    cur = mysql.connection.cursor()
+
+    try:
+        # 차단된 사용자 정보 조회
+        cur.execute('''
+            SELECT blocked_users.*, users.nickname
+            FROM blocked_users
+            JOIN users ON blocked_users.user_id = users.id
+            WHERE blocked_users.id = %s
+        ''', (block_id,))
+        block = cur.fetchone()
+
+        if not block:
+            flash('존재하지 않는 차단 정보입니다.', 'danger')
+            return redirect(url_for('admin.blocks'))
+
+        # 사용자 차단 해제
+        cur.execute('DELETE FROM blocked_users WHERE id = %s', (block_id,))
+        mysql.connection.commit()
+
+        flash(f'사용자 {block["nickname"]}의 차단이 해제되었습니다.', 'success')
+    except Exception as e:
+        mysql.connection.rollback()
+        flash(f'사용자 차단 해제 중 오류가 발생했습니다: {str(e)}', 'danger')
+    finally:
+        cur.close()
+
+    return redirect(url_for('admin.blocks'))
+
+# 회원 삭제
+@admin_bp.route('/admin/users/<int:user_id>/delete', methods=['POST'])
+@admin_required
+def delete_user(user_id):
+    cur = mysql.connection.cursor()
+    cur.execute('SELECT * FROM users WHERE id = %s', (user_id,))
+    user = cur.fetchone()
+    if not user:
+        cur.close()
+        abort(404)
+    cur.execute('DELETE FROM users WHERE id = %s', (user_id,))
+    mysql.connection.commit()
+    cur.close()
+    flash('회원이 삭제되었습니다.', 'success')
+    return redirect(url_for('admin.users'))
+
+# 닉네임 강제 변경
+@admin_bp.route('/admin/users/<int:user_id>/change_nickname', methods=['POST'])
+@admin_required
+def change_nickname(user_id):
+    new_nickname = request.form.get('new_nickname')
+    if not new_nickname:
+        flash('새 닉네임을 입력하세요.', 'danger')
+        return redirect(url_for('admin.users'))
+    cur = mysql.connection.cursor()
+    cur.execute('UPDATE users SET nickname = %s WHERE id = %s', (new_nickname, user_id))
+    mysql.connection.commit()
+    cur.close()
+    flash('닉네임이 변경되었습니다.', 'success')
+    return redirect(url_for('admin.users'))
+
+# 이메일 강제 변경
+@admin_bp.route('/admin/users/<int:user_id>/change_email', methods=['POST'])
+@admin_required
+def change_email(user_id):
+    new_email = request.form.get('new_email')
+    if not new_email:
+        flash('새 이메일을 입력하세요.', 'danger')
+        return redirect(url_for('admin.users'))
+    cur = mysql.connection.cursor()
+    cur.execute('UPDATE users SET email = %s WHERE id = %s', (new_email, user_id))
+    mysql.connection.commit()
+    cur.close()
+    flash('이메일이 변경되었습니다.', 'success')
+    return redirect(url_for('admin.users'))

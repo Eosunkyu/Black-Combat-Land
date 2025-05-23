@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /auth/login
+Disallow: /auth/register
+Disallow: /auth/profile
+Disallow: /auth/messages
+Disallow: /auth/friends
+
+# 사이트맵 위치
+Sitemap: https://blackcombat.com/sitemap.xml 

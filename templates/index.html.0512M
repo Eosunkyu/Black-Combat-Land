@@ -1,0 +1,595 @@
+{% extends "layout.html" %}
+
+{% block title %}BLACK COMBAT LAND - 블랙컴뱃 커뮤니티{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 좌측 칼럼 (로그인 영역) -->
+    <div class="col-lg-2 left-column d-none d-lg-block">
+        {% if not session.loggedin %}
+        <div class="login-form-container">
+            <!-- 로그인 제목 추가 -->
+            <h5 class="mb-2 text-nowrap">회원 로그인</h5>
+            <div class="login-highlighted mb-3"></div>
+            <!-- 폼 요소 먼저 배치 -->
+            <form action="{{ url_for('auth.login') }}" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="mb-2">
+                    <input type="text" class="form-control" name="username" placeholder="ID" required>
+                </div>
+                <div class="mb-2">
+                    <input type="password" class="form-control" name="password" placeholder="비밀번호" required>
+                </div>
+                <div class="d-flex flex-column mb-2">
+                    <button type="submit" class="btn btn-dark text-nowrap">로그인</button>
+                </div>
+                <div class="small mb-3">
+			<a href="{{ url_for('auth.register') }}" class="text-decoration-none no-wrap">회원가입</a>
+			</br>
+                    <a href="{{ url_for('auth.find_account') }}" class="text-decoration-none no-wrap text-nowrap">아이디/비밀번호찾기</a>
+                </div>
+            </form>
+        </div>
+        {% else %}
+        <div class="login-form-container">
+            <div class="member-info mb-3">
+                <p class="mb-2"><strong>{{ session.nickname }}님</strong> 환영합니다</p>
+                {% if session.is_vip %}
+                <span class="badge bg-warning text-dark">VIP 회원</span>
+                {% endif %}
+            </div>
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('auth.profile') }}"class="btn btn-outline-secondary btn-sm d-none d-lg-block">내 정보</a>
+                <a href="{{ url_for('auth.messages') }}" class="btn btn-outline-secondary btn-sm d-none d-lg-block">쪽지함</a>
+                <a href="{{ url_for('auth.friends') }}" class="btn btn-outline-secondary btn-sm d-none d-lg-block">친구관리</a>
+                {% if session.is_admin %}
+                <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-primary btn-sm d-none d-lg-block">관리자 페이지</a>
+                {% endif %}
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-sm d-none d-lg-block">로그아웃</a>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- 사이드바 광고 -->
+        {% if sidebar_ad %}
+        <div class="card mb-4 mt-4 sidebar-ad p-0 border-0">
+            
+            <div class="text-center p-0">
+                {% if sidebar_ad.link_url and sidebar_ad.image_path %}
+                <a href="{{ sidebar_ad.link_url }}" target="_blank" style="display:block; width:100%;">
+                    <img src="{{ url_for('static', filename=sidebar_ad.image_path) }}" alt="{{ sidebar_ad.title }}"  style="width:100%; max-width:100%; height:auto; display:block;" class="img-fluid">
+                </a>
+                {% elif sidebar_ad.image_path %}
+                <img src="{{ url_for('static', filename=sidebar_ad.image_path) }}" alt="{{ sidebar_ad.title }}" style="width:100%; max-width:100%; height:auto; display:block;" class="img-fluid">
+                {% else %}
+                <p class="mb-1"><strong>{{ sidebar_ad.title }}</strong></p>
+                <p class="small">{{ sidebar_ad.content }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- 중앙 컨텐츠 영역 -->
+    <div class="col-lg-7 mid-column p-0">
+        <!-- 메인 배너 광고 -->
+        {% if banner_ad %}
+        <div class="card mb-4 banner-ad">
+            
+            <div class="card-body text-center">
+                {% if banner_ad.link_url and banner_ad.image_path %}
+                <a href="{{ banner_ad.link_url }}" target="_blank">
+                    <img src="{{ url_for('static', filename=banner_ad.image_path) }}" alt="{{ banner_ad.title }}" class="img-fluid rounded">
+                </a>
+                {% elif banner_ad.image_path %}
+                <img src="{{ url_for('static', filename=banner_ad.image_path) }}" alt="{{ banner_ad.title }}" class="img-fluid rounded">
+                {% else %}
+                <h5>{{ banner_ad.title }}</h5>
+                <p>{{ banner_ad.content }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="row p-2">
+            <!-- 첫번째 줄: 실시간, 베스트, VIP -->
+            <div class="col-md-6 p-1">
+                <div class="card mb-4 p-0">
+                    <div class="card-header bg-dark text-dark p-0">
+                        <h5 class="mb-0 p-2">실시간게시물</h5>
+                        <div class="board-highlighted"></div>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush post-list fixed-height-list">
+                            {% for post in realtime_posts[:6] %}
+                            <li class="list-group-item p-0 m-0">
+                                <a href="{{ url_for('board.view_post', board_route=post.board_route, post_id=post.id) }}" class="text-decoration-none post-link">
+                                    <span class="post-title">[{{ post.board_name|default(post.board_route) }}] {{ post.title }}{% if post.comment_count > 0 %}<span class="text-primary">[{{ post.comment_count }}]</span>{% endif %}</span>
+                                    </a>
+				    <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">{{ post.created_at.strftime('%H:%M') }}</small>
+                            </li>
+                            {% else %}
+                            {% for i in range(6) %}
+                            <li class="list-group-item empty-post">{% if i == 0 %}실시간게시글이 없습니다.{% endif %}</li>
+                            {% endfor %}
+                            {% endfor %}
+                            
+                            {# 게시글이 6개보다 적을 경우 빈 공간으로 채움 #}
+                            {% if realtime_posts|length > 0 and realtime_posts|length < 6 %}
+                                {% for i in range(6 - realtime_posts|length) %}
+                                <li class="list-group-item empty-post"></li>
+                                {% endfor %}
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 p-1">
+                <div class="card mb-4">
+                    <div class="card-header bg-dark text-dark p-0">
+                        <h5 class="mb-0 p-2">베스트</h5>
+                        <div class="board-highlighted"></div>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush post-list fixed-height-list">
+                            {% for post in best_posts[:6] %}
+                            <li class="list-group-item">
+                                <a href="{{ url_for('board.view_post', board_route=post.board_route, post_id=post.id) }}" class="text-decoration-none post-link">
+                                    <span class="post-title">[{{ post.board_name|default(post.board_route) }}] {{ post.title }}{% if post.comment_count > 0 %}<span class="text-primary">[{{ post.comment_count }}]</span>{% endif %}</span>
+                                    <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">{{ post.created_at.strftime('%H:%M') }}</small>
+                                </a>
+                            </li>
+                            {% else %}
+                            {% for i in range(6) %}
+                            <li class="list-group-item empty-post">{% if i == 0 %}베스트 게시글이 없습니다.{% endif %}</li>
+                            {% endfor %}
+                            {% endfor %}
+                            
+                            {# 게시글이 6개보다 적을 경우 빈 공간으로 채움 #}
+                            {% if best_posts|length > 0 and best_posts|length < 6 %}
+                                {% for i in range(6 - best_posts|length) %}
+                                <li class="list-group-item empty-post"></li>
+                                {% endfor %}
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            
+            <!-- 두번째 줄: 자유, 익명, 질문게시판 -->
+            <div class="col-md-6 p-1">
+                <div class="card mb-4">
+                    <div class="card-header bg-dark text-dark p-0">
+                        <h5 class="mb-0 p-2">자유</h5>
+                        <div class="board-highlighted"></div>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush post-list fixed-height-list">
+                            {% for post in board_posts.free[:6] %}
+                            <li class="list-group-item">
+                                <a href="{{ url_for('board.view_post', board_route='free', post_id=post.id) }}" class="text-decoration-none post-link">
+                                    <span class="post-title">{{ post.title }}{% if post.comment_count > 0 %}<span class="text-primary">[{{ post.comment_count }}]</span>{% endif %}</span>
+                                    <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">{{ post.created_at.strftime('%H:%M') }}</small>
+                                </a>
+                            </li>
+                            {% else %}
+                            {% for i in range(6) %}
+                            <li class="list-group-item empty-post">{% if i == 0 %}게시글이 없습니다.{% endif %}</li>
+                            {% endfor %}
+                            {% endfor %}
+                            
+                            {# 게시글이 6개보다 적을 경우 빈 공간으로 채움 #}
+                            {% if board_posts.free|length > 0 and board_posts.free|length < 6 %}
+                                {% for i in range(6 - board_posts.free|length) %}
+                                <li class="list-group-item empty-post"></li>
+                                {% endfor %}
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 p-1">
+                <div class="card mb-4">
+                    <div class="card-header bg-dark text-dark p-0">
+                        <h5 class="mb-0 p-2">익명</h5>
+                        <div class="board-highlighted"></div>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush post-list fixed-height-list">
+                            {% for post in board_posts.anonymous[:6] %}
+                            <li class="list-group-item">
+                                <a href="{{ url_for('board.view_post', board_route='anonymous', post_id=post.id) }}" class="text-decoration-none post-link">
+                                    <span class="post-title">{{ post.title }}{% if post.comment_count > 0 %}<span class="text-primary">[{{ post.comment_count }}]</span>{% endif %}</span>
+                                    <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">{{ post.created_at.strftime('%H:%M') }}</small>
+                                </a>
+                            </li>
+                            {% else %}
+                            {% for i in range(6) %}
+                            <li class="list-group-item empty-post">{% if i == 0 %}게시글이 없습니다.{% endif %}</li>
+                            {% endfor %}
+                            {% endfor %}
+                            
+                            {# 게시글이 6개보다 적을 경우 빈 공간으로 채움 #}
+                            {% if board_posts.anonymous|length > 0 and board_posts.anonymous|length < 6 %}
+                                {% for i in range(6 - board_posts.anonymous|length) %}
+                                <li class="list-group-item empty-post"></li>
+                                {% endfor %}
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 세번째 줄: VIP, 경기소식 -->
+            <div class="col-md-6 p-1">
+                <div class="card mb-4">
+                    <div class="card-header bg-dark text-dark p-0">
+                        <h5 class="mb-0 p-2">VIP</h5>
+                        <div class="board-highlighted"></div>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush post-list fixed-height-list">
+                            {% for post in (board_posts.vip|default([]))[:6] %}
+                            <li class="list-group-item">
+                                <a href="{{ url_for('board.view_post', board_route='vip', post_id=post.id) }}" class="text-decoration-none post-link">
+                                    <span class="post-title">{{ post.title }}{% if post.comment_count > 0 %}<span class="text-primary">[{{ post.comment_count }}]</span>{% endif %}</span>
+                                    <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">{{ post.created_at.strftime('%H:%M') }}</small>
+                                </a>
+                            </li>
+                            {% else %}
+                            {% for i in range(6) %}
+                            <li class="list-group-item empty-post">{% if i == 0 %}게시글이 없습니다.{% endif %}</li>
+                            {% endfor %}
+                            {% endfor %}
+                            
+                            {# 게시글이 6개보다 적을 경우 빈 공간으로 채움 #}
+                            {% if board_posts.vip|default([])|length > 0 and board_posts.vip|default([])|length < 6 %}
+                                {% for i in range(6 - board_posts.vip|default([])|length) %}
+                                <li class="list-group-item empty-post"></li>
+                                {% endfor %}
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 p-1">
+                <div class="card mb-4">
+                    <div class="card-header bg-dark text-dark p-0">
+                        <h5 class="mb-0 p-2">경기소식</h5>
+                        <div class="board-highlighted"></div>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush post-list fixed-height-list">
+                            {% for post in board_posts.game_news[:6] %}
+                            <li class="list-group-item">
+                                <a href="{{ url_for('board.view_post', board_route='game_news', post_id=post.id) }}" class="text-decoration-none post-link">
+                                    <span class="post-title">{{ post.title }}{% if post.comment_count > 0 %}<span class="text-primary">[{{ post.comment_count }}]</span>{% endif %}</span>
+                                    <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">{{ post.created_at.strftime('%H:%M') }}</small>
+                                </a>
+                            </li>
+                            {% else %}
+                            {% for i in range(6) %}
+                            <li class="list-group-item empty-post">{% if i == 0 %}게시글이 없습니다.{% endif %}</li>
+                            {% endfor %}
+                            {% endfor %}
+                            
+                            {# 게시글이 6개보다 적을 경우 빈 공간으로 채움 #}
+                            {% if board_posts.game_news|default([])|length > 0 and board_posts.game_news|default([])|length < 6 %}
+                                {% for i in range(6 - board_posts.game_news|default([])|length) %}
+                                <li class="list-group-item empty-post"></li>
+                                {% endfor %}
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 네번째 줄: 예측/분석, 선수응원 -->
+            <div class="col-md-6 p-1">
+                <div class="card mb-4">
+                    <div class="card-header bg-dark text-dark p-0">
+                        <h5 class="mb-0 p-2">예측/분석</h5>
+                        <div class="board-highlighted"></div>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush post-list fixed-height-list">
+                            {% for post in board_posts.analysis[:6] %}
+                            <li class="list-group-item">
+                                <a href="{{ url_for('board.view_post', board_route='analysis', post_id=post.id) }}" class="text-decoration-none post-link">
+                                    <span class="post-title">{{ post.title }}{% if post.comment_count > 0 %}<span class="text-primary">[{{ post.comment_count }}]</span>{% endif %}</span>
+                                    <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">{{ post.created_at.strftime('%H:%M') }}</small>
+                                </a>
+                            </li>
+                            {% else %}
+                            {% for i in range(6) %}
+                            <li class="list-group-item empty-post">{% if i == 0 %}게시글이 없습니다.{% endif %}</li>
+                            {% endfor %}
+                            {% endfor %}
+                            
+                            {# 게시글이 6개보다 적을 경우 빈 공간으로 채움 #}
+                            {% if board_posts.analysis|default([])|length > 0 and board_posts.analysis|default([])|length < 6 %}
+                                {% for i in range(6 - board_posts.analysis|default([])|length) %}
+                                <li class="list-group-item empty-post"></li>
+                                {% endfor %}
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 p-1"> 
+               <div class="card mb-4">
+                    <div class="card-header bg-dark text-dark p-0">
+                        <h5 class="mb-0 p-2">블컴뉴스</h5>
+                        <div class="board-highlighted"></div>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush post-list fixed-height-list">
+                            {% for post in board_posts.news[:6] %}
+                            <li class="list-group-item">
+                                <a href="{{ url_for('board.view_post', board_route='news', post_id=post.id) }}" class="text-decoration-none post-link">
+                                    <span class="post-title">{{ post.title }}{% if post.comment_count > 0 %}<span class="text-primary">[{{ post.comment_count }}]</span>{% endif %}</span>
+                                    <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">{{ post.created_at.strftime('%H:%M') }}</small>
+                                </a>
+                            </li>
+                            {% else %}
+                            {% for i in range(6) %}
+                            <li class="list-group-item empty-post">{% if i == 0 %}게시글이 없습니다.{% endif %}</li>
+                            {% endfor %}
+                            {% endfor %}
+                            
+                            {# 게시글이 6개보다 적을 경우 빈 공간으로 채움 #}
+                            {% if board_posts.news|default([])|length > 0 and board_posts.news|default([])|length < 6 %}
+                                {% for i in range(6 - board_posts.news|default([])|length) %}
+                                <li class="list-group-item empty-post"></li>
+                                {% endfor %}
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 우측 컬럼 (선수응원 및 질문 게시판) -->
+    <div class="col-lg-3 p-2">
+      <div class="col">
+	     <div class="col-md p-1">
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-dark p-0">
+                <h5 class="mb-0 p-2">선수응원</h5>
+                <div class="board-highlighted"></div>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush post-list fixed-height-list">
+                    {% for post in board_posts.support[:6] %}
+                    <li class="list-group-item">
+                        <a href="{{ url_for('board.view_post', board_route='support', post_id=post.id) }}" class="text-decoration-none post-link">
+                            <span class="post-title">{{ post.title }}{% if post.comment_count > 0 %}<span class="text-primary">[{{ post.comment_count }}]</span>{% endif %}</span>
+                            <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">{{ post.created_at.strftime('%H:%M') }}</small>
+                        </a>
+                    </li>
+                    {% else %}
+                    {% for i in range(6) %}
+                    <li class="list-group-item empty-post">{% if i == 0 %}게시글이 없습니다.{% endif %}</li>
+                    {% endfor %}
+                    {% endfor %}
+                    
+                    {# 게시글이 6개보다 적을 경우 빈 공간으로 채움 #}
+                    {% if board_posts.support|default([])|length > 0 and board_posts.support|default([])|length < 6 %}
+                        {% for i in range(6 - board_posts.support|default([])|length) %}
+                        <li class="list-group-item empty-post"></li>
+                        {% endfor %}
+                    {% endif %}
+                </ul>
+            </div>
+	</div>
+      </div>
+      
+        <!-- 질문 게시판 -->
+        <div class="col-md p-1">
+	       <div class="card mb-4">
+            <div class="card-header bg-dark text-dark p-0">
+                <h5 class="mb-0 p-2">팔무해 응원</h5>
+                <div class="board-highlighted"></div>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush post-list fixed-height-list">
+                    {% for post in (board_posts.question|default([]))[:6] %}
+                    <li class="list-group-item">
+                        <a href="{{ url_for('board.view_post', board_route='question', post_id=post.id) }}" class="text-decoration-none post-link">
+                            <span class="post-title">{{ post.title }}{% if post.comment_count > 0 %}<span class="text-primary">[{{ post.comment_count }}]</span>{% endif %}</span>
+                            <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">{{ post.created_at.strftime('%H:%M') }}</small>
+                        </a>
+                    </li>
+                    {% else %}
+                    {% for i in range(6) %}
+                    <li class="list-group-item empty-post">{% if i == 0 %}게시글이 없습니다.{% endif %}</li>
+                    {% endfor %}
+                    {% endfor %}
+                    
+                    {# 게시글이 6개보다 적을 경우 빈 공간으로 채움 #}
+                    {% if board_posts.question|default([])|length > 0 and board_posts.question|default([])|length < 6 %}
+                        {% for i in range(6 - board_posts.question|default([])|length) %}
+                        <li class="list-group-item empty-post"></li>
+                        {% endfor %}
+                    {% endif %}
+                </ul>
+            </div>
+	       </div>
+       </div>
+    </div>
+    </div>
+    <!-- 하단 로그인 영역 모바일 처리 (PC에서 보이지 않게) -->
+    <div class="col-lg-2 left-column d-sm-block d-md-block d-lg-none">
+        {% if not session.loggedin %}
+        <div class="login-form-container">
+            <!-- 로그인 제목 추가 -->
+            <h5 class="mb-2">회원 로그인</h5>
+            <div class="login-highlighted mb-3"></div>
+            <!-- 폼 요소 먼저 배치 -->
+            <form action="{{ url_for('auth.login') }}" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="mb-2">
+                    <input type="text" class="form-control" name="username" placeholder="ID" required>
+                </div>
+                <div class="mb-2">
+                    <input type="password" class="form-control" name="password" placeholder="비밀번호" required>
+                </div>
+                <div class="d-flex flex-column mb-2">
+                    <button type="submit" class="btn btn-dark">로그인</button>
+                </div>
+                <div class="d-flex justify-content-between small mb-3">
+                    <a href="{{ url_for('auth.register') }}" class="text-decoration-none">회원가입</a>
+                    <a href="{{ url_for('auth.find_account') }}" class="text-decoration-none">아이디/비밀번호찾기</a>
+                </div>
+            </form>
+        </div>
+        {% else %}
+        <div class="login-form-container">
+            <div class="member-info mb-3">
+                <p class="mb-2"><strong>{{ session.nickname }}님</strong> 환영합니다</p>
+                {% if session.is_vip %}
+                <span class="badge bg-warning text-dark">VIP 회원</span>
+                {% endif %}
+            </div>
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('auth.profile') }}"class="btn btn-outline-secondary btn-sm d-none d-lg-block">내 정보</a>
+                <a href="{{ url_for('auth.messages') }}" class="btn btn-outline-secondary btn-sm d-none d-lg-block">쪽지함</a>
+                <a href="{{ url_for('auth.friends') }}" class="btn btn-outline-secondary btn-sm d-none d-lg-block">친구관리</a>
+                {% if session.is_admin %}
+                <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-primary btn-sm d-none d-lg-block">관리자 페이지</a>
+                {% endif %}
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-sm d-none d-lg-block">로그아웃</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 푸터 광고 -->
+{% if footer_ad %}
+
+<div class="container mt-4">
+    <div class="card footer-ad mt-4 p-0">
+        <div class="text-center m-0 p-0">
+        
+            {% if footer_ad.link_url and footer_ad.image_path %}
+            <a href="{{ footer_ad.link_url }}" target="_blank">
+                <img src="{{ url_for('static', filename=footer_ad.image_path) }}" alt="{{ footer_ad.title }}" class="img-fluid rounded m-0 p-0">
+            </a>
+            {% elif footer_ad.image_path %}
+            <img src="{{ url_for('static', filename=footer_ad.image_path) }}" alt="{{ footer_ad.title }}" class="img-fluid rounded m-0 p-0">
+            {% else %}
+            <h5>{{ footer_ad.title }}</h5>
+            <p>{{ footer_ad.content }}</p>
+            {% endif %}
+	</div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+  /* 게시글 제목 텍스트 생략 설정 */
+  .post-title {
+    max-width: calc(100% - 50px); /* 시간 영역을 위한 공간 확보 */
+    display: inline-block;
+    font-size: 0.7rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    position: relative;
+    vertical-align: middle;
+  }
+  
+  /* 작성 시간 고정 위치 설정 */
+  .post-time {
+    width: 25px;
+    text-align: right;
+    font-size: 0.6rem;
+    position: absolute;
+    right: 0px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  /* 새 글 배지 설정 */
+  .badge {
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 0px;
+    font-size: 0.6rem;
+    padding: 0.1em 0.2em;
+  }
+  
+  /* 고정 높이 리스트 설정 */
+  .fixed-height-list {
+    height: auto;
+    overflow: hidden; /* 스크롤 제거 */
+  }
+  
+  /* 빈 게시글 설정 */
+  .empty-post {
+    height: 30px; /* 일반 게시글과 동일한 높이로 설정 */
+  }
+  
+  /* 모든 게시글 항목들이 동일한 높이를 가지도록 설정 */
+  .list-group-item {
+    height: 30px;
+    padding: 5px 10px !important;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  /* 게시글 링크 스타일 설정 */
+  .post-link {
+    display: block;
+    width: 100%;
+    height: 100%;
+    position: relative;
+    padding-right: 0px; /* 시간 영역을 위한 공간 확보 */
+    line-height: 20px;
+  }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 현재 시간 기준으로 새글 표시 (24시간 이내 작성된 글)
+    document.addEventListener('DOMContentLoaded', function() {
+        const now = new Date();
+        
+        // 모든 게시글 시간 요소 확인
+        const timeElements = document.querySelectorAll('.post-time');
+        timeElements.forEach(function(el) {
+            // data-timestamp 속성이 있는 요소만 처리
+            const timestamp = el.getAttribute('data-timestamp');
+            if (timestamp) {
+                // YYYY-MM-DD HH:MM 형식의 날짜 파싱
+                const postTime = new Date(timestamp);
+                
+                // 시간차 계산 (밀리초)
+                const diff = now - postTime;
+                
+                // 게시된 지 24시간 이내일 경우에만 새글 표시
+                if (diff > 0 && diff < 3600000*24) { // 24시간 = 86400000 밀리초
+                    // 부모 요소의 title 요소 찾기
+                    const titleElement = el.closest('.list-group-item').querySelector('.post-title');
+                    if (titleElement) {
+                        // 새 글 표시 추가
+                        const badgeSpan = document.createElement('span');
+                        badgeSpan.className = 'badge bg-danger';
+                        badgeSpan.textContent = 'N';
+                        
+                        // 제목 다음에 배지 추가
+                        titleElement.insertAdjacentElement('afterend', badgeSpan);
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %} 

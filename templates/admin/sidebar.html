@@ -1,0 +1,10 @@
+<!-- 관리자 메뉴 사이드바 -->
+<div class="list-group mb-4">
+    <a href="{{ url_for('admin.dashboard') }}" class="list-group-item list-group-item-action {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">대시보드</a>
+    <a href="{{ url_for('admin.users') }}" class="list-group-item list-group-item-action {% if request.endpoint == 'admin.users' %}active{% endif %}">회원 관리</a>
+    <a href="{{ url_for('admin.posts') }}" class="list-group-item list-group-item-action {% if request.endpoint == 'admin.posts' %}active{% endif %}">게시글 관리</a>
+    <a href="{{ url_for('admin.notices') }}" class="list-group-item list-group-item-action {% if request.endpoint == 'admin.notices' %}active{% endif %}">공지사항 관리</a>
+    <a href="{{ url_for('admin.ads') }}" class="list-group-item list-group-item-action {% if request.endpoint == 'admin.ads' %}active{% endif %}">광고 관리</a>
+    <a href="{{ url_for('admin.blocks') }}" class="list-group-item list-group-item-action {% if request.endpoint == 'admin.blocks' %}active{% endif %}">차단 관리</a>
+
+</div> 
