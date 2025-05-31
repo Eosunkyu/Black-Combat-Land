@@ -15,14 +15,6 @@ body {
 	padding-left: 15px;
 }
 
-/* 더 큰 화면에서는 더 큰 여백 적용 */
-@media (min-width: 992px) {
-    .content-padding {
-	    padding-right: 30px;
-	    padding-left: 30px;
-    }
-}
-
 /* 링크 기본 스타일 - 게시물 링크 색상 변경 */
 a {
     color: #000;
@@ -102,6 +94,11 @@ a:hover {
     border-bottom: none;
 }
 
+.table-board {
+    table-layout: fixed;
+    width: 100%;
+}
+
 /* 게시판 목록 스타일 */
 .table-board th {
     background-color: #343a40;
@@ -161,12 +158,6 @@ a:hover {
     margin-bottom: 0.5rem;
 }
 
-@media (min-width: 992px) {
-    .comment-item {
-        padding: 1rem 30px;
-    }
-}
-
 /* 광고 스타일 */
 .ad-section {
     margin: 0rem 0;
@@ -191,11 +182,7 @@ a:hover {
     margin-bottom: 0rem;
 }
 
-@media (min-width: 992px) {
-    .ad-section {
-        padding: 0rem 0px;
-    }
-}
+
 
 /* VIP 관련 스타일 */
 .vip-badge {
@@ -209,29 +196,6 @@ a:hover {
 .vip-content {
     border-left: 3px solid #ffc107;
     padding-left: 1rem;
-}
-
-/* 반응형 조정 */
-@media (max-width: 768px) {
-    .main-header {
-        padding: 1.5rem;
-    }
-    
-    .board-title {
-        font-size: 1.1rem;
-    }
-    
-    .post-list {
-        max-height: 250px;
-    }
-
-    .fixed-thumb {
-        height: 75px;
-    }
-
-    .mobile_hidden{
-        display: none;
-    }
 }
 
 /* 새 글 표시 */
@@ -299,17 +263,6 @@ a:hover {
     padding: 5px 0;
 }
 
-@media (max-width: 768px) {
-    .top-info-bar .col-md-3,
-    .top-info-bar .col-md-6 {
-        text-align: center !important;
-        margin-bottom: 5px;
-    }
-    .row-cols-md-2>* {
-        width: 50%;
-    }
-}
-
 /* 레이아웃 조정 - 3칼럼 구조 */
 .left-column {
     position: relative;
@@ -328,14 +281,6 @@ a:hover {
     position: relative;
     padding-left: 15px;
     padding-right: 15px;
-}
-
-/* 모바일 환경에서는 구분선 제거 */
-@media (max-width: 992px) {
-    .left-column, .col-lg-7 {
-        margin-bottom: 20px;
-        padding-bottom: 20px;
-    }
 }
 
 /* 실시간 게시판 스타일 */
@@ -440,58 +385,6 @@ a:hover {
     border-right: 1px solid #eee;
 }
 
-/* 모바일 반응형 조정 */
-@media (max-width: 992px) {
-    .left-column, .mid-column, .right-column {
-        margin-bottom: 20px;
-        border-right: none;
-        padding-left: 15px;
-        padding-right: 15px;
-    }
-    
-    .container-fluid {
-        padding-left: 15px;
-        padding-right: 15px;
-    }
-}
-
-@media (min-width: 992px) {
-    .container-fluid {
-        padding-left: 30px;
-        padding-right: 30px;
-    }
-    
-    .left-column {
-        padding-left: 30px;
-        padding-right: 30px;
-    }
-    
-    .mid-column {
-        padding-left: 30px;
-        padding-right: 30px;
-        width: 70%;
-    }
-    
-    .right-column {
-        padding-left: 30px;
-        padding-right: 30px;
-    }
-
-    .card-img-top {
-        height: 120px;
-        object-fit: cover;
-        border-radius: 0.3rem 0.3rem 0 0;
-    }
-
-    .fixed-thumb {
-        width: 100%;
-        height: 155px;
-        object-fit: cover;
-        border-radius: 0.5rem 0.5rem 0 0;
-        background-color: #f0f0f0;
-    }
-}
-
 /* 버튼 스타일 추가 */
 .btn-pink {
     background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
@@ -521,29 +414,13 @@ a:hover {
     font-weight: bold;
 }
 
-/* 모바일 환경에서 네비게이션 조정 */
-@media (max-width: 992px) {
-    .navigation-area .col-lg-2, 
-    .navigation-area .col-lg-8 {
-        margin-bottom: 10px;
-    }
-    
-    .navigation-area .col-lg-2.d-flex {
-        justify-content: center !important;
-    }
-}
-
 /* 로그인 영역 스타일 수정 */
 .login-form-container {
     padding: 0px 0px 0px 0px;
     position: relative;
 }
 
-@media (min-width: 992px) {
-    .login-form-container {
-        padding: 0px 0px 0px 0px;
-    }
-}
+
 
 .login-highlighted {
     height: 5px;
@@ -609,13 +486,6 @@ a:hover {
     padding-right: 15px !important;
 }
 
-@media (min-width: 992px) {
-    .card-header.bg-dark {
-        padding-left: 30px !important;
-        padding-right: 30px !important;
-    }
-}
-
 .card-header.bg-dark h5 {
     font-weight: bold;
     margin-left: 0;
@@ -626,13 +496,6 @@ a:hover {
     border-right: none;
     padding-left: 15px;
     padding-right: 15px;
-}
-
-@media (min-width: 992px) {
-    .list-group-item {
-        padding-left: 30px;
-        padding-right: 30px;
-    }
 }
 
 .board-highlighted {
@@ -661,11 +524,12 @@ a:hover {
 	box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
-h4.post-title {
+span.post-title {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     white-space: inherit;
+    overflow: hidden;
 }
 
 h6.card-title {
@@ -691,4 +555,152 @@ h6.card-title {
 
 .view-count {
     font-size: 11px !important;
+}
+
+/* PC 화면, 더 큰 화면에서는 더 큰 여백 적용 */
+@media (min-width: 992px) {
+    .ad-section {
+        padding: 0rem 0px;
+    }
+    .content-padding {
+	    padding-right: 30px;
+	    padding-left: 30px;
+    }
+    .comment-item {
+        padding: 1rem 30px;
+    }
+
+    .card-header.bg-dark {
+        padding-left: 30px !important;
+        padding-right: 30px !important;
+    }
+
+    .login-form-container {
+        padding: 0px 0px 0px 0px;
+    }
+
+    .container-fluid {
+        padding-left: 30px;
+        padding-right: 30px;
+    }
+    
+    .left-column {
+        padding-left: 30px;
+        padding-right: 30px;
+    }
+    
+    .mid-column {
+        padding-left: 30px;
+        padding-right: 30px;
+        width: 70%;
+    }
+    
+    .right-column {
+        padding-left: 30px;
+        padding-right: 30px;
+    }
+
+    .card-img-top {
+        height: 120px;
+        object-fit: cover;
+        border-radius: 0.3rem 0.3rem 0 0;
+    }
+
+    .fixed-thumb {
+        width: 100%;
+        height: 155px;
+        object-fit: cover;
+        border-radius: 0.5rem 0.5rem 0 0;
+        background-color: #f0f0f0;
+    }
+
+    .list-group-item {
+        padding-left: 30px;
+        padding-right: 30px;
+    }
+
+    .thumb-body > .row > .col {
+        height: 235px;
+        width: 50%;
+    }
+}
+
+/* 모바일 환경에서는 구분선 제거 */
+@media (max-width: 992px) {
+    .left-column, .col-lg-7 {
+        margin-bottom: 20px;
+        padding-bottom: 20px;
+    }
+
+    .navigation-area .col-lg-2, 
+    .navigation-area .col-lg-8 {
+        margin-bottom: 10px;
+    }
+    
+    .navigation-area .col-lg-2.d-flex {
+        justify-content: center !important;
+    }
+
+    .left-column, .mid-column, .right-column {
+        margin-bottom: 20px;
+        border-right: none;
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
+    .container-fluid {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    /* 좌측 여백 */
+    .d-none {
+        display: block !important;
+        width: 25%;
+    }
+
+    .mid-column {
+        width: 75%;
+    }
+
+    .thumb-body > .row > .col {
+        height: 160px;
+        width: 50%;
+    }
+
+    .fixed-thumb {
+        height: 90px;
+    }
+}
+
+/* 반응형 조정 */
+@media (max-width: 768px) {
+    .main-header {
+        padding: 1.5rem;
+    }
+    
+    .board-title {
+        font-size: 1.1rem;
+    }
+    
+    .post-list {
+        max-height: 250px;
+    }
+
+    .fixed-thumb {
+        height: 75px;
+    }
+
+    .mobile_hidden{
+        display: none;
+    }
+
+    .top-info-bar .col-md-3,
+    .top-info-bar .col-md-6 {
+        text-align: center !important;
+        margin-bottom: 5px;
+    }
+    .row-cols-md-2>* {
+        width: 50%;
+    }
 }

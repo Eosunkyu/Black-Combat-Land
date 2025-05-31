@@ -2,3 +2,4 @@
 __pycache__
 .vscode
 uwsgi.log
+run.py

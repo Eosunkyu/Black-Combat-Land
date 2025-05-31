@@ -159,18 +159,19 @@
                             {% if board.id in [4,8] %} <!-- VIP, BCN-->
                             <tr>
                                 <td style="width: 25%;">
-                                    <a href="{{ url_for('board.view_post', board_route=post.board_name, post_id=post.id) }}" class="thumb-post card h-100 text-decoration-none text-dark">
+                                    <a href="{{ url_for('board.view_post', board_route=post.route, post_id=post.id) }}" class="thumb-post card h-100 text-decoration-none text-dark">
                                         {% set images = post.images_data|fromjson %}
                                         {% if board.id == 4 %}
                                         <img src="{{ images['paths'][0] if images['paths'] else '/static/thumbs/default_vip.png' }}" class="card-img-top fixed-thumb" alt="썸네일">
-                                        {% elif board.id == 6 %}
+                                        {% elif board.id == 8 %}
                                         <img src="{{ images['paths'][0] if images['paths'] else '/static/thumbs/default_bcn.png' }}" class="card-img-top fixed-thumb" alt="썸네일">
                                         {% endif %}
                                     </a>
                                 </td>
                                 <td>
-                                    <a href="{{ url_for('board.view_post', board_route=post.board_name, post_id=post.id) }}" class="thumb-post card h-100 text-decoration-none text-dark">
-                                        <h4 class="post-title mb-3" >{{ post.title }}
+                                    <a href="{{ url_for('board.view_post', board_route=post.route, post_id=post.id) }}" class="thumb-post card h-100 text-decoration-none text-dark">
+                                        <h4 class="post-title mb-3" >
+                                            <span class="post-title">{{ post.title }}</span>
                                             {% if post.comment_count > 0 %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
                                         </h4>
                                         <h6 style="color: #6d6565;" class="card-title mb-1 text-truncate" >{{ post.content }}</h6>

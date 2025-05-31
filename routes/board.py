@@ -77,7 +77,8 @@ def board_main(board_route):
         cur.execute('''
             SELECT posts.*, users.nickname, users.is_vip, posts.images_data, posts.content, posts.created_at,
                   (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
-                  (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count, boards.name as board_name
+                  (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count,
+                  boards.name as board_name, boards.route as route
             FROM posts
             JOIN users ON posts.user_id = users.id
             JOIN boards ON posts.board_id = boards.id

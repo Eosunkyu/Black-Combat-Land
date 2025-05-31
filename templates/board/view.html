@@ -99,9 +99,10 @@
                 <a href="{{ url_for('board.board_main', board_route=board.route) }}" class="btn btn-sm btn-secondary">목록으로</a>
             </div>
             <div class="card-body">
-                <h4 class="post-title mb-3">{{ post.title }} |
+                <h4 class="post-title mb-3">
+                <span class="post-title">{{ post.title }}</span> |
                 <span class="me-2">{{ post.nickname }}</span>
-		 {% if post.is_vip == 1 %}
+		        {% if post.is_vip == 1 %}
                 <span class="vip-badge yellow-vip">VIP</span>
                 {% elif post.is_vip == 2 %}
                 <span class="vip-badge blue-vip">VIP</span>
