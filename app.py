@@ -149,6 +149,9 @@ app.register_blueprint(admin_bp)
 @app.route('/')
 def index():
     cur = mysql.connection.cursor()
+
+    user_agent = request.headers.get('User-Agent')
+    is_mobile = 'Mobile' in user_agent
     
     # 베스트 게시글 가져오기 (좋아요 수 기준)
     cur.execute('''
@@ -226,6 +229,7 @@ def index():
             END as nickname,
             boards.name as board_name, 
             boards.route as board_route,
+            (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count,
             (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count
         FROM posts 
         LEFT JOIN users ON posts.user_id = users.id
@@ -260,7 +264,7 @@ def index():
     cur.close()
     return render_template('index.html', best_posts=best_posts, now=datetime.now(), board_posts=board_posts, 
                           realtime_posts=realtime_posts, banner_ad=banner_ad, 
-                          sidebar_ad=sidebar_ad, footer_ad=footer_ad, center_ad=center_ad)
+                          sidebar_ad=sidebar_ad, footer_ad=footer_ad, center_ad=center_ad, is_mobile=is_mobile)
 
 # robots.txt와 sitemap.xml 라우트 추가
 @app.route('/robots.txt')
