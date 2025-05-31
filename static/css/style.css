@@ -653,12 +653,6 @@ h6.card-title {
         padding-right: 15px;
     }
 
-    /* 좌측 여백 */
-    .d-none {
-        display: block !important;
-        width: 25%;
-    }
-
     .mid-column {
         width: 75%;
     }
