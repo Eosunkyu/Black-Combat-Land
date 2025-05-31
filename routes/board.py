@@ -31,6 +31,10 @@ MAX_FILE_SIZE = 16 * 1024 * 1024
 def board_main(board_route):
     # 게시판 데이터 조회
     cur = mysql.connection.cursor()
+
+    user_agent = request.headers.get('User-Agent')
+    is_mobile = 'Mobile' in user_agent
+
     cur.execute('SELECT * FROM boards WHERE route = %s', (board_route,))
     board = cur.fetchone()
 
@@ -59,10 +63,11 @@ def board_main(board_route):
     if board['route'] == 'anonymous':
         # 익명 게시판은 작성자 정보 숨김
         cur.execute('''
-            SELECT posts.*, '익명' as nickname, 
+            SELECT posts.*, '익명' as nickname, posts.images_data, posts.content, posts.created_at,
                   (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
-                  (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
+                  (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count, boards.name as board_name
             FROM posts
+            JOIN boards ON posts.board_id = boards.id
             WHERE posts.board_id = %s
             ORDER BY posts.created_at DESC
             LIMIT %s OFFSET %s
@@ -70,11 +75,12 @@ def board_main(board_route):
     else:
         # 일반 게시판은 작성자 정보 표시
         cur.execute('''
-            SELECT posts.*, users.nickname, users.is_vip,
+            SELECT posts.*, users.nickname, users.is_vip, posts.images_data, posts.content, posts.created_at,
                   (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
-                  (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
+                  (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count, boards.name as board_name
             FROM posts
             JOIN users ON posts.user_id = users.id
+            JOIN boards ON posts.board_id = boards.id
             WHERE posts.board_id = %s
             ORDER BY posts.created_at DESC
             LIMIT %s OFFSET %s
@@ -107,7 +113,7 @@ def board_main(board_route):
     
     return render_template('board/list.html', board=board, posts=posts, notices=notices,
                           page=page, total_pages=total_pages, now=now,
-                          sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad)
+                          sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad, is_mobile=is_mobile)
 
 # 게시글 작성 화면
 @board_bp.route('/board/<string:board_route>/write', methods=['GET', 'POST'])
@@ -117,6 +123,10 @@ def write_post(board_route):
     
     # 게시판 데이터 조회
     cur = mysql.connection.cursor()
+
+    user_agent = request.headers.get('User-Agent')
+    is_mobile = 'Mobile' in user_agent
+
     cur.execute('SELECT * FROM boards WHERE route = %s', (board_route,))
     board = cur.fetchone()
 
@@ -182,13 +192,13 @@ def write_post(board_route):
         if not title or not content:
             flash('제목과 내용을 모두 입력해주세요.', 'danger')
             return render_template('board/write.html', board=board, 
-                                  sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad)
+                                  sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad, is_mobile=is_mobile)
         
         # 제목 길이 검증
         if len(title) > 40:
             flash('제목은 40자 이내로 입력해주세요.', 'danger')
             return render_template('board/write.html', board=board, 
-                                  sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad)
+                                  sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad, is_mobile=is_mobile)
         
         # 이미지 업로드 처리
         image_paths = []
@@ -276,6 +286,9 @@ def view_post(board_route, post_id):
     
     # 게시판 및 게시글 데이터 조회
     cur = mysql.connection.cursor()
+
+    user_agent = request.headers.get('User-Agent')
+    is_mobile = 'Mobile' in user_agent
     
     cur.execute('SELECT * FROM boards WHERE route = %s', (board_route,))
     board = cur.fetchone()
@@ -403,7 +416,7 @@ def view_post(board_route, post_id):
                           comments=comments, like_count=like_count,
                           is_liked=is_liked, images_data=images_data,
                           sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad,
-                          center_ad=center_ad, posts=posts, now=now, is_admin=is_admin)
+                          center_ad=center_ad, posts=posts, now=now, is_admin=is_admin, is_mobile=is_mobile)
 
 # 댓글 작성
 @board_bp.route('/board/<string:board_route>/<int:post_id>/comment', methods=['POST'])
@@ -533,6 +546,9 @@ def edit_post(board_route, post_id):
     
     # 게시판 및 게시글 데이터 조회
     cur = mysql.connection.cursor()
+
+    user_agent = request.headers.get('User-Agent')
+    is_mobile = 'Mobile' in user_agent
     
     cur.execute('SELECT * FROM boards WHERE route = %s', (board_route,))
     board = cur.fetchone()
@@ -601,13 +617,13 @@ def edit_post(board_route, post_id):
         if not title or not content:
             flash('제목과 내용을 모두 입력해주세요.', 'danger')
             return render_template('board/edit.html', board=board, post=post, 
-                                  sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad)
+                                  sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad, is_mobile=is_mobile)
         
         # 제목 길이 검증
         if len(title) > 40:
             flash('제목은 40자 이내로 입력해주세요.', 'danger')
             return render_template('board/edit.html', board=board, post=post, 
-                                  sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad)
+                                  sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad, is_mobile=is_mobile)
         
         # 이미지 데이터 처리
         image_paths = []

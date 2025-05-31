@@ -109,7 +109,7 @@
                                     <div class="col">
                                         <a href="{{ url_for('board.view_post', board_route='vip', post_id=post.id) }}" class="thumb-post card h-100 text-decoration-none text-dark">
                                             {% set images = post.images_data|fromjson %}
-                                            <img src="{{ images['paths'][0] if images['paths'] else 'static/thumbs/default_vip.png' }}" class="card-img-top fixed-thumb" alt="썸네일">
+                                            <img src="{{ images['paths'][0] if images['paths'] else '/static/thumbs/default_vip.png' }}" class="card-img-top fixed-thumb" alt="썸네일">
                                             <div class="card-body p-2">
                                                 <h6 class="card-title mb-1 text-truncate" >{{ post.title }}
                                                     {% if post.comment_count > 0 %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
@@ -161,11 +161,9 @@
                                             {% set images = post.images_data|fromjson %}
                                             <img src="{{ images['paths'][0] if images['paths'] else 'static/thumbs/default_bcn.png' }}" class="card-img-top fixed-thumb" alt="썸네일">
                                             <div class="card-body p-2">
-                                                <div style="white-space: nowrap;">
-                                                    <h6 class="card-title mb-1 text-truncate" >{{ post.title }}
-                                                        {% if post.comment_count > 0 %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
-                                                    </h6>
-                                                </div>
+                                                <h6 class="card-title mb-1 text-truncate" >{{ post.title }}
+                                                    {% if post.comment_count > 0 %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
+                                                </h6>
                                                 <p class="card-text mb-0" style="font-size: 0.75rem;">
                                                     <span class="text-muted">{{ post.nickname }}</span>
                                                     <span class="text-muted">
@@ -175,7 +173,6 @@
                                                             {{ post.created_at.strftime('%m-%d') }}
                                                         {% endif %}
                                                     </span> · <span class="text-muted">조회:{{ post.view_count }}</span> · <span class="text-muted">추천:{{post.like_count}}</span>
-                                                    
                                                 </p>
                                             </div>
                                         </a>
@@ -192,7 +189,8 @@
                                                 {% else %}
                                                     {{ post.created_at.strftime('%m-%d') }}
                                                 {% endif %}
-                                                <span class="view-count">조회:{{ post.view_count }}</span></small>
+                                                <span class="view-count">조회:{{ post.view_count }}</span>
+                                            </small>
                                         </a>
                                     </li> -->
                                     {% else %}
@@ -230,12 +228,13 @@
                                         {% if post.comment_count > 0 %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
                                     </span>
                                     <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">
+                                        <span class="text-muted">{{ post.nickname }}</span>
                                         {% if post.created_at.date() == now.date() %}
                                             {{ post.created_at.strftime('%H:%M') }}
                                         {% else %}
                                             {{ post.created_at.strftime('%m-%d') }}
                                         {% endif %}
-                                        <span class="view-count">조회:{{ post.view_count }}</span>
+                                        <span class="view-count">조회:{{ post.view_count }}</span> · <span class="text-muted">추천:{{post.like_count}}</span>
                                     </small>
                                 </a>
                             </li>
@@ -272,12 +271,14 @@
                                         {% if post.comment_count > 0 %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
                                     </span>
                                     <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">
+                                        <span class="text-muted">{{ post.nickname }}</span>
                                         {% if post.created_at.date() == now.date() %}
                                             {{ post.created_at.strftime('%H:%M') }}
                                         {% else %}
                                             {{ post.created_at.strftime('%m-%d') }}
                                         {% endif %}
-                                        <span class="view-count">조회:{{ post.view_count }}</span></small>
+                                        <span class="view-count">조회:{{ post.view_count }}</span> · <span class="text-muted">추천:{{post.like_count}}</span>
+                                    </small>
                                 </a>
                             </li>
                             {% else %}
@@ -312,12 +313,14 @@
                                         {% if post.comment_count > 0 %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
                                     </span>
                                     <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">
+                                        <span class="text-muted">{{ post.nickname }}</span>
                                         {% if post.created_at.date() == now.date() %}
                                             {{ post.created_at.strftime('%H:%M') }}
                                         {% else %}
                                             {{ post.created_at.strftime('%m-%d') }}
                                         {% endif %}
-                                        <span class="view-count">조회:{{ post.view_count }}</span></small>
+                                        <span class="view-count">조회:{{ post.view_count }}</span> · <span class="text-muted">추천:{{post.like_count}}</span>
+                                    </small>
                                 </a>
                             </li>
                             {% else %}
@@ -353,12 +356,14 @@
                                         {% if post.comment_count > 0 %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
                                     </span>
                                     <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">
+                                        <span class="text-muted">{{ post.nickname }}</span>
                                         {% if post.created_at.date() == now.date() %}
                                             {{ post.created_at.strftime('%H:%M') }}
                                         {% else %}
                                             {{ post.created_at.strftime('%m-%d') }}
                                         {% endif %}
-                                        <span class="view-count">조회:{{ post.view_count }}</span></small>
+                                        <span class="view-count">조회:{{ post.view_count }}</span> · <span class="text-muted">추천:{{post.like_count}}</span>
+                                    </small>
                                 </a>
                             </li>
                             {% else %}
@@ -397,12 +402,14 @@
                                         {% if post.comment_count > 0 %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
                                     </span>
                                     <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">
+                                        <span class="text-muted">{{ post.nickname }}</span>
                                         {% if post.created_at.date() == now.date() %}
                                             {{ post.created_at.strftime('%H:%M') }}
                                         {% else %}
                                             {{ post.created_at.strftime('%m-%d') }}
                                         {% endif %}
-                                        <span class="view-count">조회:{{ post.view_count }}</span></small>
+                                        <span class="view-count">조회:{{ post.view_count }}</span> · <span class="text-muted">추천:{{post.like_count}}</span>
+                                    </small>
                                 </a>
                             </li>
                             {% else %}
@@ -439,12 +446,14 @@
                                         {% if post.comment_count > 0 %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
                                     </span>
                                     <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">
+                                        <span class="text-muted">{{ post.nickname }}</span>
                                         {% if post.created_at.date() == now.date() %}
                                             {{ post.created_at.strftime('%H:%M') }}
                                         {% else %}
                                             {{ post.created_at.strftime('%m-%d') }}
                                         {% endif %}
-                                        <span class="view-count">조회:{{ post.view_count }}</span></small>
+                                        <span class="view-count">조회:{{ post.view_count }}</span> · <span class="text-muted">추천:{{post.like_count}}</span>
+                                    </small>
                                 </a>
                             </li>
                             {% else %}
@@ -480,12 +489,14 @@
                                         {% if post.comment_count > 0 %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
                                     </span>
                                     <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">
+                                        <span class="text-muted">{{ post.nickname }}</span>
                                         {% if post.created_at.date() == now.date() %}
                                             {{ post.created_at.strftime('%H:%M') }}
                                         {% else %}
                                             {{ post.created_at.strftime('%m-%d') }}
                                         {% endif %}
-                                        <span class="view-count">조회:{{ post.view_count }}</span></small>
+                                        <span class="view-count">조회:{{ post.view_count }}</span> · <span class="text-muted">추천:{{post.like_count}}</span>
+                                    </small>
                                 </a>
                             </li>
                             {% else %}
@@ -520,12 +531,14 @@
                                         {% if post.comment_count > 0 %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
                                     </span>
                                     <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">
+                                        <span class="text-muted">{{ post.nickname }}</span>
                                         {% if post.created_at.date() == now.date() %}
                                             {{ post.created_at.strftime('%H:%M') }}
                                         {% else %}
                                             {{ post.created_at.strftime('%m-%d') }}
                                         {% endif %}
-                                        <span class="view-count">조회:{{ post.view_count }}</span></small>
+                                        <span class="view-count">조회:{{ post.view_count }}</span> · <span class="text-muted">추천:{{post.like_count}}</span>
+                                    </small>
                                 </a>
                             </li>
                             {% else %}
@@ -687,7 +700,7 @@
   
   /* 모든 게시글 항목들이 동일한 높이를 가지도록 설정 */
   .list-group-item {
-    height: 30px;
+    /* height: 30px; */
     padding: 5px 10px !important;
     position: relative;
     overflow: hidden;
