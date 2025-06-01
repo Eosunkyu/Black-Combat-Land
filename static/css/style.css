@@ -694,12 +694,12 @@ h6.card-title {
         text-align: center !important;
         margin-bottom: 5px;
     }
-    
+
     .row-cols-md-2>* {
         width: 50%;
     }
 
     .table-responsive {
-        padding-right: 10px;
+        padding: 0 10px;
     }
 }
