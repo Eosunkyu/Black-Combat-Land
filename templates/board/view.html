@@ -289,8 +289,8 @@
                                         {% endif %}
                                         </span>
                                         <span class="text-muted">{{ post.created_at.strftime('%m-%d') }}</span>
-                                        <span class="text-muted">{{ post.view_count }}</span>
-                                        <span class="text-muted">{{ post.like_count }}</span>
+                                        <span class="text-muted">조회:{{ post.view_count }}</span>
+                                        <span class="text-muted">추천:{{ post.like_count }}</span>
                                     </div>
                                 </td>
                                 {% else %}
