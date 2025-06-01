@@ -530,6 +530,7 @@ span.post-title-content {
     -webkit-box-orient: vertical;
     white-space: inherit;
     overflow: hidden;
+    padding-right: 5px;
 }
 
 h6.card-title {
