@@ -190,12 +190,12 @@
                     <div class="comment mb-0 p-2 border rounded">
                         <div class="d-flex justify-content-between mb-2">
                             <div>
+                                <span class="fw-bold">{{ comment.nickname }}</span>
                                 {% if comment.is_vip == 1 %}
                                 <span class="vip-badge yellow-vip">VIP</span>
                                 {% elif comment.is_vip == 2 %}
                                 <span class="vip-badge blue-vip">VIP</span>
                                 {% endif %}
-                                <span class="fw-bold">{{ comment.nickname }}</span>
                                 <small class="text-muted ms-2" style="font-size: 0.5rem;">{{ comment.created_at.strftime('%m-%d %H:%M') }}</small>
                             </div>
                             <div>
