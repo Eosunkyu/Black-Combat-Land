@@ -290,7 +290,7 @@ def view_post(board_route, post_id):
 
     user_agent = request.headers.get('User-Agent')
     is_mobile = 'Mobile' in user_agent
-    
+
     cur.execute('SELECT * FROM boards WHERE route = %s', (board_route,))
     board = cur.fetchone()
 
@@ -377,9 +377,15 @@ def view_post(board_route, post_id):
     center_ad = cur.fetchone()
     
     # 댓글 아래에 표시할 게시판 리스트 조회
-    page = 1
+    page = request.args.get('page', 1, type=int)
     per_page = 15
-    offset = 0
+    offset = (page - 1) * per_page
+    
+    # 총 게시글 수 조회 (페이지네이션용)
+    cur.execute('SELECT COUNT(*) as count FROM posts WHERE board_id = %s', (board['id'],))
+    total_count = cur.fetchone()['count']
+    total_pages = (total_count + per_page - 1) // per_page
+    
     if board['route'] == 'anonymous':
         cur.execute('''
             SELECT posts.*, '익명' as nickname,
@@ -417,7 +423,8 @@ def view_post(board_route, post_id):
                           comments=comments, like_count=like_count,
                           is_liked=is_liked, images_data=images_data,
                           sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad,
-                          center_ad=center_ad, posts=posts, now=now, is_admin=is_admin, is_mobile=is_mobile)
+                          center_ad=center_ad, posts=posts, now=now, is_admin=is_admin, 
+                          is_mobile=is_mobile, page=page, total_pages=total_pages)
 
 # 댓글 작성
 @board_bp.route('/board/<string:board_route>/<int:post_id>/comment', methods=['POST'])
