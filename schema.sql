@@ -133,7 +133,7 @@ INSERT INTO boards (name, route, description, created_at) VALUES
 ('블컴뉴스', 'news', '블랙 컴뱃 관련 뉴스를 공유하는 게시판입니다.', NOW()),
 ('경기예측/분석', 'analysis', '경기 예측과 분석을 공유하는 게시판입니다.', NOW()),
 ('질문', 'question', '질문과 답변을 주고받는 게시판입니다.', NOW()),
-('선수응원', 'support', '선수들을 응원하는 메시지를 작성하는 게시판입니다.', NOW());
+('BCN', 'support', '선수들을 응원하는 메시지를 작성하는 게시판입니다.', NOW());
 
 -- 기본 관리자 계정 생성 (비밀번호: admin123)
 INSERT INTO users (username, password, nickname, is_admin, is_vip, created_at, email) VALUES
