@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, flash, request, session
+from flask import Flask, render_template, redirect, url_for, flash, request, session, jsonify
 from flask_mysqldb import MySQL
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -10,6 +10,8 @@ import secrets
 from markupsafe import Markup
 import json
 import re
+import random
+import pytz
 
 # 애플리케이션 팩토리 패턴 적용
 def create_app():
@@ -22,10 +24,17 @@ def create_app():
     app.config['SESSION_COOKIE_SECURE'] = False  # 개발환경에서는 False, 배포 시 True로 변경
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_USE_SIGNER'] = True  # 쿠키 서명 활성화
+    # 이모티콘 지원을 위한 MySQL 설정 강화
     app.config['MYSQL_CHARSET'] = 'utf8mb4'
+    app.config['MYSQL_USE_UNICODE'] = True
+    app.config['MYSQL_CUSTOM_OPTIONS'] = {
+        'charset': 'utf8mb4',
+        'use_unicode': True,
+        'init_command': "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci; SET character_set_connection=utf8mb4; SET character_set_client=utf8mb4; SET character_set_results=utf8mb4;"
+    }
     #app.config['MYSQL_HOST'] = 'localhost'
     #app.config['MYSQL_USER'] = 'root'
-    #app.config['MYSQL_PASSWORD'] = 'Aj3%mY1E' # MySQL 비밀번호 설정
+    #app.config['MYSQL_PASSWORD'] = '1234' # MySQL 비밀번호 설정
     app.config['MYSQL_HOST'] = '13.125.219.53'
     app.config['MYSQL_USER'] = 'adminUser'
     app.config['MYSQL_PASSWORD'] = 'tjsrbQhshd!@34' # MySQL 비밀번호 설정
@@ -34,18 +43,33 @@ def create_app():
     app.config['UPLOAD_FOLDER'] = 'static/uploads'
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 최대 16MB 파일
     
-    return app
+    # MySQL, Bcrypt, LoginManager 초기화
+    mysql = MySQL(app)
+    bcrypt = Bcrypt(app)
+    login_manager = LoginManager(app)
+    login_manager.login_view = 'auth.login'  # 로그인 페이지 경로 설정
 
-app = create_app()
-mysql = MySQL(app)
-bcrypt = Bcrypt(app)
-login_manager = LoginManager(app)
-login_manager.login_view = 'auth.login'  # 로그인 페이지 경로 설정
+    # CSRF 보호 기능 활성화
+    csrf = CSRFProtect(app)
+    app.config['WTF_CSRF_ENABLED'] = True
+    app.config['WTF_CSRF_SECRET_KEY'] = app.config['SECRET_KEY']  # 또는 별도의 키 사용
 
-# CSRF 보호 기능 활성화
-csrf = CSRFProtect(app)
-app.config['WTF_CSRF_ENABLED'] = True
-app.config['WTF_CSRF_SECRET_KEY'] = app.config['SECRET_KEY']  # 또는 별도의 키 사용
+    # Extensions를 current_app에서 접근할 수 있도록 등록
+    app.extensions['mysql'] = mysql
+    app.extensions['bcrypt'] = bcrypt
+
+    # Blueprint 등록은 create_app 함수 내부에서
+    from routes.auth import auth
+    from routes.board import board_bp
+    from routes.admin import admin_bp
+
+    app.register_blueprint(auth, url_prefix='/auth')
+    app.register_blueprint(board_bp)
+    app.register_blueprint(admin_bp)
+    
+    return app, mysql, bcrypt, login_manager, csrf
+
+app, mysql, bcrypt, login_manager, csrf = create_app()
 
 # CSRF 예외 경로 추가 (필요한 경우)
 @csrf.exempt
@@ -136,14 +160,50 @@ def inject_notification_counts():
         # 로그인하지 않은 경우 0으로 설정
         return dict(unread_count=0, friend_request_count=0)
 
-# 라우트 임포트는 app 생성 후에 해야 함
-from routes.auth import auth
-from routes.board import board_bp
-from routes.admin import admin_bp
-
-app.register_blueprint(auth, url_prefix='/auth')
-app.register_blueprint(board_bp)
-app.register_blueprint(admin_bp)
+# 이미지 업로드 API 엔드포인트
+@app.route('/upload_image', methods=['POST'])
+def upload_image():
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+    MAX_FILE_SIZE = 16 * 1024 * 1024
+    
+    def allowed_file(filename):
+        return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    
+    if 'image' not in request.files:
+        return jsonify({'success': False, 'error': '파일이 없습니다.'})
+    
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': '파일이 선택되지 않았습니다.'})
+    
+    if not allowed_file(file.filename):
+        return jsonify({'success': False, 'error': '허용되지 않는 파일 형식입니다.'})
+    
+    # 파일 크기 체크
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)
+    
+    if file_size > MAX_FILE_SIZE:
+        return jsonify({'success': False, 'error': '파일 크기가 16MB를 초과합니다.'})
+    
+    try:
+        seoul_timezone = pytz.timezone('Asia/Seoul')
+        filename = secure_filename(file.filename or '')
+        filename = f"{datetime.now(seoul_timezone).strftime('%Y%m%d%H%M%S')}_{random.randint(1000, 9999)}_{filename}"
+        
+        upload_folder = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
+        os.makedirs(upload_folder, exist_ok=True)
+        
+        file_path = os.path.join(upload_folder, filename)
+        file.save(file_path)
+        
+        relative_path = os.path.join('static', 'uploads', filename).replace('\\', '/')
+        
+        return jsonify({'success': True, 'path': relative_path})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 # 홈페이지 라우트
 @app.route('/')

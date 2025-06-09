@@ -5,4 +5,4 @@ ALTER TABLE ads ADD COLUMN position VARCHAR(50) DEFAULT 'banner' AFTER link;
 ALTER TABLE ads CHANGE COLUMN link link_url VARCHAR(255);
 
 -- 선수응원 게시판 이름을 BCN으로 변경
-UPDATE boards SET name = 'BCN' WHERE route = 'support' AND name = '선수응원'; 
+UPDATE boards SET name = 'BCN' WHERE route = 'support' AND name = 'B C N'; 

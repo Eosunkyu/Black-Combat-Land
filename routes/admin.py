@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, abort, current_app
 from functools import wraps
 import os
 from werkzeug.utils import secure_filename
@@ -6,8 +6,9 @@ from datetime import datetime
 
 admin_bp = Blueprint('admin', __name__)
 
-# 필요한 객체 가져오기 (모듈 레벨에서 가져오지 않고 라우트 내부에서 가져옴)
-from app import mysql
+# MySQL 접근 함수
+def get_mysql():
+    return current_app.extensions['mysql']
 
 # 관리자 접근 데코레이터
 def admin_required(f):
@@ -24,6 +25,7 @@ def admin_required(f):
 @admin_required
 def dashboard():
     # 필요한 객체 가져오기
+    mysql = get_mysql()
     cur = mysql.connection.cursor()
     
     # 전체 회원 수, 게시글 수, 댓글 수, 오늘 작성된 게시글 수
@@ -70,6 +72,7 @@ def dashboard():
 @admin_required
 def users():
     # 필요한 객체 가져오기
+    mysql = get_mysql()
     cur = mysql.connection.cursor()
     
     # 페이지네이션
@@ -104,6 +107,7 @@ def toggle_vip(user_id):
         return redirect(url_for('index'))
 
     try:
+        mysql = get_mysql()
         cur = mysql.connection.cursor()
         cur.execute('SELECT * FROM users WHERE id = %s', (user_id,))
         user = cur.fetchone()
@@ -136,6 +140,7 @@ def toggle_vip(user_id):
 @admin_required
 def posts():
     # 필요한 객체 가져오기
+    mysql = get_mysql()
     cur = mysql.connection.cursor()
     
     # 페이지네이션
@@ -194,6 +199,7 @@ def posts():
 @admin_required
 def ads():
     # 필요한 객체 가져오기
+    mysql = get_mysql()
     cur = mysql.connection.cursor()
     
     # 광고 목록 조회
@@ -208,6 +214,7 @@ def ads():
 @admin_bp.route('/admin/notices')
 @admin_required
 def notices():
+    mysql = get_mysql()
     cur = mysql.connection.cursor()
     
     # 공지사항 목록 조회
@@ -238,6 +245,7 @@ def add_notice():
             return render_template('admin/notice_form.html', notice=None)
         
         # 공지사항 저장
+        mysql = get_mysql()
         cur = mysql.connection.cursor()
         cur.execute('''
             INSERT INTO notices (title, content, user_id, created_at, is_active)
@@ -256,6 +264,7 @@ def add_notice():
 @admin_bp.route('/admin/notices/<int:notice_id>/edit', methods=['GET', 'POST'])
 @admin_required
 def edit_notice(notice_id):
+    mysql = get_mysql()
     cur = mysql.connection.cursor()
     
     # 공지사항 조회
@@ -297,6 +306,7 @@ def edit_notice(notice_id):
 @admin_bp.route('/admin/notices/<int:notice_id>/delete', methods=['POST'])
 @admin_required
 def delete_notice(notice_id):
+    mysql = get_mysql()
     cur = mysql.connection.cursor()
     
     # 공지사항 삭제
@@ -313,6 +323,7 @@ def delete_notice(notice_id):
 @admin_required
 def add_ad():
     # 필요한 객체 가져오기
+    mysql = get_mysql()
     from flask import current_app
     
     if request.method == 'POST':
@@ -332,10 +343,11 @@ def add_ad():
         image_path = None
         if 'image' in request.files:
             file = request.files['image']
-            if file and file.filename != '':
+            if file and file.filename and file.filename != '':
                 # 허용된 파일 확장자 체크
                 allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
                 try:
+                    if '.' in file.filename:
                     file_ext = file.filename.rsplit('.', 1)[1].lower()
                     if file_ext in allowed_extensions:
                         filename = secure_filename(file.filename)
@@ -351,6 +363,9 @@ def add_ad():
                         print(f"광고 이미지 저장 성공: {file_path}")
                     else:
                         flash('허용되지 않는 파일 형식입니다. (PNG, JPG, JPEG, GIF만 가능)', 'danger')
+                            return render_template('admin/add_ad.html')
+                    else:
+                        flash('올바른 파일 형식이 아닙니다.', 'danger')
                         return render_template('admin/add_ad.html')
                 except Exception as e:
                     print(f"파일 업로드 오류: {str(e)}")
@@ -379,6 +394,7 @@ def edit_ad(ad_id):
     # 필요한 객체 가져오기
     from flask import current_app
     
+    mysql = get_mysql()
     cur = mysql.connection.cursor()
     
     # 광고 데이터 조회
@@ -452,6 +468,7 @@ def edit_ad(ad_id):
 @admin_required
 def delete_ad(ad_id):
     # 필요한 객체 가져오기
+    mysql = get_mysql()
     cur = mysql.connection.cursor()
     
     # 광고 데이터 조회
@@ -476,6 +493,7 @@ def delete_ad(ad_id):
 @admin_required
 def blocks():
     # 필요한 객체 가져오기
+    mysql = get_mysql()
     cur = mysql.connection.cursor()
 
     # 차단된 IP 조회
@@ -512,6 +530,7 @@ def blocks():
 @admin_required
 def add_ip_block():
     # 필요한 객체 가져오기
+    mysql = get_mysql()
     cur = mysql.connection.cursor()
 
     # 폼 데이터 가져오기
@@ -541,6 +560,7 @@ def add_ip_block():
 @admin_required
 def remove_ip_block(block_id):
     # 필요한 객체 가져오기
+    mysql = get_mysql()
     cur = mysql.connection.cursor()
 
     try:
@@ -570,6 +590,7 @@ def remove_ip_block(block_id):
 @admin_required
 def add_user_block():
     # 필요한 객체 가져오기
+    mysql = get_mysql()
     cur = mysql.connection.cursor()
 
     # 폼 데이터 가져오기
@@ -612,6 +633,7 @@ def add_user_block():
 @admin_required
 def remove_user_block(block_id):
     # 필요한 객체 가져오기
+    mysql = get_mysql()
     cur = mysql.connection.cursor()
 
     try:
@@ -645,6 +667,7 @@ def remove_user_block(block_id):
 @admin_bp.route('/admin/users/<int:user_id>/delete', methods=['POST'])
 @admin_required
 def delete_user(user_id):
+    mysql = get_mysql()
     cur = mysql.connection.cursor()
     cur.execute('SELECT * FROM users WHERE id = %s', (user_id,))
     user = cur.fetchone()
@@ -665,6 +688,7 @@ def change_nickname(user_id):
     if not new_nickname:
         flash('새 닉네임을 입력하세요.', 'danger')
         return redirect(url_for('admin.users'))
+    mysql = get_mysql()
     cur = mysql.connection.cursor()
     cur.execute('UPDATE users SET nickname = %s WHERE id = %s', (new_nickname, user_id))
     mysql.connection.commit()
@@ -680,6 +704,7 @@ def change_email(user_id):
     if not new_email:
         flash('새 이메일을 입력하세요.', 'danger')
         return redirect(url_for('admin.users'))
+    mysql = get_mysql()
     cur = mysql.connection.cursor()
     cur.execute('UPDATE users SET email = %s WHERE id = %s', (new_email, user_id))
     mysql.connection.commit()

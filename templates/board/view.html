@@ -122,7 +122,7 @@
                 </div>
                 
                 <div class="post-content mb-4">
-                    {{ post.content|nl2br }}
+                    {{ post.content|safe }}
                 </div>
                 
                 
@@ -158,6 +158,9 @@
                             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                             <button type="submit" class="btn btn-outline-danger" onclick="return confirm('정말 삭제하시겠습니까?');">삭제</button>
                         </form>
+                        {% elif board.route == 'anonymous' and post.is_anonymous %}
+                        <button type="button" class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#editPasswordModal">수정</button>
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deletePasswordModal">삭제</button>
                         {% endif %}
                     </div>
                     <div>
@@ -204,6 +207,9 @@
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                     <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('정말 삭제하시겠습니까?');">삭제</button>
                                 </form>
+                                {% elif board.route == 'anonymous' and comment.is_anonymous %}
+                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                        onclick="showCommentPasswordModal({{ comment.id }})">삭제</button>
                                 {% endif %}
                             </div>
                         </div>
@@ -224,6 +230,13 @@
                         <label for="content" class="form-label">댓글 작성</label>
                         <textarea class="form-control" id="content" name="content" rows="3" required></textarea>
                     </div>
+                    {% if board.route == 'anonymous' %}
+                    <div class="mb-3">
+                        <label for="comment_anonymous_password" class="form-label">비밀번호 <small class="text-muted">(삭제 시 필요)</small></label>
+                        <input type="password" class="form-control" id="comment_anonymous_password" name="anonymous_password" 
+                               maxlength="20" required placeholder="4자리 이상 입력하세요">
+                    </div>
+                    {% endif %}
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary">댓글 등록</button>
                     </div>
@@ -292,6 +305,9 @@
                                         <span class="text-muted">조회:{{ post.view_count }}</span>
                                         <span class="text-muted">추천:{{ post.like_count }}</span>
                                     </div>
+                                    {% if board.id in [4,8] %}
+                                    <div class="text-muted small mt-1">{{ post.content|striptags|truncate(50) }}</div>
+                                    {% endif %}
                                 </td>
                                 {% else %}
                                 <td>
@@ -302,6 +318,9 @@
                                         {% if post.comment_count > 0 %}<span class="text-primary comment-count">[{{ post.comment_count }}]</span>{% endif %}
                                         {% if (post.created_at|string)[:10] == now[:10] %}<span class="text-danger new-badge">N</span>{% endif %}
                                     </a>
+                                    {% if board.id in [4,8] %}
+                                    <div class="text-muted small">{{ post.content|striptags|truncate(50) }}</div>
+                                    {% endif %}
                                 </td>
 				                <td class="text-left" style="font-size: 0.5rem;">{{ post.nickname }}{% if post.is_vip == 1 %}
                                 <span class="vip-badge yellow-vip">VIP</span>
@@ -316,7 +335,7 @@
                             
                             {% else %}
                             <tr>
-                                <td colspan="6" class="text-center py-4">게시글이 없습니다.</td>
+                                <td colspan="5" class="text-center py-4">게시글이 없습니다.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -328,10 +347,10 @@
         <!-- 페이지네이션 -->
         {% if total_pages > 1 %}
         <nav>
-            <ul class="pagination justify-content-center">
+            <ul class="pagination justify-content-center" id="pagination">
                 {% if page > 1 %}
                 <li class="page-item">
-                    <a class="page-link" href="{{ url_for('board.board_main', board_route=board.route, page=page-1) }}">이전</a>
+                    <a class="page-link pagination-link" href="#" data-page="{{ page-1 }}">이전</a>
                 </li>
                 {% else %}
                 <li class="page-item disabled">
@@ -346,14 +365,14 @@
                 </li>
                 {% else %}
                 <li class="page-item">
-                    <a class="page-link" href="{{ url_for('board.board_main', board_route=board.route, page=p) }}">{{ p }}</a>
+                    <a class="page-link pagination-link" href="#" data-page="{{ p }}">{{ p }}</a>
                 </li>
                 {% endif %}
                 {% endfor %}
                 
                 {% if page < total_pages %}
                 <li class="page-item">
-                    <a class="page-link" href="{{ url_for('board.board_main', board_route=board.route, page=page+1) }}">다음</a>
+                    <a class="page-link pagination-link" href="#" data-page="{{ page+1 }}">다음</a>
                 </li>
                 {% else %}
                 <li class="page-item disabled">
@@ -387,10 +406,113 @@
 </div>
 {% endif %}
 
+<!-- 익명 게시글 수정 비밀번호 확인 모달 -->
+{% if board.route == 'anonymous' and post.is_anonymous %}
+<div class="modal fade" id="editPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">게시글 수정</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('board.verify_anonymous_post_password', board_route=board.route, post_id=post.id) }}" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="action" value="edit">
+                    <div class="mb-3">
+                        <label for="edit_password" class="form-label">게시글 작성 시 입력한 비밀번호를 입력하세요</label>
+                        <input type="password" class="form-control" id="edit_password" name="password" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                    <button type="submit" class="btn btn-primary">확인</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 익명 게시글 삭제 비밀번호 확인 모달 -->
+<div class="modal fade" id="deletePasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">게시글 삭제</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('board.verify_anonymous_post_password', board_route=board.route, post_id=post.id) }}" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="action" value="delete">
+                    <div class="mb-3">
+                        <label for="delete_password" class="form-label">게시글 작성 시 입력한 비밀번호를 입력하세요</label>
+                        <input type="password" class="form-control" id="delete_password" name="password" required>
+                    </div>
+                    <div class="alert alert-warning">
+                        <strong>주의:</strong> 게시글을 삭제하면 모든 댓글도 함께 삭제되며 복구할 수 없습니다.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                    <button type="submit" class="btn btn-danger">삭제</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 익명 댓글 삭제 비밀번호 확인 모달 -->
+<div class="modal fade" id="commentPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">댓글 삭제</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="commentPasswordForm" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="mb-3">
+                        <label for="comment_delete_password" class="form-label">댓글 작성 시 입력한 비밀번호를 입력하세요</label>
+                        <input type="password" class="form-control" id="comment_delete_password" name="password" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                    <button type="submit" class="btn btn-danger">삭제</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block scripts %}
 <style>
+    /* view.html에서 이미지 삭제 버튼 숨기기 */
+    .post-content .btn-danger,
+    .post-content .position-absolute {
+        display: none !important;
+    }
+    
+    /* view.html에서 이미지 좌측 정렬 */
+    .post-content img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 4px;
+        display: block;
+        margin: 15px 0; /* 좌측 정렬 */
+    }
+    
+    /* 이미지 컨테이너 스타일 정리 */
+    .post-content .position-relative {
+        display: block;
+        margin: 15px 0;
+    }
+    
     /* 테이블 내 게시물 제목 스타일 (목록용) */
     .table-board .post-title-text {
         display: inline-block;
@@ -547,6 +669,177 @@
                 interval: false
             });
         }
+        
+        // 페이지네이션 링크 클릭 이벤트 처리
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('pagination-link')) {
+                e.preventDefault();
+                const page = e.target.getAttribute('data-page');
+                const boardRoute = '{{ board.route }}';
+                
+                // AJAX 요청
+                fetch(`/board/${boardRoute}/posts?page=${page}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        updatePostList(data);
+                        updatePagination(data);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            }
+        });
     });
+    
+    // 게시물 목록 업데이트 함수
+    function updatePostList(data) {
+        const tbody = document.querySelector('.table-board tbody');
+        const boardRoute = data.board.route;
+        const now = data.now;
+        let html = '';
+        
+        if (data.posts.length === 0) {
+            html = '<tr><td colspan="5" class="text-center py-4">게시글이 없습니다.</td></tr>';
+        } else {
+            data.posts.forEach(post => {
+                const isToday = post.created_at.substring(0, 10) === now.substring(0, 10);
+                const postDate = new Date(post.created_at);
+                const formattedDate = (postDate.getMonth() + 1).toString().padStart(2, '0') + '-' + 
+                                    postDate.getDate().toString().padStart(2, '0');
+                
+                // VIP 배지 처리
+                let vipBadge = '';
+                if (post.is_vip === 1) {
+                    vipBadge = '<span class="vip-badge yellow-vip">VIP</span>';
+                } else if (post.is_vip === 2) {
+                    vipBadge = '<span class="vip-badge blue-vip">VIP</span>';
+                }
+                
+                // 모바일 체크 (간단히 화면 크기로 판단)
+                const isMobile = window.innerWidth < 992;
+                
+                if (isMobile) {
+                    html += `
+                        <tr>
+                            <td colspan="5" style="padding: 5px !important;">
+                                <a href="/board/${boardRoute}/${post.id}" class="post-title">
+                                    <span class="post-title-text" data-full-title="${post.title}">
+                                        ${post.title}
+                                    </span>
+                                    ${post.comment_count > 0 ? `<span class="text-primary comment-count">[${post.comment_count}]</span>` : ''}
+                                    ${isToday ? '<span class="text-danger new-badge">N</span>' : ''}
+                                </a>
+                                <div class="card-text mb-0" style="font-size: 0.75rem;">
+                                    <span class="text-muted">
+                                        ${post.nickname}${vipBadge}
+                                    </span>
+                                    <span class="text-muted">${formattedDate}</span>
+                                    <span class="text-muted">조회:${post.view_count}</span>
+                                    <span class="text-muted">추천:${post.like_count}</span>
+                                </div>
+                                ${data.board.id == 4 || data.board.id == 8 ? `<div class="text-muted small mt-1">${post.content.replace(/<[^>]*>/g, '').substring(0, 50)}${post.content.length > 50 ? '...' : ''}</div>` : ''}
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    html += `
+                        <tr>
+                            <td>
+                                <a href="/board/${boardRoute}/${post.id}" class="post-title">
+                                    <span class="post-title-text" data-full-title="${post.title}">
+                                        ${post.title}
+                                    </span>
+                                    ${post.comment_count > 0 ? `<span class="text-primary comment-count">[${post.comment_count}]</span>` : ''}
+                                    ${isToday ? '<span class="text-danger new-badge">N</span>' : ''}
+                                </a>
+                                ${data.board.id == 4 || data.board.id == 8 ? `<div class="text-muted small">${post.content.replace(/<[^>]*>/g, '').substring(0, 50)}${post.content.length > 50 ? '...' : ''}</div>` : ''}
+                            </td>
+                            <td class="text-left" style="font-size: 0.5rem;">${post.nickname}${vipBadge}</td>
+                            <td class="text-center" style="font-size: 0.5rem;">${formattedDate}</td>
+                            <td class="text-center" style="font-size: 0.5rem;">${post.view_count}</td>
+                            <td class="text-center" style="font-size: 0.5rem;">${post.like_count}</td>
+                        </tr>
+                    `;
+                }
+            });
+        }
+        
+        tbody.innerHTML = html;
+    }
+    
+    // 페이지네이션 업데이트 함수
+    function updatePagination(data) {
+        const pagination = document.getElementById('pagination');
+        const currentPage = data.page;
+        const totalPages = data.total_pages;
+        
+        if (totalPages <= 1) {
+            pagination.parentElement.style.display = 'none';
+            return;
+        }
+        
+        let html = '';
+        
+        // 이전 버튼
+        if (currentPage > 1) {
+            html += `
+                <li class="page-item">
+                    <a class="page-link pagination-link" href="#" data-page="${currentPage - 1}">이전</a>
+                </li>
+            `;
+        } else {
+            html += `
+                <li class="page-item disabled">
+                    <span class="page-link">이전</span>
+                </li>
+            `;
+        }
+        
+        // 페이지 번호
+        for (let p = 1; p <= totalPages; p++) {
+            if (p === currentPage) {
+                html += `
+                    <li class="page-item active">
+                        <span class="page-link">${p}</span>
+                    </li>
+                `;
+            } else {
+                html += `
+                    <li class="page-item">
+                        <a class="page-link pagination-link" href="#" data-page="${p}">${p}</a>
+                    </li>
+                `;
+            }
+        }
+        
+        // 다음 버튼
+        if (currentPage < totalPages) {
+            html += `
+                <li class="page-item">
+                    <a class="page-link pagination-link" href="#" data-page="${currentPage + 1}">다음</a>
+                </li>
+            `;
+        } else {
+            html += `
+                <li class="page-item disabled">
+                    <span class="page-link">다음</span>
+                </li>
+            `;
+        }
+        
+        pagination.innerHTML = html;
+    }
 </script>
+{% if board.route == 'anonymous' %}
+<script>
+    // 댓글 비밀번호 모달 표시 함수
+    function showCommentPasswordModal(commentId) {
+        const form = document.getElementById('commentPasswordForm');
+        form.action = `/board/{{ board.route }}/{{ post.id }}/comment/${commentId}/verify_password`;
+        
+        const modal = new bootstrap.Modal(document.getElementById('commentPasswordModal'));
+        modal.show();
+    }
+</script>
+{% endif %}
 {% endblock %}

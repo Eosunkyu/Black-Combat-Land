@@ -105,35 +105,55 @@
                         <label for="title" class="form-label">제목</label>
                         <input type="text" class="form-control" id="title" name="title" maxlength="50" required>
                     </div>
+                    
+                    {% if board.route == 'anonymous' %}
+                    <div class="mb-3">
+                        <label for="anonymous_password" class="form-label">비밀번호 <small class="text-muted">(수정/삭제 시 필요)</small></label>
+                        <input type="password" class="form-control" id="anonymous_password" name="anonymous_password" 
+                               maxlength="20" required placeholder="4자리 이상 입력하세요">
+                        <div class="form-text">이 비밀번호는 게시글 수정/삭제 시 필요합니다. 잊지 마세요!</div>
+                    </div>
+                    {% endif %}
+                    
                     <div class="mb-3">
                         <label for="content" class="form-label">내용</label>
-                        <textarea class="form-control" id="content" name="content" rows="10" required></textarea>
-                    </div>
-                    
-                    <!-- 다중 이미지 업로드 -->
-                    <div class="mb-3">
-                        <label class="form-label">이미지 첨부 (여러 장 선택 가능)</label>
-                        <div class="d-flex justify-content-between mb-2">
-                            <input class="form-control me-2" type="file" id="multipleImages" name="image_files" multiple accept="image/*">
-                            <button type="button" class="btn btn-outline-secondary" id="addImagesBtn">추가</button>
+                        <!-- WYSIWYG 에디터 컨테이너 -->
+                        <div id="editor-container" class="border rounded" style="min-height: 300px;">
+                            <div id="editor-toolbar" class="border-bottom p-2 bg-light">
+                                <button type="button" class="btn btn-sm btn-outline-secondary me-1" id="boldBtn" title="굵게">
+                                    <i class="fas fa-bold"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary me-1" id="italicBtn" title="기울임">
+                                    <i class="fas fa-italic"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary me-1" id="underlineBtn" title="밑줄">
+                                    <i class="fas fa-underline"></i>
+                                </button>
+                                <div class="vr mx-2"></div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary me-1" id="linkBtn" title="링크">
+                                    <i class="fas fa-link"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary me-1" id="imageBtn" title="이미지">
+                                    <i class="fas fa-image"></i>
+                                </button>
+                                <input type="file" id="hiddenImageInput" multiple accept="image/*" style="display: none;">
+                            </div>
+                            <div id="editor-content" 
+                                 contenteditable="true" 
+                                 class="p-3" 
+                                 style="min-height: 250px; outline: none;"
+                                 placeholder="내용을 입력하거나 이미지를 드래그하여 삽입하세요...">
+                            </div>
                         </div>
-                        <div id="imageContainer" class="row row-cols-1 row-cols-md-3 g-3 mb-3">
-                            <!-- 여기에 이미지 미리보기가 추가됩니다 -->
-                        </div>
-                        <input type="hidden" name="image_count" id="image_count" value="0">
-                    </div>
-                    
-                    <!-- 내용에 이미지 삽입 도구 -->
-                    <div class="mb-3">
-                        <label class="form-label">내용에 이미지 삽입</label>
-                        <div class="alert alert-info">
-                            첨부된 이미지를 본문에 삽입하려면, 텍스트 커서를 위치시킨 후 삽입하려는 이미지의 '본문에 삽입' 버튼을 클릭하세요.
+                        <textarea class="form-control d-none" id="content" name="content" required></textarea>
+                        <div class="mt-2">
+                            <small class="text-muted">이미지를 드래그하여 본문에 바로 삽입하거나, 툴바의 <i class="fas fa-image"></i> 버튼을 클릭하세요. (최대 10개, 각 16MB 이하)</small>
                         </div>
                     </div>
                     
                     <!-- 동영상 삽입 -->
                     <div class="mb-3">
-                        <label class="form-label">동영상 삽입</label>
+                        <label class="form-label">동영상 첨부 (선택사항)</label>
                         <ul class="nav nav-tabs mb-2" id="videoTabs" role="tablist">
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link active" id="url-tab" data-bs-toggle="tab" data-bs-target="#url-panel" type="button" role="tab">URL 링크</button>
@@ -200,139 +220,303 @@
 
 {% block scripts %}
 <script>
+    // WYSIWYG 에디터 변수
+    const editorContent = document.getElementById('editor-content');
+    const hiddenTextarea = document.getElementById('content');
+    const hiddenImageInput = document.getElementById('hiddenImageInput');
+    
     // 이미지 관련 변수
     let imageCounter = 0;
     const MAX_IMAGES = 10;
-    const MAX_FILE_SIZE = 16 * 1024 * 1024; // 16MB in bytes
-    const contentTextarea = document.getElementById('content');
+    const MAX_FILE_SIZE = 16 * 1024 * 1024; // 16MB
     
     // 동영상 관련 변수
     let videoCounter = 0;
     const MAX_VIDEOS = 3;
     const videoData = [];
     
-    // 다중 이미지 선택 및 추가
-    document.getElementById('addImagesBtn').addEventListener('click', function() {
-        const fileInput = document.getElementById('multipleImages');
-        const files = fileInput.files;
+    // 에디터 이벤트 설정
+    function initEditor() {
+        // 툴바 버튼 이벤트
+        document.getElementById('boldBtn').addEventListener('click', () => execCommand('bold'));
+        document.getElementById('italicBtn').addEventListener('click', () => execCommand('italic'));
+        document.getElementById('underlineBtn').addEventListener('click', () => execCommand('underline'));
+        document.getElementById('linkBtn').addEventListener('click', addLink);
+        document.getElementById('imageBtn').addEventListener('click', () => hiddenImageInput.click());
         
-        if (files.length === 0) {
-            alert('선택된 파일이 없습니다.');
-            return;
+        // 이미지 입력 변경 이벤트
+        hiddenImageInput.addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                uploadImages(e.target.files);
+                e.target.value = ''; // 초기화
+            }
+        });
+        
+        // 에디터 내용 변경 시 hidden textarea 업데이트
+        editorContent.addEventListener('input', updateHiddenTextarea);
+        editorContent.addEventListener('paste', handlePaste);
+        
+        // 드래그 앤 드롭 설정
+        setupDragAndDrop();
+        
+        // 이미지 드래그 앤 드롭 설정
+        setupEditorDropZones();
+        
+        // placeholder 효과
+        setupPlaceholder();
+    }
+    
+    // 명령 실행
+    function execCommand(command, value = null) {
+        document.execCommand(command, false, value);
+        editorContent.focus();
+        updateHiddenTextarea();
+    }
+    
+    // 링크 추가
+    function addLink() {
+        const url = prompt('링크 URL을 입력하세요:');
+        if (url) {
+            execCommand('createLink', url);
+        }
+    }
+    
+    // 드래그 앤 드롭 설정
+    function setupDragAndDrop() {
+        let dragOverlay = null;
+        
+        editorContent.addEventListener('dragover', function(e) {
+            // 이미지 이동 드래그인지 확인
+            if (e.dataTransfer.types.includes('text/html')) {
+                return; // 이미지 이동은 별도 처리
+            }
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // 드래그 오버레이 생성
+            if (!dragOverlay) {
+                dragOverlay = document.createElement('div');
+                dragOverlay.className = 'drag-overlay';
+                dragOverlay.innerHTML = `
+                    <div class="drag-overlay-content">
+                        <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
+                        <h5>이미지를 여기에 드롭하세요</h5>
+                        <p class="text-muted">JPG, PNG, GIF 파일 (최대 16MB)</p>
+                    </div>
+                `;
+                editorContent.appendChild(dragOverlay);
+            }
+        });
+        
+        editorContent.addEventListener('dragleave', function(e) {
+            // 이미지 이동 드래그인지 확인
+            if (e.dataTransfer.types.includes('text/html')) {
+                return;
+            }
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // 에디터 영역을 완전히 벗어났는지 확인
+            const rect = editorContent.getBoundingClientRect();
+            const x = e.clientX;
+            const y = e.clientY;
+            
+            if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+                if (dragOverlay) {
+                    dragOverlay.remove();
+                    dragOverlay = null;
+                }
+            }
+        });
+        
+        editorContent.addEventListener('drop', function(e) {
+            // 이미지 이동 드래그인지 확인
+            if (e.dataTransfer.types.includes('text/html')) {
+                return; // 이미지 이동은 별도 처리
+            }
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // 드래그 오버레이 제거
+            if (dragOverlay) {
+                dragOverlay.remove();
+                dragOverlay = null;
+            }
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const images = Array.from(files).filter(file => file.type.startsWith('image/'));
+                if (images.length > 0) {
+                    uploadImages(images);
+                } else {
+                    showNotification('이미지 파일만 업로드할 수 있습니다.', 'warning');
+                }
+            }
+        });
+        
+        // 전체 문서에서 드래그 이벤트 방지
+        document.addEventListener('dragover', function(e) {
+            e.preventDefault();
+        });
+        
+        document.addEventListener('drop', function(e) {
+            e.preventDefault();
+        });
+    }
+    
+    // 붙여넣기 처리 (이미지 포함)
+    function handlePaste(e) {
+        const clipboardData = e.clipboardData || window.clipboardData;
+        const items = clipboardData.items;
+        
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                e.preventDefault();
+                const file = items[i].getAsFile();
+                uploadImages([file]);
+                return;
+            }
         }
         
+        // 텍스트 붙여넣기의 경우 기본 동작 후 textarea 업데이트
+        setTimeout(updateHiddenTextarea, 10);
+    }
+    
+    // placeholder 효과
+    function setupPlaceholder() {
+        const placeholderText = editorContent.getAttribute('placeholder');
+        
+        function updatePlaceholder() {
+            const isEmpty = editorContent.textContent.trim() === '' && 
+                           !editorContent.querySelector('img') && 
+                           !editorContent.querySelector('.image-uploading');
+            
+            if (isEmpty) {
+                editorContent.setAttribute('data-placeholder', placeholderText);
+                editorContent.classList.add('empty');
+            } else {
+                editorContent.removeAttribute('data-placeholder');
+                editorContent.classList.remove('empty');
+            }
+        }
+        
+        editorContent.addEventListener('input', updatePlaceholder);
+        editorContent.addEventListener('focus', updatePlaceholder);
+        editorContent.addEventListener('blur', updatePlaceholder);
+        
+        updatePlaceholder(); // 초기 체크
+    }
+    
+    // 이미지 업로드 처리
+    function uploadImages(files) {
         if (imageCounter + files.length > MAX_IMAGES) {
             alert(`이미지는 최대 ${MAX_IMAGES}개까지 첨부할 수 있습니다.`);
             return;
         }
         
-        // 파일 처리
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
+        Array.from(files).forEach(file => {
             if (!file.type.startsWith('image/')) {
                 alert('이미지 파일만 업로드 가능합니다.');
-                continue;
-            }
-            
-            // 파일 크기 검사
-            if (file.size > MAX_FILE_SIZE) {
-                alert(`파일 '${file.name}'의 크기가 16MB를 초과합니다. 16MB 이하의 파일만 업로드할 수 있습니다.`);
-                continue;
-            }
-            
-            addImagePreview(file, i);
-        }
-        
-        // 이미지 개수 업데이트
-        document.getElementById('image_count').value = imageCounter;
-    });
-    
-    // 파일 선택 시 크기 체크
-    document.getElementById('multipleImages').addEventListener('change', function(e) {
-        const files = e.target.files;
-        
-        for (let i = 0; i < files.length; i++) {
-            if (files[i].size > MAX_FILE_SIZE) {
-                alert(`파일 '${files[i].name}'의 크기가 16MB를 초과합니다. 16MB 이하의 파일만 업로드할 수 있습니다.`);
-                // 파일 선택 초기화
-                e.target.value = '';
                 return;
             }
+            
+            if (file.size > MAX_FILE_SIZE) {
+                alert(`파일 '${file.name}'의 크기가 16MB를 초과합니다.`);
+                return;
+            }
+            
+            uploadSingleImage(file);
+        });
+    }
+    
+    // 단일 이미지 업로드
+    function uploadSingleImage(file) {
+        // 임시 이미지 요소 생성 (로딩 표시)
+        const tempImg = document.createElement('div');
+        tempImg.className = 'image-uploading my-3 p-3 text-center border rounded';
+        tempImg.innerHTML = `
+            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+            <span>이미지 업로드 중... (${file.name})</span>
+        `;
+        
+        // 현재 커서 위치에 삽입
+        insertAtCursor(tempImg);
+        
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('csrf_token', document.querySelector('[name="csrf_token"]').value);
+        
+        fetch('/upload_image', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // 실제 이미지로 교체
+                const img = document.createElement('img');
+                img.src = '/' + data.path;
+                img.className = 'img-fluid my-3 uploaded-image';
+                img.alt = '업로드된 이미지';
+                img.style.maxWidth = '100%';
+                img.style.height = 'auto';
+                img.style.cursor = 'move';
+                img.draggable = true;
+                img.dataset.imageId = Date.now(); // 고유 ID 추가
+                
+                // 드래그 이벤트 추가
+                setupImageDragEvents(img);
+                
+                // 더블클릭으로 삭제
+                img.addEventListener('dblclick', function() {
+                    if (confirm('이미지를 삭제하시겠습니까?')) {
+                        img.remove();
+                        updateHiddenTextarea();
+                        showNotification('이미지가 삭제되었습니다.', 'success');
+                    }
+                });
+                
+                tempImg.replaceWith(img);
+                imageCounter++;
+            } else {
+                tempImg.replaceWith(document.createTextNode(`[이미지 업로드 실패: ${data.error}]`));
+                alert('이미지 업로드에 실패했습니다: ' + data.error);
+            }
+            updateHiddenTextarea();
+        })
+        .catch(error => {
+            tempImg.replaceWith(document.createTextNode('[이미지 업로드 오류]'));
+            alert('이미지 업로드 중 오류가 발생했습니다.');
+            updateHiddenTextarea();
+        });
+    }
+    
+    // 커서 위치에 요소 삽입
+    function insertAtCursor(element) {
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            range.deleteContents();
+            range.insertNode(element);
+            
+            // 커서를 삽입된 요소 다음으로 이동
+            range.setStartAfter(element);
+            range.setEndAfter(element);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        } else {
+            editorContent.appendChild(element);
         }
-    });
-    
-    // 이미지 미리보기 추가
-    function addImagePreview(file, index) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const imgIndex = imageCounter++;
-            
-            // 이미지 컨테이너에 미리보기 추가
-            const imgCol = document.createElement('div');
-            imgCol.className = 'col';
-            imgCol.dataset.index = imgIndex;
-            imgCol.innerHTML = `
-                <div class="card h-100 position-relative">
-                    <img src="${e.target.result}" class="card-img-top" style="height: 150px; object-fit: cover;">
-                    <div class="card-body p-2">
-                        <div class="input-group input-group-sm">
-                            <input type="text" class="form-control form-control-sm" placeholder="이미지 설명" 
-                                   name="image_caption_${imgIndex}" id="image_caption_${imgIndex}">
-                        </div>
-                        <button type="button" class="btn btn-sm btn-outline-primary mt-2 w-100" 
-                                onclick="insertImageToContent(${imgIndex}, '${e.target.result}')">
-                            본문에 삽입
-                        </button>
-                    </div>
-                    <button type="button" class="btn-close position-absolute top-0 end-0 bg-light m-1" 
-                            onclick="removeImage(${imgIndex})"></button>
-                </div>
-            `;
-            
-            document.getElementById('imageContainer').appendChild(imgCol);
-            
-            // 이미지 개수 업데이트
-            document.getElementById('image_count').value = imageCounter;
-        };
-        reader.readAsDataURL(file);
+        editorContent.focus();
     }
     
-    // 내용에 이미지 삽입 기능
-    window.insertImageToContent = function(index, imgSrc) {
-        const caption = document.getElementById(`image_caption_${index}`).value;
-        const imageTag = `\n[이미지:${index}${caption ? `:${caption}` : ''}]\n`;
-        
-        // 현재 커서 위치에 이미지 태그 삽입
-        const cursorPos = contentTextarea.selectionStart;
-        const textBefore = contentTextarea.value.substring(0, cursorPos);
-        const textAfter = contentTextarea.value.substring(cursorPos);
-        
-        contentTextarea.value = textBefore + imageTag + textAfter;
-        contentTextarea.focus();
-        contentTextarea.setSelectionRange(cursorPos + imageTag.length, cursorPos + imageTag.length);
+    // hidden textarea 업데이트
+    function updateHiddenTextarea() {
+        hiddenTextarea.value = editorContent.innerHTML;
     }
-    
-    // 이미지 제거
-    function removeImage(index) {
-        // 미리보기 제거
-        const element = document.querySelector(`#imageContainer div[data-index="${index}"]`);
-        if (element) element.remove();
-        
-        // 본문에서 관련 태그도 제거
-        const regex = new RegExp(`\\[이미지:${index}(?::[^\\]]*)?\\]`, 'g');
-        contentTextarea.value = contentTextarea.value.replace(regex, '');
-        
-        // 이미지 카운터는 그대로 유지 (서버에서 실제 파일 수 확인)
-    }
-    
-    // 폼 제출 전 처리
-    document.querySelector('form').addEventListener('submit', function(e) {
-        // 이미지 개수 최종 업데이트
-        document.getElementById('image_count').value = document.querySelectorAll('#imageContainer .col').length;
-        
-        // 동영상 데이터 최종 업데이트
-        document.getElementById('videoData').value = JSON.stringify(videoData);
-    });
     
     // 동영상 URL 추가
     document.getElementById('addVideoUrlBtn').addEventListener('click', function() {
@@ -347,13 +531,11 @@
             return;
         }
         
-        // URL 처리 및 미리보기 생성
         addVideoPreview({
             type: 'url',
             content: videoUrl
         });
         
-        // 입력 필드 초기화
         document.getElementById('videoUrl').value = '';
     });
     
@@ -370,13 +552,11 @@
             return;
         }
         
-        // 임베드 코드 처리 및 미리보기 생성
         addVideoPreview({
             type: 'embed',
             content: embedCode
         });
         
-        // 입력 필드 초기화
         document.getElementById('embedCode').value = '';
     });
     
@@ -385,16 +565,13 @@
         const videoIndex = videoCounter++;
         const container = document.getElementById('videoPreviewContainer');
         
-        // 동영상 데이터 저장
         videoData.push(video);
         document.getElementById('videoData').value = JSON.stringify(videoData);
         
-        // 미리보기 생성
         const videoPreview = document.createElement('div');
         videoPreview.className = 'card mb-3 position-relative';
         videoPreview.dataset.index = videoIndex;
         
-        // URL 또는 임베드 코드에 따라 다른 미리보기 생성
         if (video.type === 'url') {
             videoPreview.innerHTML = `
                 <div class="card-body">
@@ -422,16 +599,378 @@
     
     // 동영상 제거
     function removeVideo(index) {
-        // 미리보기 제거
         const element = document.querySelector(`#videoPreviewContainer div[data-index="${index}"]`);
         if (element) element.remove();
         
-        // 데이터에서 제거
         videoData.splice(index, 1);
         document.getElementById('videoData').value = JSON.stringify(videoData);
         
-        // 카운터 업데이트
         videoCounter--;
     }
+    
+    // 폼 제출 전 처리
+    document.querySelector('form').addEventListener('submit', function(e) {
+        updateHiddenTextarea();
+        document.getElementById('videoData').value = JSON.stringify(videoData);
+        
+        // 내용이 비어있는지 확인
+        const content = hiddenTextarea.value.trim();
+        if (!content || content === '<br>' || content === '<div><br></div>') {
+            alert('내용을 입력해주세요.');
+            e.preventDefault();
+            return false;
+        }
+    });
+    
+    // 페이지 로드 시 에디터 초기화
+    document.addEventListener('DOMContentLoaded', initEditor);
+    
+    // 알림 표시 함수
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type === 'warning' ? 'warning' : 'info'} alert-dismissible fade show position-fixed`;
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // 3초 후 자동 제거
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 3000);
+    }
+    
+    // 이미지 드래그 이벤트 설정
+    function setupImageDragEvents(img) {
+        img.addEventListener('dragstart', function(e) {
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', 'image-move');
+            img.classList.add('dragging');
+            img.dataset.dragId = Date.now(); // 고유 ID 추가
+        });
+        
+        img.addEventListener('dragend', function(e) {
+            img.classList.remove('dragging');
+            img.style.opacity = '';
+            // 모든 드롭 존 제거
+            document.querySelectorAll('.image-drop-zone').forEach(zone => zone.remove());
+        });
+    }
+    
+    // 에디터 내 드롭 존 설정
+    function setupEditorDropZones() {
+        editorContent.addEventListener('dragover', function(e) {
+            // 이미지 이동 드래그가 아니면 무시
+            if (!e.dataTransfer.types.includes('text/html') || 
+                !document.querySelector('.dragging')) {
+                return;
+            }
+            
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            
+            // 기존 드롭 존 제거
+            document.querySelectorAll('.image-drop-zone').forEach(zone => zone.remove());
+            
+            // 새 드롭 존 생성
+            const dropZone = document.createElement('div');
+            dropZone.className = 'image-drop-zone';
+            dropZone.innerHTML = '<div class="drop-indicator">⬇ 여기에 이미지 놓기</div>';
+            
+            // 마우스 위치 기준으로 삽입 위치 결정
+            const targetElement = getDropTarget(e);
+            if (targetElement) {
+                targetElement.parentNode.insertBefore(dropZone, targetElement.nextSibling);
+            } else {
+                editorContent.appendChild(dropZone);
+            }
+        });
+        
+        editorContent.addEventListener('drop', function(e) {
+            // 이미지 이동 드래그가 아니면 무시
+            if (!e.dataTransfer.types.includes('text/html') || 
+                !document.querySelector('.dragging')) {
+                return;
+            }
+            
+            e.preventDefault();
+            
+            const draggingElement = document.querySelector('.dragging');
+            const dropZone = document.querySelector('.image-drop-zone');
+            
+            if (draggingElement && dropZone) {
+                // 이미지를 새 위치로 이동
+                dropZone.parentNode.insertBefore(draggingElement, dropZone);
+                dropZone.remove();
+                
+                draggingElement.classList.remove('dragging');
+                draggingElement.style.opacity = '';
+                
+                updateHiddenTextarea();
+                showNotification('이미지 위치가 변경되었습니다.', 'success');
+            }
+        });
+    }
+    
+    // 드롭 위치 계산 (단순화)
+    function getDropTarget(e) {
+        const elements = [...editorContent.children];
+        const mouseY = e.clientY;
+        
+        for (let element of elements) {
+            if (element.classList.contains('dragging') || 
+                element.classList.contains('image-drop-zone')) {
+                continue;
+            }
+            
+            const rect = element.getBoundingClientRect();
+            if (mouseY < rect.top + rect.height / 2) {
+                return element;
+            }
+        }
+        return null;
+    }
 </script>
+
+<style>
+    /* 드래그 오버레이 스타일 */
+    .drag-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 123, 255, 0.1);
+        border: 2px dashed #007bff;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        animation: dragPulse 1s ease-in-out infinite alternate;
+    }
+    
+    .drag-overlay-content {
+        text-align: center;
+        color: #007bff;
+        pointer-events: none;
+    }
+    
+    @keyframes dragPulse {
+        from { background: rgba(0, 123, 255, 0.1); }
+        to { background: rgba(0, 123, 255, 0.2); }
+    }
+    
+    /* 에디터 컨테이너 스타일 */
+    #editor-container {
+        position: relative;
+        transition: box-shadow 0.2s;
+    }
+    
+    #editor-container:focus-within {
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    }
+    
+    /* 툴바 스타일 개선 */
+    #editor-toolbar {
+        background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    #editor-toolbar .btn {
+        transition: all 0.2s;
+    }
+    
+    #editor-toolbar .btn:hover {
+        background-color: #e9ecef;
+        transform: translateY(-1px);
+    }
+    
+    /* 이미지 업로드 중 스타일 */
+    .image-uploading {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        border: 2px dashed #6c757d;
+        border-radius: 8px;
+        animation: uploadPulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes uploadPulse {
+        0%, 100% { opacity: 0.8; }
+        50% { opacity: 1; }
+    }
+    
+    /* 업로드된 이미지 스타일 */
+    .uploaded-image {
+        transition: all 0.3s ease;
+        cursor: move;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        display: block;
+        margin: 15px 0;
+        max-width: 100%;
+        height: auto;
+    }
+    
+    .uploaded-image:hover {
+        transform: scale(1.02);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        border-color: #007bff;
+    }
+    
+    .uploaded-image.dragging {
+        opacity: 0.6;
+        transform: scale(0.95) rotate(1deg);
+        z-index: 1000;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+    
+    .uploaded-image.dragging:hover {
+        transform: scale(0.95) rotate(1deg);
+    }
+    
+    /* 드롭 존 스타일 */
+    .drop-zone, .image-drop-zone {
+        min-height: 50px;
+        margin: 10px 0;
+        border: 2px dashed #007bff;
+        border-radius: 8px;
+        background: rgba(0, 123, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: dropZonePulse 1s ease-in-out infinite alternate;
+        transition: all 0.3s ease;
+    }
+    
+    .drop-indicator {
+        color: #007bff;
+        font-weight: bold;
+        text-align: center;
+        padding: 10px;
+        font-size: 14px;
+    }
+    
+    @keyframes dropZonePulse {
+        from { 
+            background: rgba(0, 123, 255, 0.1);
+            border-color: #007bff;
+        }
+        to { 
+            background: rgba(0, 123, 255, 0.2);
+            border-color: #0056b3;
+        }
+    }
+    
+    /* 에디터 내용 스타일 */
+    #editor-content {
+        line-height: 1.6;
+        min-height: 250px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        position: relative;
+    }
+    
+    #editor-content img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 4px;
+        display: block;
+        margin: 15px 0;
+    }
+    
+    /* 포커스 스타일 */
+    #editor-content:focus {
+        outline: none;
+        background-color: #fff;
+    }
+    
+    /* 링크 스타일 */
+    #editor-content a {
+        color: #007bff;
+        text-decoration: underline;
+    }
+    
+    #editor-content a:hover {
+        color: #0056b3;
+    }
+    
+    #editor-content p {
+        margin-bottom: 1em;
+    }
+    
+    /* 빈 에디터 placeholder 스타일 */
+    #editor-content.empty::before {
+        content: attr(data-placeholder);
+        color: #6c757d;
+        font-style: italic;
+        pointer-events: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        padding: 12px;
+        z-index: 1;
+    }
+    
+    #editor-content.empty:focus::before {
+        opacity: 0.5;
+    }
+    
+    /* 반응형 디자인 */
+    @media (max-width: 768px) {
+        .drag-overlay-content h5 {
+            font-size: 1rem;
+        }
+        
+        .drag-overlay-content p {
+            font-size: 0.875rem;
+        }
+        
+        .drag-overlay-content i {
+            font-size: 2rem !important;
+        }
+        
+        .uploaded-image {
+            margin: 10px 0;
+        }
+        
+        #editor-content img {
+            margin: 10px 0;
+        }
+    }
+    
+    /* 이미지 드래그 앤 드롭 스타일 */
+    .uploaded-image {
+        transition: all 0.3s ease;
+        cursor: move;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        display: block;
+        margin: 15px 0;
+        max-width: 100%;
+        height: auto;
+    }
+    
+    .uploaded-image:hover {
+        transform: scale(1.02);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        border-color: #007bff;
+    }
+    
+    .uploaded-image.dragging {
+        opacity: 0.6;
+        transform: scale(0.95) rotate(1deg);
+        z-index: 1000;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+    
+    .uploaded-image.dragging:hover {
+        transform: scale(0.95) rotate(1deg);
+    }
+</style>
 {% endblock %}

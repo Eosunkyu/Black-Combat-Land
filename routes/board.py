@@ -1,22 +1,78 @@
 # type: ignore
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, abort, jsonify, current_app
 from flask_login import login_required, current_user
 import os
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import random
 import json
-from flask import current_app
 import re
 import pytz
+import hashlib
 
 seoul_timezone = pytz.timezone('Asia/Seoul')
 
-
 board_bp = Blueprint('board', __name__)
 
-# 필요한 객체 가져오기 (모듈 레벨에서 가져오지 않고 라우트 내부에서 가져옴)
-from app import mysql
+# 필요한 객체는 current_app을 통해 접근
+def get_mysql():
+    return current_app.extensions['mysql']
+
+def get_bcrypt():
+    return current_app.extensions['bcrypt']
+
+# 익명 사용자 닉네임 생성 및 관리 함수들
+def get_anonymous_nickname(ip_address):
+    """IP 주소 기반으로 익명 닉네임을 생성하거나 기존 닉네임을 반환합니다."""
+    mysql = get_mysql()
+    cur = mysql.connection.cursor()
+    
+    # IP 주소 해시 생성 (보안을 위해)
+    ip_hash = hashlib.sha256(ip_address.encode()).hexdigest()
+    
+    # 기존 익명 사용자 확인
+    cur.execute('SELECT nickname FROM anonymous_users WHERE ip_hash = %s', (ip_hash,))
+    existing_user = cur.fetchone()
+    
+    if existing_user:
+        cur.close()
+        return existing_user['nickname']
+    
+    # 새로운 익명 사용자 생성
+    # 현재 익명 사용자 수 확인
+    cur.execute('SELECT COUNT(*) as count FROM anonymous_users')
+    user_count = cur.fetchone()['count']
+    
+    # 블랜1, 블랜2 형식으로 닉네임 생성
+    nickname = f"블랜{user_count + 1}"
+    
+    # 중복 확인 (혹시 모를 경우를 대비)
+    while True:
+        cur.execute('SELECT id FROM anonymous_users WHERE nickname = %s', (nickname,))
+        if not cur.fetchone():
+            break
+        user_count += 1
+        nickname = f"블랜{user_count + 1}"
+    
+    # 새 익명 사용자 등록
+    cur.execute('''
+        INSERT INTO anonymous_users (ip_address, ip_hash, nickname, created_at)
+        VALUES (%s, %s, %s, NOW())
+    ''', (ip_address, ip_hash, nickname))
+    mysql.connection.commit()
+    cur.close()
+    
+    return nickname
+
+def hash_anonymous_password(password):
+    """익명 사용자 비밀번호 해시"""
+    bcrypt = get_bcrypt()
+    return bcrypt.generate_password_hash(password).decode('utf-8')
+
+def check_anonymous_password(password, hashed):
+    """익명 사용자 비밀번호 검증"""
+    bcrypt = get_bcrypt()
+    return bcrypt.check_password_hash(hashed, password)
 
 # 허용된 파일 확장자 체크
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -29,7 +85,8 @@ MAX_FILE_SIZE = 16 * 1024 * 1024
 # 게시판 메인 화면
 @board_bp.route('/board/<string:board_route>')
 def board_main(board_route):
-    # 게시판 데이터 조회
+    # MySQL 연결 가져오기
+    mysql = get_mysql()
     cur = mysql.connection.cursor()
 
     user_agent = request.headers.get('User-Agent')
@@ -61,9 +118,9 @@ def board_main(board_route):
     
     # 게시글 조회
     if board['route'] == 'anonymous':
-        # 익명 게시판은 작성자 정보 숨김
+        # 익명 게시판은 단순히 '익명'으로 표시
         cur.execute('''
-            SELECT posts.*, '익명' as nickname, posts.images_data, posts.content, posts.created_at,
+            SELECT posts.*, posts.ip_address, posts.images_data, posts.content, posts.created_at,
                   (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
                   (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count, boards.name as board_name
             FROM posts
@@ -72,6 +129,11 @@ def board_main(board_route):
             ORDER BY posts.created_at DESC
             LIMIT %s OFFSET %s
         ''', (board['id'], per_page, offset))
+        
+        posts = cur.fetchall()
+        # 익명 게시판에서는 게시글에 단순히 '익명' 설정
+        for post in posts:
+            post['nickname'] = '블랜'
     else:
         # 일반 게시판은 작성자 정보 표시
         cur.execute('''
@@ -86,8 +148,8 @@ def board_main(board_route):
             ORDER BY posts.created_at DESC
             LIMIT %s OFFSET %s
         ''', (board['id'], per_page, offset))
-    
-    posts = cur.fetchall()
+        
+        posts = cur.fetchall()
     
     # 총 게시글 수 조회 (페이지네이션용)
     cur.execute('SELECT COUNT(*) as count FROM posts WHERE board_id = %s', (board['id'],))
@@ -119,10 +181,8 @@ def board_main(board_route):
 # 게시글 작성 화면
 @board_bp.route('/board/<string:board_route>/write', methods=['GET', 'POST'])
 def write_post(board_route):
-    # 필요한 객체 가져오기
-    from app import mysql
-    
-    # 게시판 데이터 조회
+    # 필요한 객체는 current_app을 통해 접근
+    mysql = get_mysql()
     cur = mysql.connection.cursor()
 
     user_agent = request.headers.get('User-Agent')
@@ -166,6 +226,21 @@ def write_post(board_route):
         title = request.form['title']
         content = request.form['content']
         ip_address = request.remote_addr
+        
+        # 익명 게시판인 경우 비밀번호 처리
+        anonymous_password = None
+        if board['route'] == 'anonymous':
+            password = request.form.get('anonymous_password', '').strip()
+            if not password:
+                flash('익명 게시판에서는 비밀번호를 입력해야 합니다.', 'danger')
+                return render_template('board/write.html', board=board, 
+                                      sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad, is_mobile=is_mobile)
+            if len(password) < 4:
+                flash('비밀번호는 최소 4자리 이상이어야 합니다.', 'danger')
+                return render_template('board/write.html', board=board, 
+                                      sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad, is_mobile=is_mobile)
+            anonymous_password = hash_anonymous_password(password)
+        
         cur.execute('''
             SELECT * FROM blocked_ips 
             WHERE ip_address = %s AND (expires_at IS NULL OR expires_at > NOW())
@@ -178,6 +253,8 @@ def write_post(board_route):
             flash(f'차단된 IP 주소입니다{reason}. 관리자에게 문의하세요.', 'danger')
             return redirect(url_for('board.board_main', board_route=board_route))
         # 차단된 사용자인지 확인
+        if board['route'] != 'anonymous' and 'loggedin' in session:
+            user_id = session['id']
             cur.execute('''
                 SELECT * FROM blocked_users 
                 WHERE user_id = %s AND (expires_at IS NULL OR expires_at > NOW())
@@ -201,73 +278,16 @@ def write_post(board_route):
             return render_template('board/write.html', board=board, 
                                   sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad, is_mobile=is_mobile)
         
-        # 이미지 업로드 처리
-        image_paths = []
-        image_captions = []
-        
-        # 이미지 파일 처리
-        if 'image_files' in request.files:
-            # 여러 파일이 업로드된 경우
-            files = request.files.getlist('image_files')
-            image_count = min(int(request.form.get('image_count', 0)), 10)  # 최대 10개로 제한
-            
-            for i in range(min(len(files), image_count)):
-                file = files[i]
-                caption = request.form.get(f'image_caption_{i}', '')
-                
-                if file and file.filename != '' and allowed_file(file.filename):
-                    # 파일 크기 확인
-                    file.seek(0, os.SEEK_END)
-                    file_size = file.tell()
-                    file.seek(0)  # 파일 포인터를 다시 처음으로 되돌림
-                    
-                    if file_size > MAX_FILE_SIZE:
-                        flash(f'파일 "{file.filename}"의 크기가 16MB를 초과합니다. 16MB 이하의 파일만 업로드할 수 있습니다.', 'danger')
-                        continue
-                    
-                    filename = secure_filename(file.filename or '')
-                    # 파일명이 중복되지 않도록 타임스탬프 추가
-                    filename = f"{datetime.now(seoul_timezone).strftime('%Y%m%d%H%M%S')}_{i}_{filename}"
-                    
-                    # 업로드 폴더가 없으면 생성
-                    upload_folder = os.path.join(current_app.root_path, current_app.config['UPLOAD_FOLDER'])
-                    os.makedirs(upload_folder, exist_ok=True)
-                    
-                    file_path = os.path.join(upload_folder, filename)
-                    file.save(file_path)
-                    
-                    relative_path = os.path.join('static', 'uploads', filename).replace('\\', '/')
-                    image_paths.append(relative_path)
-                    image_captions.append(caption)
-        
-        # 이미지 태그 처리: [이미지:index:caption] 형식의 태그를 HTML로 변환
-        # 내용에 삽입된 이미지 태그를 HTML로 변환
-        image_pattern = r'\[이미지:(\d+)(?::([^\]]*))?\]'
-        for match in re.finditer(image_pattern, content):
-            index = int(match.group(1))
-            if index < len(image_paths):
-                # 삽입된 태그를 HTML로 변환
-                replacement = f'<img src="/{image_paths[index]}" class="img-fluid my-3" alt="{image_captions[index]}">'
-                if match.group(2):  # 캡션이 있는 경우
-                    replacement += f'<figcaption class="figure-caption text-center mb-3">{match.group(2)}</figcaption>'
-                content = content.replace(match.group(0), replacement)
-        
         # 동영상 데이터 처리
         video_data = request.form.get('video_data', '[]')
         
         # 게시글 저장
         user_id = session.get('id', 0) if board['route'] != 'anonymous' else 0
         
-        # DB에 이미지 경로와 캡션, 동영상 데이터를 JSON으로 저장
-        images_json = json.dumps({
-            'paths': image_paths,
-            'captions': image_captions
-        }) if image_paths else None
-        
         cur.execute('''
-            INSERT INTO posts (board_id, user_id, title, content, images_data, video_data, created_at, view_count, is_anonymous, ip_address)
-            VALUES (%s, %s, %s, %s, %s, %s, NOW(), 0, %s, %s)
-        ''', (board['id'], user_id, title, content, images_json, video_data, 1 if board['route'] == 'anonymous' else 0, ip_address))
+            INSERT INTO posts (board_id, user_id, title, content, video_data, created_at, view_count, is_anonymous, ip_address, anonymous_password)
+            VALUES (%s, %s, %s, %s, %s, NOW(), 0, %s, %s, %s)
+        ''', (board['id'], user_id, title, content, video_data, 1 if board['route'] == 'anonymous' else 0, ip_address, anonymous_password))
         
         mysql.connection.commit()
         post_id = cur.lastrowid
@@ -282,10 +302,8 @@ def write_post(board_route):
 # 게시글 상세보기
 @board_bp.route('/board/<string:board_route>/<int:post_id>')
 def view_post(board_route, post_id):
-    # 필요한 객체 가져오기
-    from app import mysql
-    
-    # 게시판 및 게시글 데이터 조회
+    # 필요한 객체는 current_app을 통해 접근
+    mysql = get_mysql()
     cur = mysql.connection.cursor()
 
     user_agent = request.headers.get('User-Agent')
@@ -312,6 +330,12 @@ def view_post(board_route, post_id):
     if not post:
         cur.close()
         abort(404)
+    
+    # 익명 게시판인 경우 IP 기반 닉네임 설정
+    if post['is_anonymous'] and post['ip_address']:
+        post['nickname'] = '블랜'  # 게시글은 단순히 '익명'으로 표시
+    elif post['is_anonymous']:
+        post['nickname'] = '블랜'
     
     # 현재 로그인한 사용자가 관리자인지 확인
     is_admin = session.get('is_admin', False)
@@ -346,6 +370,13 @@ def view_post(board_route, post_id):
     ''', (post_id,))
     
     comments = cur.fetchall()
+    
+    # 익명 댓글의 IP 기반 닉네임 설정
+    for comment in comments:
+        if comment['is_anonymous'] and comment['ip_address']:
+            comment['nickname'] = '블랜'  # 댓글도 단순히 '익명'으로 표시
+        elif comment['is_anonymous']:
+            comment['nickname'] = '블랜'
     
     # 좋아요 정보 조회
     like_count = 0
@@ -388,7 +419,7 @@ def view_post(board_route, post_id):
     
     if board['route'] == 'anonymous':
         cur.execute('''
-            SELECT posts.*, '익명' as nickname,
+            SELECT posts.*, '블랜' as nickname,
                    (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
                    (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
             FROM posts
@@ -398,7 +429,7 @@ def view_post(board_route, post_id):
         ''', (board['id'], per_page, offset))
     else:
         cur.execute('''
-            SELECT posts.*, users.nickname,users.is_vip,
+            SELECT posts.*, users.nickname, users.is_vip,
                    (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
                    (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
             FROM posts
@@ -412,13 +443,6 @@ def view_post(board_route, post_id):
 
     cur.close()
     
-    # 익명 게시판인 경우 닉네임을 '익명'으로 표시
-    if post['is_anonymous']:
-        post['nickname'] = '익명'
-        for comment in comments:
-            if comment['is_anonymous']:
-                comment['nickname'] = '익명'
-    
     return render_template('board/view.html', board=board, post=post,
                           comments=comments, like_count=like_count,
                           is_liked=is_liked, images_data=images_data,
@@ -429,10 +453,8 @@ def view_post(board_route, post_id):
 # 댓글 작성
 @board_bp.route('/board/<string:board_route>/<int:post_id>/comment', methods=['POST'])
 def write_comment(board_route, post_id):
-    # 필요한 객체 가져오기
-    from app import mysql
-    
-    # 게시판 및 게시글 데이터 조회
+    # 필요한 객체는 current_app을 통해 접근
+    mysql = get_mysql()
     cur = mysql.connection.cursor()
     
     cur.execute('SELECT * FROM boards WHERE route = %s', (board_route,))
@@ -469,6 +491,19 @@ def write_comment(board_route, post_id):
         return redirect(url_for('auth.login'))
     
     content = request.form['content']
+    
+    # 익명 게시판인 경우 비밀번호 처리
+    anonymous_password = None
+    if board['route'] == 'anonymous':
+        password = request.form.get('anonymous_password', '').strip()
+        if not password:
+            flash('익명 게시판에서는 비밀번호를 입력해야 합니다.', 'danger')
+            return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
+        if len(password) < 4:
+            flash('비밀번호는 최소 4자리 이상이어야 합니다.', 'danger')
+            return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
+        anonymous_password = hash_anonymous_password(password)
+    
     # 로그인한 사용자이고 익명 게시판이 아닌 경우 차단 여부 확인
     if 'loggedin' in session and board['route'] != 'anonymous':
         user_id = session['id']
@@ -494,9 +529,9 @@ def write_comment(board_route, post_id):
     user_id = session.get('id', 0) if board['route'] != 'anonymous' else 0
     
     cur.execute('''
-        INSERT INTO comments (post_id, user_id, content, created_at, is_anonymous, ip_address)
-        VALUES (%s, %s, %s, NOW(), %s, %s)
-    ''', (post_id, user_id, content, 1 if board['route'] == 'anonymous' else 0, ip_address))
+        INSERT INTO comments (post_id, user_id, content, created_at, is_anonymous, ip_address, anonymous_password)
+        VALUES (%s, %s, %s, NOW(), %s, %s, %s)
+    ''', (post_id, user_id, content, 1 if board['route'] == 'anonymous' else 0, ip_address, anonymous_password))
     
     mysql.connection.commit()
     cur.close()
@@ -508,10 +543,8 @@ def write_comment(board_route, post_id):
 @board_bp.route('/board/<string:board_route>/<int:post_id>/like', methods=['POST'])
 @login_required
 def like_post(board_route, post_id):
-    # 필요한 객체 가져오기
-    from app import mysql
-    
-    # 게시판 및 게시글 데이터 조회
+    # 필요한 객체는 current_app을 통해 접근
+    mysql = get_mysql()
     cur = mysql.connection.cursor()
     
     cur.execute('SELECT * FROM boards WHERE route = %s', (board_route,))
@@ -549,10 +582,8 @@ def like_post(board_route, post_id):
 @board_bp.route('/board/<string:board_route>/<int:post_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_post(board_route, post_id):
-    # 필요한 객체 가져오기
-    from app import mysql
-    
-    # 게시판 및 게시글 데이터 조회
+    # 필요한 객체는 current_app을 통해 접근
+    mysql = get_mysql()
     cur = mysql.connection.cursor()
 
     user_agent = request.headers.get('User-Agent')
@@ -581,7 +612,7 @@ def edit_post(board_route, post_id):
     
     # 익명 게시판이면 닉네임을 '익명'으로 설정
     if board['route'] == 'anonymous' or post['is_anonymous']:
-        post['nickname'] = '익명'
+        post['nickname'] = '블랜'
     
     # 작성자 확인 (관리자는 항상 가능)
     if not session.get('is_admin') and post['user_id'] != session['id']:
@@ -621,114 +652,21 @@ def edit_post(board_route, post_id):
         title = request.form['title']
         content = request.form['content']
         
-        # 입력값 검증
-        if not title or not content:
-            flash('제목과 내용을 모두 입력해주세요.', 'danger')
-            return render_template('board/edit.html', board=board, post=post, 
-                                  sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad, is_mobile=is_mobile)
-        
         # 제목 길이 검증
         if len(title) > 40:
             flash('제목은 40자 이내로 입력해주세요.', 'danger')
             return render_template('board/edit.html', board=board, post=post, 
                                   sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad, is_mobile=is_mobile)
         
-        # 이미지 데이터 처리
-        image_paths = []
-        image_captions = []
-        
-        # 기존 이미지 처리
-        existing_images_flag = request.form.get('existing_images', '0') == '1'
-        
-        # 기존 이미지 데이터가 있고 유지한다면 추가
-        existing_images_data = None
-        if existing_images_flag and post.get('images_data'):
-            try:
-                existing_images_data = json.loads(post['images_data'])
-                image_paths.extend(existing_images_data.get('paths', []))
-                image_captions.extend(existing_images_data.get('captions', []))
-            except (json.JSONDecodeError, TypeError):
-                # 기존 데이터가 올바른 JSON이 아닌 경우 무시
-                pass
-        elif existing_images_flag and post.get('image_path'):
-            image_paths.append(post['image_path'])
-            image_captions.append(request.form.get('existing_image_caption_0', ''))
-        
-        # 새 이미지 처리
-        if 'image_files' in request.files:
-            # 여러 파일이 업로드된 경우
-            files = request.files.getlist('image_files')
-            image_count = min(int(request.form.get('image_count', 0)), 10)  # 최대 10개로 제한
-            
-            for i in range(min(len(files), image_count)):
-                file = files[i]
-                caption = request.form.get(f'image_caption_{i}', '')
-                
-                if file and file.filename != '' and allowed_file(file.filename):
-                    # 파일 크기 확인
-                    file.seek(0, os.SEEK_END)
-                    file_size = file.tell()
-                    file.seek(0)  # 파일 포인터를 다시 처음으로 되돌림
-                    
-                    if file_size > MAX_FILE_SIZE:
-                        flash(f'파일 "{file.filename}"의 크기가 16MB를 초과합니다. 16MB 이하의 파일만 업로드할 수 있습니다.', 'danger')
-                        continue
-                    
-                    filename = secure_filename(file.filename or '')
-                    # 파일명이 중복되지 않도록 타임스탬프 추가
-                    filename = f"{datetime.now(seoul_timezone).strftime('%Y%m%d%H%M%S')}_{i}_{filename}"
-                    
-                    # 업로드 폴더가 없으면 생성
-                    upload_folder = os.path.join(current_app.root_path, current_app.config['UPLOAD_FOLDER'])
-                    os.makedirs(upload_folder, exist_ok=True)
-                    
-                    file_path = os.path.join(upload_folder, filename)
-                    file.save(file_path)
-                    
-                    relative_path = os.path.join('static', 'uploads', filename).replace('\\', '/')
-                    image_paths.append(relative_path)
-                    image_captions.append(caption)
-        
-        # 이미지 태그 처리: [이미지:index:caption] 형식의 태그를 HTML로 변환
-        # 내용에 삽입된 이미지 태그를 HTML로 변환
-        new_image_pattern = r'\[이미지:(\d+)(?::([^\]]*))?\]'
-        for match in re.finditer(new_image_pattern, content):
-            index = int(match.group(1))
-            if index < len(image_paths):
-                # 삽입된 태그를 HTML로 변환
-                replacement = f'<img src="/{image_paths[index]}" class="img-fluid my-3" alt="{image_captions[index]}">'
-                if match.group(2):  # 캡션이 있는 경우
-                    replacement += f'<figcaption class="figure-caption text-center mb-3">{match.group(2)}</figcaption>'
-                content = content.replace(match.group(0), replacement)
-        
-        # 기존 이미지 태그 처리
-        existing_image_pattern = r'\[기존이미지:(\d+)(?::([^\]]*))?\]'
-        if existing_images_data:
-            for match in re.finditer(existing_image_pattern, content):
-                index = int(match.group(1))
-                if index < len(existing_images_data['paths']):
-                    # 삽입된 태그를 HTML로 변환
-                    path = existing_images_data['paths'][index]
-                    replacement = f'<img src="/{path}" class="img-fluid my-3" alt="{match.group(2) or ""}">'
-                    if match.group(2):  # 캡션이 있는 경우
-                        replacement += f'<figcaption class="figure-caption text-center mb-3">{match.group(2)}</figcaption>'
-                    content = content.replace(match.group(0), replacement)
-        
         # 동영상 데이터 처리
         video_data = request.form.get('video_data', '[]')
-        
-        # 이미지 데이터를 JSON으로 변환
-        images_json = json.dumps({
-            'paths': image_paths,
-            'captions': image_captions
-        }) if image_paths else None
         
         # 게시글 수정
         cur.execute('''
             UPDATE posts 
-            SET title = %s, content = %s, images_data = %s, video_data = %s, updated_at = NOW()
+            SET title = %s, content = %s, video_data = %s, updated_at = NOW()
             WHERE id = %s
-        ''', (title, content, images_json, video_data, post_id))
+        ''', (title, content, video_data, post_id))
         
         mysql.connection.commit()
         cur.close()
@@ -746,8 +684,8 @@ def edit_post(board_route, post_id):
 @board_bp.route('/board/<string:board_route>/<int:post_id>/delete', methods=['POST'])
 @login_required
 def delete_post(board_route, post_id):
-    # 필요한 객체 가져오기
-    from app import mysql
+    # 필요한 객체는 current_app을 통해 접근
+    mysql = get_mysql()
     
     # 세션 확인 로깅 추가
     print(f"Session data: {session}")
@@ -813,11 +751,11 @@ def delete_post(board_route, post_id):
 @board_bp.route('/board/<string:board_route>/<int:post_id>/comment/<int:comment_id>/delete', methods=['POST'])
 @login_required
 def delete_comment(board_route, post_id, comment_id):
-    # 필요한 객체 가져오기
-    from app import mysql
+    # 필요한 객체는 current_app을 통해 접근
+    mysql = get_mysql()
+    cur = mysql.connection.cursor()
     
     # 게시판 데이터 조회
-    cur = mysql.connection.cursor()
     cur.execute('SELECT * FROM boards WHERE route = %s', (board_route,))
     board = cur.fetchone()
 
@@ -850,6 +788,314 @@ def delete_comment(board_route, post_id, comment_id):
     
     # 댓글 삭제
     cur.execute('DELETE FROM comments WHERE id = %s', (comment_id,))
+    mysql.connection.commit()
+    cur.close()
+    
+    flash('댓글이 삭제되었습니다.', 'success')
+    return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
+
+# 게시물 목록만 JSON으로 반환하는 API 엔드포인트
+@board_bp.route('/board/<string:board_route>/posts', methods=['GET'])
+def board_posts_json(board_route):
+    # 필요한 객체는 current_app을 통해 접근
+    mysql = get_mysql()
+    cur = mysql.connection.cursor()
+
+    cur.execute('SELECT * FROM boards WHERE route = %s', (board_route,))
+    board = cur.fetchone()
+
+    if not board:
+        cur.close()
+        abort(404)
+    
+    # 페이지네이션
+    page = request.args.get('page', 1, type=int)
+    per_page = 15
+    offset = (page - 1) * per_page
+    
+    # 총 게시글 수 조회 (페이지네이션용)
+    cur.execute('SELECT COUNT(*) as count FROM posts WHERE board_id = %s', (board['id'],))
+    total_count = cur.fetchone()['count']
+    total_pages = (total_count + per_page - 1) // per_page
+    
+    # 게시글 조회
+    if board['route'] == 'anonymous':
+        cur.execute('''
+            SELECT posts.*, '블랜' as nickname,
+                   (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
+                   (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
+            FROM posts
+            WHERE posts.board_id = %s
+            ORDER BY posts.created_at DESC
+            LIMIT %s OFFSET %s
+        ''', (board['id'], per_page, offset))
+    else:
+        cur.execute('''
+            SELECT posts.*, users.nickname, users.is_vip,
+                   (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
+                   (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
+            FROM posts
+            JOIN users ON posts.user_id = users.id
+            WHERE posts.board_id = %s
+            ORDER BY posts.created_at DESC
+            LIMIT %s OFFSET %s
+        ''', (board['id'], per_page, offset))
+    
+    posts = cur.fetchall()
+    cur.close()
+    
+    # 현재 날짜 정보 가져오기
+    now = datetime.now(seoul_timezone).strftime('%Y-%m-%d %H:%M:%S')
+    
+    return jsonify({
+        'board': board,
+        'posts': posts,
+        'now': now,
+        'page': page,
+        'total_pages': total_pages
+    })
+
+# 익명 게시글 비밀번호 확인
+@board_bp.route('/board/<string:board_route>/<int:post_id>/verify_password', methods=['POST'])
+def verify_anonymous_post_password(board_route, post_id):
+    mysql = get_mysql()
+    cur = mysql.connection.cursor()
+    
+    cur.execute('SELECT * FROM boards WHERE route = %s', (board_route,))
+    board = cur.fetchone()
+    
+    if not board or board['route'] != 'anonymous':
+        cur.close()
+        abort(404)
+    
+    password = request.form.get('password', '').strip()
+    action = request.form.get('action', '')  # 'edit' or 'delete'
+    
+    if not password:
+        flash('비밀번호를 입력해주세요.', 'danger')
+        return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
+    
+    # 게시글 정보 조회
+    cur.execute('SELECT * FROM posts WHERE id = %s AND board_id = %s AND is_anonymous = 1', 
+               (post_id, board['id']))
+    post = cur.fetchone()
+    
+    if not post:
+        cur.close()
+        abort(404)
+    
+    # 비밀번호 확인
+    if not post['anonymous_password'] or not check_anonymous_password(password, post['anonymous_password']):
+        flash('비밀번호가 일치하지 않습니다.', 'danger')
+        cur.close()
+        return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
+    
+    cur.close()
+    
+    # 세션에 인증 정보 저장 (10분간 유효)
+    session[f'anonymous_post_{post_id}_verified'] = {
+        'verified': True,
+        'timestamp': datetime.now().timestamp()
+    }
+    
+    if action == 'edit':
+        return redirect(url_for('board.edit_anonymous_post', board_route=board_route, post_id=post_id))
+    elif action == 'delete':
+        return redirect(url_for('board.delete_anonymous_post', board_route=board_route, post_id=post_id))
+    else:
+        return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
+
+# 익명 게시글 수정 (비밀번호 인증 후)
+@board_bp.route('/board/<string:board_route>/<int:post_id>/edit_anonymous', methods=['GET', 'POST'])
+def edit_anonymous_post(board_route, post_id):
+    mysql = get_mysql()
+    cur = mysql.connection.cursor()
+    
+    cur.execute('SELECT * FROM boards WHERE route = %s', (board_route,))
+    board = cur.fetchone()
+    
+    if not board or board['route'] != 'anonymous':
+        cur.close()
+        abort(404)
+    
+    # 비밀번호 인증 확인
+    auth_key = f'anonymous_post_{post_id}_verified'
+    if (auth_key not in session or 
+        not session[auth_key].get('verified') or
+        datetime.now().timestamp() - session[auth_key].get('timestamp', 0) > 600):  # 10분 제한
+        flash('비밀번호 인증이 필요합니다.', 'danger')
+        cur.close()
+        return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
+    
+    # 게시글 조회
+    cur.execute('SELECT * FROM posts WHERE id = %s AND board_id = %s AND is_anonymous = 1', 
+               (post_id, board['id']))
+    post = cur.fetchone()
+    
+    if not post:
+        cur.close()
+        abort(404)
+    
+    user_agent = request.headers.get('User-Agent')
+    is_mobile = 'Mobile' in user_agent
+    
+    # 위치별 광고 선택
+    cur.execute('SELECT * FROM ads WHERE position = "side" AND is_active = 1 ORDER BY RAND() LIMIT 1')
+    sidebar_ad = cur.fetchone()
+    cur.execute('SELECT * FROM ads WHERE position = "banner" AND is_active = 1 ORDER BY RAND() LIMIT 1')
+    banner_ad = cur.fetchone()
+    cur.execute('SELECT * FROM ads WHERE position = "footer" AND is_active = 1 ORDER BY RAND() LIMIT 1')
+    footer_ad = cur.fetchone()
+    
+    if request.method == 'POST':
+        title = request.form['title']
+        content = request.form['content']
+        
+        # 입력값 검증
+        if not title or not content:
+            flash('제목과 내용을 모두 입력해주세요.', 'danger')
+            return render_template('board/edit_anonymous.html', board=board, post=post, 
+                                  sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad, is_mobile=is_mobile)
+        
+        if len(title) > 50:
+            flash('제목은 50자 이내로 입력해주세요.', 'danger')
+            return render_template('board/edit_anonymous.html', board=board, post=post, 
+                                  sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad, is_mobile=is_mobile)
+        
+        # 동영상 데이터 처리
+        video_data = request.form.get('video_data', '[]')
+        
+        # 게시글 수정
+        cur.execute('''
+            UPDATE posts 
+            SET title = %s, content = %s, video_data = %s, updated_at = NOW()
+            WHERE id = %s AND is_anonymous = 1
+        ''', (title, content, video_data, post_id))
+        
+        mysql.connection.commit()
+        cur.close()
+        
+        # 인증 세션 삭제
+        if auth_key in session:
+            del session[auth_key]
+        
+        flash('게시글이 수정되었습니다.', 'success')
+        return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
+    
+    # 닉네임 설정
+    if post['ip_address']:
+        post['nickname'] = get_anonymous_nickname(post['ip_address'])
+    else:
+        post['nickname'] = '블랜'
+    
+    # JSON 데이터를 템플릿에서 사용할 수 있도록 문자열로 변환
+    post['images_data_json'] = json.dumps({} or {'paths': [], 'captions': []})
+    
+    return render_template('board/edit_anonymous.html', board=board, post=post, 
+                          sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad)
+
+# 익명 게시글 삭제 (비밀번호 인증 후)
+@board_bp.route('/board/<string:board_route>/<int:post_id>/delete_anonymous', methods=['GET', 'POST'])
+def delete_anonymous_post(board_route, post_id):
+    mysql = get_mysql()
+    cur = mysql.connection.cursor()
+    
+    cur.execute('SELECT * FROM boards WHERE route = %s', (board_route,))
+    board = cur.fetchone()
+    
+    if not board or board['route'] != 'anonymous':
+        cur.close()
+        abort(404)
+    
+    # 비밀번호 인증 확인
+    auth_key = f'anonymous_post_{post_id}_verified'
+    if (auth_key not in session or 
+        not session[auth_key].get('verified') or
+        datetime.now().timestamp() - session[auth_key].get('timestamp', 0) > 600):  # 10분 제한
+        flash('비밀번호 인증이 필요합니다.', 'danger')
+        cur.close()
+        return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
+    
+    # 게시글 확인
+    cur.execute('SELECT * FROM posts WHERE id = %s AND board_id = %s AND is_anonymous = 1', 
+               (post_id, board['id']))
+    post = cur.fetchone()
+    
+    if not post:
+        cur.close()
+        abort(404)
+    
+    # GET 요청일 때는 확인 페이지 표시
+    if request.method == 'GET':
+        cur.close()
+        return render_template('board/confirm_delete.html', 
+                             board=board, post=post, 
+                             action_url=url_for('board.delete_anonymous_post', 
+                                              board_route=board_route, post_id=post_id))
+    
+    # POST 요청일 때 실제 삭제 수행
+    try:
+        # 댓글 삭제
+        cur.execute('DELETE FROM comments WHERE post_id = %s', (post_id,))
+        
+        # 좋아요 삭제
+        cur.execute('DELETE FROM post_likes WHERE post_id = %s', (post_id,))
+        
+        # 게시글 삭제
+        cur.execute('DELETE FROM posts WHERE id = %s AND is_anonymous = 1', (post_id,))
+        
+        mysql.connection.commit()
+        
+        # 인증 세션 삭제
+        if auth_key in session:
+            del session[auth_key]
+        
+        flash('게시글이 삭제되었습니다.', 'success')
+        
+    except Exception as e:
+        mysql.connection.rollback()
+        flash('게시글 삭제 중 오류가 발생했습니다.', 'danger')
+    finally:
+        cur.close()
+    
+    return redirect(url_for('board.board_main', board_route=board_route))
+
+# 익명 댓글 비밀번호 확인
+@board_bp.route('/board/<string:board_route>/<int:post_id>/comment/<int:comment_id>/verify_password', methods=['POST'])
+def verify_anonymous_comment_password(board_route, post_id, comment_id):
+    mysql = get_mysql()
+    cur = mysql.connection.cursor()
+    
+    cur.execute('SELECT * FROM boards WHERE route = %s', (board_route,))
+    board = cur.fetchone()
+    
+    if not board or board['route'] != 'anonymous':
+        cur.close()
+        abort(404)
+    
+    password = request.form.get('password', '').strip()
+    
+    if not password:
+        flash('비밀번호를 입력해주세요.', 'danger')
+        return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
+    
+    # 댓글 정보 조회
+    cur.execute('SELECT * FROM comments WHERE id = %s AND post_id = %s AND is_anonymous = 1', 
+               (comment_id, post_id))
+    comment = cur.fetchone()
+    
+    if not comment:
+        cur.close()
+        abort(404)
+    
+    # 비밀번호 확인
+    if not comment['anonymous_password'] or not check_anonymous_password(password, comment['anonymous_password']):
+        flash('비밀번호가 일치하지 않습니다.', 'danger')
+        cur.close()
+        return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
+    
+    # 댓글 삭제
+    cur.execute('DELETE FROM comments WHERE id = %s AND is_anonymous = 1', (comment_id,))
     mysql.connection.commit()
     cur.close()
     
