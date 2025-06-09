@@ -1,6 +1,6 @@
 # BLACK COMBAT LAND
 
-BLACK COMBAT LAND는 게임 커뮤니티 웹사이트입니다. 이 프로젝트는 Flask 웹 프레임워크와 MySQL 데이터베이스를 사용하여 개발되었습니다.
+BLACK COMBAT LAND는 격투기 커뮤니티 웹사이트입니다. 이 프로젝트는 Flask 웹 프레임워크와 MySQL 데이터베이스를 사용하여 개발되었습니다.
 
 ## 주요 기능
 
@@ -82,11 +82,3 @@ python app.py
 6. **운영진에게**: 운영진에게 문의나 피드백을 남기는 게시판
 7. **VIP게시판**: VIP 회원만 이용 가능한 특별 게시판
 8. **질문게시판**: 질문과 답변을 위한 게시판
-
-## 라이센스
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 연락처
-
-문의사항이 있으시면 admin@blackcombat.com으로 연락주세요. 
