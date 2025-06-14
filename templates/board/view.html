@@ -164,18 +164,12 @@
                         {% endif %}
                     </div>
                     <div>
-                        {% if 'loggedin' in session %}
                         <form action="{{ url_for('board.like_post', board_route=board.route, post_id=post.id) }}" method="post" class="d-inline">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                             <button type="submit" class="btn {% if is_liked %}btn-primary{% else %}btn-outline-primary{% endif %}">
                                 <i class="bi bi-hand-thumbs-up"></i> 추천 {{ like_count }}
                             </button>
                         </form>
-                        {% else %}
-                        <button class="btn btn-outline-primary" disabled>
-                            <i class="bi bi-hand-thumbs-up"></i> 추천 {{ like_count }}
-                        </button>
-                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -205,11 +199,11 @@
                                 {% if 'loggedin' in session and (session.id == comment.user_id or session.id == post.user_id) %}
                                 <form action="{{ url_for('board.delete_comment', board_route=board.route, post_id=post.id, comment_id=comment.id) }}" method="post" class="d-inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('정말 삭제하시겠습니까?');">삭제</button>
+                                    <button type="submit" class="btn btn-sm btn-outline-dark text-gray" onclick="return confirm('정말 삭제하시겠습니까?');">X</button>
                                 </form>
                                 {% elif board.route == 'anonymous' and comment.is_anonymous %}
-                                <button type="button" class="btn btn-sm btn-outline-danger" 
-                                        onclick="showCommentPasswordModal({{ comment.id }})">삭제</button>
+                                <button type="button" class="btn btn-sm btn-outline-dark text-gray" 
+                                        onclick="showCommentPasswordModal({{ comment.id }})">X</button>
                                 {% endif %}
                             </div>
                         </div>
@@ -556,6 +550,11 @@
         flex-shrink: 0;
     }
     
+    /* VIP 배지 간격 제거 */
+    .vip-badge {
+        margin-left: 0 !important;
+    }
+    
     .table-board td {
         padding: 0 !important;
         vertical-align: middle;
@@ -659,6 +658,44 @@
         font-weight: normal;
         flex-shrink: 0;
     }
+    
+    /* 게시물 내용 링크 스타일 */
+    .post-content a {
+        color: #0066cc !important;
+        text-decoration: underline !important;
+    }
+    
+    .post-content a:hover {
+        color: #004499 !important;
+        text-decoration: underline !important;
+    }
+    
+    /* 모바일에서 댓글 폼 여백 추가 */
+    @media (max-width: 991px) {
+        .card-body form {
+            padding: 15px !important;
+        }
+        
+        .card-body form .mb-3 {
+            margin-left: 10px !important;
+            margin-right: 10px !important;
+        }
+        
+        .card-body form .form-control {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+        
+        .card-body form .d-grid {
+            margin-left: 10px !important;
+            margin-right: 10px !important;
+        }
+        
+        .card-body form .form-label {
+            margin-left: 0 !important;
+            padding-left: 5px !important;
+        }
+    }
 </style>
 <script>
     // 캐러셀 초기화
@@ -668,6 +705,12 @@
             new bootstrap.Carousel(carousel, {
                 interval: false
             });
+        }
+        
+        // 게시물 내용의 URL을 자동으로 링크로 변환
+        const postContent = document.querySelector('.post-content');
+        if (postContent) {
+            convertUrlsToLinks(postContent);
         }
         
         // 페이지네이션 링크 클릭 이벤트 처리
@@ -690,6 +733,43 @@
             }
         });
     });
+    
+    // URL을 링크로 변환하는 함수
+    function convertUrlsToLinks(element) {
+        // URL 정규표현식 (http, https, www로 시작하는 URL 감지)
+        const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/gi;
+        
+        // 텍스트 노드만 처리하기 위한 재귀 함수
+        function processTextNodes(node) {
+            if (node.nodeType === Node.TEXT_NODE) {
+                const text = node.textContent;
+                if (urlRegex.test(text)) {
+                    const newText = text.replace(urlRegex, function(url) {
+                        // www로 시작하는 경우 http:// 추가
+                        const href = url.startsWith('www.') ? 'http://' + url : url;
+                        return `<a href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+                    });
+                    
+                    // 새로운 HTML로 교체
+                    const wrapper = document.createElement('div');
+                    wrapper.innerHTML = newText;
+                    
+                    // 텍스트 노드를 새로운 노드들로 교체
+                    const parent = node.parentNode;
+                    while (wrapper.firstChild) {
+                        parent.insertBefore(wrapper.firstChild, node);
+                    }
+                    parent.removeChild(node);
+                }
+            } else if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== 'A') {
+                // a 태그가 아닌 요소의 자식 노드들을 처리
+                const children = Array.from(node.childNodes);
+                children.forEach(child => processTextNodes(child));
+            }
+        }
+        
+        processTextNodes(element);
+    }
     
     // 게시물 목록 업데이트 함수
     function updatePostList(data) {

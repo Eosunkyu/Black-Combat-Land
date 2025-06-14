@@ -32,12 +32,12 @@ def create_app():
         'use_unicode': True,
         'init_command': "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci; SET character_set_connection=utf8mb4; SET character_set_client=utf8mb4; SET character_set_results=utf8mb4;"
     }
-    #app.config['MYSQL_HOST'] = 'localhost'
-    #app.config['MYSQL_USER'] = 'root'
-    #app.config['MYSQL_PASSWORD'] = '1234' # MySQL 비밀번호 설정
-    app.config['MYSQL_HOST'] = '13.125.219.53'
-    app.config['MYSQL_USER'] = 'adminUser'
-    app.config['MYSQL_PASSWORD'] = 'tjsrbQhshd!@34' # MySQL 비밀번호 설정
+    app.config['MYSQL_HOST'] = 'localhost'
+    app.config['MYSQL_USER'] = 'root'
+    app.config['MYSQL_PASSWORD'] = '1234' # MySQL 비밀번호 설정
+    #app.config['MYSQL_HOST'] = '13.125.219.53'
+    #app.config['MYSQL_USER'] = 'adminUser'
+    #app.config['MYSQL_PASSWORD'] = 'tjsrbQhshd!@34' # MySQL 비밀번호 설정
     app.config['MYSQL_DB'] = 'blackcombat'
     app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
     app.config['UPLOAD_FOLDER'] = 'static/uploads'

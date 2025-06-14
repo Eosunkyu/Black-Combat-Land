@@ -387,7 +387,14 @@ def view_post(board_route, post_id):
     like_count = like_result['count'] if like_result else 0
     
     if 'loggedin' in session:
+        # 로그인 사용자의 경우
         cur.execute('SELECT * FROM post_likes WHERE post_id = %s AND user_id = %s', (post_id, session['id']))
+        is_liked = bool(cur.fetchone())
+    else:
+        # 비로그인 사용자의 경우 IP 주소 기반
+        ip_address = request.remote_addr
+        cur.execute('SELECT * FROM post_likes WHERE post_id = %s AND ip_address = %s AND user_id IS NULL', 
+                   (post_id, ip_address))
         is_liked = bool(cur.fetchone())
     
     # 위치별 광고 선택
@@ -541,7 +548,6 @@ def write_comment(board_route, post_id):
 
 # 게시글 좋아요
 @board_bp.route('/board/<string:board_route>/<int:post_id>/like', methods=['POST'])
-@login_required
 def like_post(board_route, post_id):
     # 필요한 객체는 current_app을 통해 접근
     mysql = get_mysql()
@@ -561,22 +567,45 @@ def like_post(board_route, post_id):
         cur.close()
         abort(404)
     
-    # 이미 좋아요 했는지 확인
-    cur.execute('SELECT * FROM post_likes WHERE post_id = %s AND user_id = %s', (post_id, session['id']))
-    like = cur.fetchone()
-    
-    if like:
-        # 이미 좋아요 했으면 취소
-        cur.execute('DELETE FROM post_likes WHERE post_id = %s AND user_id = %s', (post_id, session['id']))
-        mysql.connection.commit()
-        cur.close()
-        return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
+    # 로그인 사용자와 비로그인 사용자 구분
+    if 'loggedin' in session:
+        # 로그인 사용자의 경우
+        user_id = session['id']
+        ip_address = None
+        
+        # 이미 좋아요 했는지 확인
+        cur.execute('SELECT * FROM post_likes WHERE post_id = %s AND user_id = %s', (post_id, user_id))
+        like = cur.fetchone()
+        
+        if like:
+            # 이미 좋아요 했으면 취소
+            cur.execute('DELETE FROM post_likes WHERE post_id = %s AND user_id = %s', (post_id, user_id))
+        else:
+            # 좋아요 추가
+            cur.execute('INSERT INTO post_likes (post_id, user_id, ip_address, created_at) VALUES (%s, %s, %s, NOW())', 
+                       (post_id, user_id, ip_address))
     else:
-        # 좋아요 추가
-        cur.execute('INSERT INTO post_likes (post_id, user_id, created_at) VALUES (%s, %s, NOW())', (post_id, session['id']))
-        mysql.connection.commit()
-        cur.close()
-        return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
+        # 비로그인 사용자의 경우 IP 주소 기반
+        user_id = None
+        ip_address = request.remote_addr
+        
+        # 이미 좋아요 했는지 확인 (IP 주소 기반)
+        cur.execute('SELECT * FROM post_likes WHERE post_id = %s AND ip_address = %s AND user_id IS NULL', 
+                   (post_id, ip_address))
+        like = cur.fetchone()
+        
+        if like:
+            # 이미 좋아요 했으면 취소
+            cur.execute('DELETE FROM post_likes WHERE post_id = %s AND ip_address = %s AND user_id IS NULL', 
+                       (post_id, ip_address))
+        else:
+            # 좋아요 추가
+            cur.execute('INSERT INTO post_likes (post_id, user_id, ip_address, created_at) VALUES (%s, %s, %s, NOW())', 
+                       (post_id, user_id, ip_address))
+    
+    mysql.connection.commit()
+    cur.close()
+    return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
 
 # 게시글 수정 화면
 @board_bp.route('/board/<string:board_route>/<int:post_id>/edit', methods=['GET', 'POST'])
