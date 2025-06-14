@@ -224,6 +224,10 @@ def index():
                 WHEN boards.route = 'anonymous' THEN '익명' 
                 ELSE users.nickname 
             END as nickname,
+            CASE 
+                WHEN boards.route = 'anonymous' THEN NULL 
+                ELSE users.is_vip 
+            END as is_vip,
             boards.name as board_name, 
             (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count,
             (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
@@ -252,7 +256,7 @@ def index():
         if board['route'] == 'anonymous':
             cur.execute('''
                 SELECT posts.id, posts.title, posts.created_at, posts.view_count, images_data,
-                       '익명' as nickname, boards.route as board_route, boards.name as board_name,
+                       '익명' as nickname, NULL as is_vip, boards.route as board_route, boards.name as board_name,
                        (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
                        (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
                 FROM posts 
@@ -264,7 +268,7 @@ def index():
         else:
             cur.execute('''
                 SELECT posts.id, posts.title, posts.created_at, posts.view_count, images_data,
-                        users.nickname, boards.route as board_route, boards.name as board_name,
+                        users.nickname, users.is_vip, boards.route as board_route, boards.name as board_name,
                        (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
                        (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
                 FROM posts 
@@ -287,6 +291,10 @@ def index():
                 WHEN boards.route = 'anonymous' THEN '익명' 
                 ELSE users.nickname 
             END as nickname,
+            CASE 
+                WHEN boards.route = 'anonymous' THEN NULL 
+                ELSE users.is_vip 
+            END as is_vip,
             boards.name as board_name, 
             boards.route as board_route,
             (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count,

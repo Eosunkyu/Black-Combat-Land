@@ -348,21 +348,21 @@ def add_ad():
                 allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
                 try:
                     if '.' in file.filename:
-                    file_ext = file.filename.rsplit('.', 1)[1].lower()
-                    if file_ext in allowed_extensions:
-                        filename = secure_filename(file.filename)
-                        # 파일명이 중복되지 않도록 타임스탬프 추가
-                        filename = f"ad_{datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}"
-                        # 업로드 폴더 경로 확인 및 생성
-                        upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'ads')
-                        if not os.path.exists(upload_dir):
-                            os.makedirs(upload_dir)
-                        file_path = os.path.join(upload_dir, filename)
-                        file.save(file_path)
-                        image_path = f"uploads/ads/{filename}"
-                        print(f"광고 이미지 저장 성공: {file_path}")
-                    else:
-                        flash('허용되지 않는 파일 형식입니다. (PNG, JPG, JPEG, GIF만 가능)', 'danger')
+                        file_ext = file.filename.rsplit('.', 1)[1].lower()
+                        if file_ext in allowed_extensions:
+                            filename = secure_filename(file.filename)
+                            # 파일명이 중복되지 않도록 타임스탬프 추가
+                            filename = f"ad_{datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}"
+                            # 업로드 폴더 경로 확인 및 생성
+                            upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'ads')
+                            if not os.path.exists(upload_dir):
+                                os.makedirs(upload_dir)
+                            file_path = os.path.join(upload_dir, filename)
+                            file.save(file_path)
+                            image_path = f"uploads/ads/{filename}"
+                            print(f"광고 이미지 저장 성공: {file_path}")
+                        else:
+                            flash('허용되지 않는 파일 형식입니다. (PNG, JPG, JPEG, GIF만 가능)', 'danger')
                             return render_template('admin/add_ad.html')
                     else:
                         flash('올바른 파일 형식이 아닙니다.', 'danger')

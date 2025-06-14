@@ -113,7 +113,13 @@
                                             {% if post.comment_count > 0 %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
                                         </h6>
                                         <p class="card-text mb-0" style="font-size: 0.75rem;">
-                                            <span class="text-muted">{{ post.nickname }}</span>
+                                            <span class="text-muted">{{ post.nickname }}
+                                            {% if post.is_vip == 1 %}
+                                            <span class="vip-badge yellow-vip">VIP</span>
+                                            {% elif post.is_vip == 2 %}
+                                            <span class="vip-badge blue-vip">VIP</span>
+                                            {% endif %}
+                                            </span>
                                             <span class="text-muted">
                                                 {% if post.created_at.date() == now.date() %}
                                                     {{ post.created_at.strftime('%H:%M') }}
@@ -159,7 +165,13 @@
                                             {% if post.comment_count > 0 %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
                                         </h6>
                                         <p class="card-text mb-0" style="font-size: 0.75rem;">
-                                            <span class="text-muted">{{ post.nickname }}</span>
+                                            <span class="text-muted">{{ post.nickname }}
+                                            {% if post.is_vip == 1 %}
+                                            <span class="vip-badge yellow-vip">VIP</span>
+                                            {% elif post.is_vip == 2 %}
+                                            <span class="vip-badge blue-vip">VIP</span>
+                                            {% endif %}
+                                            </span>
                                             <span class="text-muted">
                                                 {% if post.created_at.date() == now.date() %}
                                                     {{ post.created_at.strftime('%H:%M') }}
@@ -220,7 +232,13 @@
                                         {% if post.comment_count > 0 %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
                                     </span>
                                     <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">
-                                        <span class="text-muted">{{ post.nickname }}</span>
+                                        <span class="text-muted">{{ post.nickname }}
+                                        {% if post.is_vip == 1 %}
+                                        <span class="vip-badge yellow-vip">VIP</span>
+                                        {% elif post.is_vip == 2 %}
+                                        <span class="vip-badge blue-vip">VIP</span>
+                                        {% endif %}
+                                        </span>
                                         {% if post.created_at.date() == now.date() %}
                                             {{ post.created_at.strftime('%H:%M') }}
                                         {% else %}
@@ -263,7 +281,13 @@
                                         {% if post.comment_count > 0 %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
                                     </span>
                                     <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">
-                                        <span class="text-muted">{{ post.nickname }}</span>
+                                        <span class="text-muted">{{ post.nickname }}
+                                        {% if post.is_vip == 1 %}
+                                        <span class="vip-badge yellow-vip">VIP</span>
+                                        {% elif post.is_vip == 2 %}
+                                        <span class="vip-badge blue-vip">VIP</span>
+                                        {% endif %}
+                                        </span>
                                         {% if post.created_at.date() == now.date() %}
                                             {{ post.created_at.strftime('%H:%M') }}
                                         {% else %}
@@ -305,7 +329,13 @@
                                         {% if post.comment_count > 0 %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
                                     </span>
                                     <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">
-                                        <span class="text-muted">{{ post.nickname }}</span>
+                                        <span class="text-muted">{{ post.nickname }}
+                                        {% if post.is_vip == 1 %}
+                                        <span class="vip-badge yellow-vip">VIP</span>
+                                        {% elif post.is_vip == 2 %}
+                                        <span class="vip-badge blue-vip">VIP</span>
+                                        {% endif %}
+                                        </span>
                                         {% if post.created_at.date() == now.date() %}
                                             {{ post.created_at.strftime('%H:%M') }}
                                         {% else %}
@@ -348,7 +378,13 @@
                                         {% if post.comment_count > 0 %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
                                     </span>
                                     <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">
-                                        <span class="text-muted">{{ post.nickname }}</span>
+                                        <span class="text-muted">{{ post.nickname }}
+                                        {% if post.is_vip == 1 %}
+                                        <span class="vip-badge yellow-vip">VIP</span>
+                                        {% elif post.is_vip == 2 %}
+                                        <span class="vip-badge blue-vip">VIP</span>
+                                        {% endif %}
+                                        </span>
                                         {% if post.created_at.date() == now.date() %}
                                             {{ post.created_at.strftime('%H:%M') }}
                                         {% else %}
@@ -394,7 +430,13 @@
                                         {% if post.comment_count > 0 %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
                                     </span>
                                     <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">
-                                        <span class="text-muted">{{ post.nickname }}</span>
+                                        <span class="text-muted">{{ post.nickname }}
+                                        {% if post.is_vip == 1 %}
+                                        <span class="vip-badge yellow-vip">VIP</span>
+                                        {% elif post.is_vip == 2 %}
+                                        <span class="vip-badge blue-vip">VIP</span>
+                                        {% endif %}
+                                        </span>
                                         {% if post.created_at.date() == now.date() %}
                                             {{ post.created_at.strftime('%H:%M') }}
                                         {% else %}
@@ -438,7 +480,13 @@
                                         {% if post.comment_count > 0 %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
                                     </span>
                                     <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">
-                                        <span class="text-muted">{{ post.nickname }}</span>
+                                        <span class="text-muted">{{ post.nickname }}
+                                        {% if post.is_vip == 1 %}
+                                        <span class="vip-badge yellow-vip">VIP</span>
+                                        {% elif post.is_vip == 2 %}
+                                        <span class="vip-badge blue-vip">VIP</span>
+                                        {% endif %}
+                                        </span>
                                         {% if post.created_at.date() == now.date() %}
                                             {{ post.created_at.strftime('%H:%M') }}
                                         {% else %}
@@ -481,7 +529,13 @@
                                         {% if post.comment_count > 0 %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
                                     </span>
                                     <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">
-                                        <span class="text-muted">{{ post.nickname }}</span>
+                                        <span class="text-muted">{{ post.nickname }}
+                                        {% if post.is_vip == 1 %}
+                                        <span class="vip-badge yellow-vip">VIP</span>
+                                        {% elif post.is_vip == 2 %}
+                                        <span class="vip-badge blue-vip">VIP</span>
+                                        {% endif %}
+                                        </span>
                                         {% if post.created_at.date() == now.date() %}
                                             {{ post.created_at.strftime('%H:%M') }}
                                         {% else %}
@@ -523,7 +577,13 @@
                                         {% if post.comment_count > 0 %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
                                     </span>
                                     <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">
-                                        <span class="text-muted">{{ post.nickname }}</span>
+                                        <span class="text-muted">{{ post.nickname }}
+                                        {% if post.is_vip == 1 %}
+                                        <span class="vip-badge yellow-vip">VIP</span>
+                                        {% elif post.is_vip == 2 %}
+                                        <span class="vip-badge blue-vip">VIP</span>
+                                        {% endif %}
+                                        </span>
                                         {% if post.created_at.date() == now.date() %}
                                             {{ post.created_at.strftime('%H:%M') }}
                                         {% else %}

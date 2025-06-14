@@ -44,7 +44,7 @@ def get_anonymous_nickname(ip_address):
     user_count = cur.fetchone()['count']
     
     # 블랜1, 블랜2 형식으로 닉네임 생성
-    nickname = f"블랜{user_count + 1}"
+    nickname = f"익명"
     
     # 중복 확인 (혹시 모를 경우를 대비)
     while True:
@@ -52,7 +52,7 @@ def get_anonymous_nickname(ip_address):
         if not cur.fetchone():
             break
         user_count += 1
-        nickname = f"블랜{user_count + 1}"
+        nickname = f"익명"
     
     # 새 익명 사용자 등록
     cur.execute('''
@@ -133,7 +133,7 @@ def board_main(board_route):
         posts = cur.fetchall()
         # 익명 게시판에서는 게시글에 단순히 '익명' 설정
         for post in posts:
-            post['nickname'] = '블랜'
+            post['nickname'] = '익명'
     else:
         # 일반 게시판은 작성자 정보 표시
         cur.execute('''
@@ -333,9 +333,9 @@ def view_post(board_route, post_id):
     
     # 익명 게시판인 경우 IP 기반 닉네임 설정
     if post['is_anonymous'] and post['ip_address']:
-        post['nickname'] = '블랜'  # 게시글은 단순히 '익명'으로 표시
+        post['nickname'] = '익명'  # 게시글은 단순히 '익명'으로 표시
     elif post['is_anonymous']:
-        post['nickname'] = '블랜'
+        post['nickname'] = '익명'
     
     # 현재 로그인한 사용자가 관리자인지 확인
     is_admin = session.get('is_admin', False)
@@ -374,9 +374,9 @@ def view_post(board_route, post_id):
     # 익명 댓글의 IP 기반 닉네임 설정
     for comment in comments:
         if comment['is_anonymous'] and comment['ip_address']:
-            comment['nickname'] = '블랜'  # 댓글도 단순히 '익명'으로 표시
+            comment['nickname'] = '익명'  # 댓글도 단순히 '익명'으로 표시
         elif comment['is_anonymous']:
-            comment['nickname'] = '블랜'
+            comment['nickname'] = '익명'
     
     # 좋아요 정보 조회
     like_count = 0
@@ -419,7 +419,7 @@ def view_post(board_route, post_id):
     
     if board['route'] == 'anonymous':
         cur.execute('''
-            SELECT posts.*, '블랜' as nickname,
+            SELECT posts.*, '익명' as nickname,
                    (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
                    (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
             FROM posts
@@ -612,7 +612,7 @@ def edit_post(board_route, post_id):
     
     # 익명 게시판이면 닉네임을 '익명'으로 설정
     if board['route'] == 'anonymous' or post['is_anonymous']:
-        post['nickname'] = '블랜'
+        post['nickname'] = '익명'
     
     # 작성자 확인 (관리자는 항상 가능)
     if not session.get('is_admin') and post['user_id'] != session['id']:
@@ -821,7 +821,7 @@ def board_posts_json(board_route):
     # 게시글 조회
     if board['route'] == 'anonymous':
         cur.execute('''
-            SELECT posts.*, '블랜' as nickname,
+            SELECT posts.*, '익명' as nickname,
                    (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
                    (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
             FROM posts
@@ -986,7 +986,7 @@ def edit_anonymous_post(board_route, post_id):
     if post['ip_address']:
         post['nickname'] = get_anonymous_nickname(post['ip_address'])
     else:
-        post['nickname'] = '블랜'
+        post['nickname'] = '익명'
     
     # JSON 데이터를 템플릿에서 사용할 수 있도록 문자열로 변환
     post['images_data_json'] = json.dumps({} or {'paths': [], 'captions': []})
