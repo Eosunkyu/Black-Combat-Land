@@ -188,9 +188,9 @@ a:hover {
 .vip-badge {
     color: #212529;
     font-size: 0.75rem;
-    padding: 0.25rem 0.5rem;
+    padding: 0rem 0.5rem;
     border-radius: 0.25rem;
-    margin-left: 0.5rem;
+    margin-left: 0rem;
 }
 
 .vip-content {

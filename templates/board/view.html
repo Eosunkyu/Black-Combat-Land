@@ -101,12 +101,7 @@
             <div class="card-body">
                 <h4 class="post-title mb-3">
                 <span class="post-title">{{ post.title }}</span> |
-                <span class="me-2">{{ post.nickname }}</span>
-		        {% if post.is_vip == 1 %}
-                <span class="vip-badge yellow-vip">VIP</span>
-                {% elif post.is_vip == 2 %}
-                <span class="vip-badge blue-vip">VIP</span>
-                {% endif %}
+                <span class="me-2">{{ post.nickname}}</span>{% if post.is_vip == 1 %}<span class="yellow-vip">VIP</span>{% elif post.is_vip == 2 %}<span class="blue-vip">VIP</span>{% endif %}
                 </h4>
                 <div class="d-flex justify-content-start mb-3 bg-light">
                     <div>
@@ -199,10 +194,10 @@
                                 {% if 'loggedin' in session and (session.id == comment.user_id or session.id == post.user_id) %}
                                 <form action="{{ url_for('board.delete_comment', board_route=board.route, post_id=post.id, comment_id=comment.id) }}" method="post" class="d-inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                                    <button type="submit" class="btn btn-sm btn-outline-dark text-gray" onclick="return confirm('정말 삭제하시겠습니까?');">X</button>
+                                    <button type="submit" class="btn btn-sm text-secondary" onclick="return confirm('정말 삭제하시겠습니까?');">X</button>
                                 </form>
                                 {% elif board.route == 'anonymous' and comment.is_anonymous %}
-                                <button type="button" class="btn btn-sm btn-outline-dark text-gray" 
+                                <button type="button" class="btn btn-sm text-secondary" 
                                         onclick="showCommentPasswordModal({{ comment.id }})">X</button>
                                 {% endif %}
                             </div>

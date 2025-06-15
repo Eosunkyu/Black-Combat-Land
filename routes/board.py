@@ -599,6 +599,21 @@ def like_post(board_route, post_id):
             cur.execute('DELETE FROM post_likes WHERE post_id = %s AND ip_address = %s AND user_id IS NULL', 
                        (post_id, ip_address))
         else:
+            # 비로그인 사용자의 오늘 추천 횟수 확인
+            cur.execute('''
+                SELECT COUNT(*) as count 
+                FROM post_likes 
+                WHERE ip_address = %s AND user_id IS NULL 
+                AND DATE(created_at) = CURDATE()
+            ''', (ip_address,))
+            today_likes = cur.fetchone()['count']
+            
+            # 하루 최대 3회 제한
+            if today_likes >= 3:
+                cur.close()
+                flash('비로그인 사용자는 하루에 최대 3회만 추천 가능합니다.', 'warning')
+                return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
+            
             # 좋아요 추가
             cur.execute('INSERT INTO post_likes (post_id, user_id, ip_address, created_at) VALUES (%s, %s, %s, NOW())', 
                        (post_id, user_id, ip_address))
