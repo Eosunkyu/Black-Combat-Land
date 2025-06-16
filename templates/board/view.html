@@ -198,7 +198,7 @@
                                 </form>
                                 {% elif board.route == 'anonymous' and comment.is_anonymous %}
                                 <button type="button" class="btn btn-sm text-secondary" 
-                                        onclick="showCommentPasswordModal({{ comment.id }})">X</button>
+                                        onclick="showCommentPasswordModal('{{ comment.id }}')">X</button>
                                 {% endif %}
                             </div>
                         </div>

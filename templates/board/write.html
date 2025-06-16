@@ -256,6 +256,23 @@
         editorContent.addEventListener('input', updateHiddenTextarea);
         editorContent.addEventListener('paste', handlePaste);
         
+        // 에디터 포커스 이벤트 - 빈 에디터일 때 기본 커서 위치 설정
+        editorContent.addEventListener('focus', function() {
+            const selection = window.getSelection();
+            if (!selection.rangeCount || 
+                (editorContent.innerHTML.trim() === '' || 
+                 editorContent.innerHTML === '<br>' || 
+                 editorContent.innerHTML === '<div><br></div>')) {
+                
+                // 빈 에디터인 경우 기본 위치에 커서 설정
+                const range = document.createRange();
+                range.selectNodeContents(editorContent);
+                range.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
+        });
+        
         // 드래그 앤 드롭 설정
         setupDragAndDrop();
         
@@ -264,6 +281,13 @@
         
         // placeholder 효과
         setupPlaceholder();
+        
+        // 초기 포커스 설정 (에디터가 비어있을 때)
+        if (editorContent.innerHTML.trim() === '' || 
+            editorContent.innerHTML === '<br>' || 
+            editorContent.innerHTML === '<div><br></div>') {
+            editorContent.focus();
+        }
     }
     
     // 명령 실행
@@ -497,7 +521,41 @@
     // 커서 위치에 요소 삽입
     function insertAtCursor(element) {
         const selection = window.getSelection();
-        if (selection.rangeCount > 0) {
+        
+        // 에디터가 비어있거나 포커스가 없는 경우 처리
+        if (!selection.rangeCount || !editorContent.contains(selection.focusNode)) {
+            // 에디터에 포커스 주기
+            editorContent.focus();
+            
+            // 에디터가 완전히 비어있는 경우
+            if (editorContent.innerHTML.trim() === '' || 
+                editorContent.innerHTML === '<br>' || 
+                editorContent.innerHTML === '<div><br></div>') {
+                // 기존 내용 제거하고 이미지 삽입
+                editorContent.innerHTML = '';
+                editorContent.appendChild(element);
+                
+                // 이미지 뒤에 커서 위치 설정
+                const range = document.createRange();
+                const textNode = document.createTextNode('\n');
+                editorContent.appendChild(textNode);
+                range.setStartAfter(element);
+                range.setEndAfter(element);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            } else {
+                // 에디터에 내용이 있지만 selection이 없는 경우 끝에 추가
+                editorContent.appendChild(element);
+                
+                // 커서를 삽입된 요소 다음으로 이동
+                const range = document.createRange();
+                range.setStartAfter(element);
+                range.setEndAfter(element);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
+        } else {
+            // 정상적인 selection이 있는 경우
             const range = selection.getRangeAt(0);
             range.deleteContents();
             range.insertNode(element);
@@ -507,10 +565,11 @@
             range.setEndAfter(element);
             selection.removeAllRanges();
             selection.addRange(range);
-        } else {
-            editorContent.appendChild(element);
         }
+        
+        // 에디터에 포커스 유지
         editorContent.focus();
+        updateHiddenTextarea();
     }
     
     // hidden textarea 업데이트
@@ -910,13 +969,28 @@
         font-style: italic;
         pointer-events: none;
         position: absolute;
-        top: 0;
-        left: 0;
-        padding: 12px;
+        top: 12px;
+        left: 12px;
         z-index: 1;
     }
     
     #editor-content.empty:focus::before {
+        opacity: 0.5;
+    }
+    
+    /* 에디터가 완전히 비어있을 때 최소 높이 보장 */
+    #editor-content:empty::before {
+        content: "내용을 입력하거나 이미지를 드래그하여 삽입하세요...";
+        color: #6c757d;
+        font-style: italic;
+        pointer-events: none;
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        z-index: 1;
+    }
+    
+    #editor-content:empty:focus::before {
         opacity: 0.5;
     }
     
