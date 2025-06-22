@@ -100,19 +100,21 @@
             </div>
             <div class="card-body">
                 <h4 class="post-title mb-3">
-                <span class="post-title">{{ post.title }}</span> |
-                <span class="me-2">{{ post.nickname}}</span>{% if post.is_vip == 1 %}<span class="yellow-vip">VIP</span>{% elif post.is_vip == 2 %}<span class="blue-vip">VIP</span>{% endif %}
+                <span class="post-title">{{ post.title }}</span>
                 </h4>
                 <div class="d-flex justify-content-start mb-3 bg-light">
                     <div>
-                        
-                        <small class="text-muted">{{ post.created_at.strftime('%Y-%m-%d %H:%M') }} </small>
-                        {% if post.updated_at %}
-                        <small class="text-muted ms-1">(수정됨: {{ post.updated_at.strftime('%Y-%m-%d %H:%M') }}) </small>
+                        <span class="me-2">{{ post.nickname}}</span>{% if post.is_vip == 1 %}<span class="yellow-vip">VIP</span>{% elif post.is_vip == 2 %}<span class="blue-vip">VIP</span>{% endif %}
+                        <small class="text-muted">
+                            {% if (post.created_at|string)[:10] == now[:10] %}
+                                {{ post.created_at.strftime('%H:%M') }}
+                            {% else %}
+                                {{ post.created_at.strftime('%m-%d') }}
                         {% endif %}
+                        </small>
                     </div>
                     <div>
-                        <small class="text-muted">  조회 {{ post.view_count }}</small>
+                        <small class="text-muted">&nbsp;&nbsp;&nbsp;&nbsp;조회 {{ post.view_count }}</small>
                     </div>
                 </div>
                 
@@ -154,6 +156,9 @@
                             <button type="submit" class="btn btn-outline-danger" onclick="return confirm('정말 삭제하시겠습니까?');">삭제</button>
                         </form>
                         {% elif board.route == 'anonymous' and post.is_anonymous %}
+                        <button type="button" class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#editPasswordModal">수정</button>
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deletePasswordModal">삭제</button>
+                        {% elif post.is_anonymous and post.user_id == 0 %}
                         <button type="button" class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#editPasswordModal">수정</button>
                         <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deletePasswordModal">삭제</button>
                         {% endif %}
@@ -199,6 +204,9 @@
                                 {% elif board.route == 'anonymous' and comment.is_anonymous %}
                                 <button type="button" class="btn btn-sm text-secondary" 
                                         onclick="showCommentPasswordModal('{{ comment.id }}')">X</button>
+                                {% elif comment.is_anonymous and comment.user_id == 0 %}
+                                <button type="button" class="btn btn-sm text-secondary" 
+                                        onclick="showCommentPasswordModal('{{ comment.id }}')">X</button>
                                 {% endif %}
                             </div>
                         </div>
@@ -220,6 +228,12 @@
                         <textarea class="form-control" id="content" name="content" rows="3" required></textarea>
                     </div>
                     {% if board.route == 'anonymous' %}
+                    <div class="mb-3">
+                        <label for="comment_anonymous_password" class="form-label">비밀번호 <small class="text-muted">(삭제 시 필요)</small></label>
+                        <input type="password" class="form-control" id="comment_anonymous_password" name="anonymous_password" 
+                               maxlength="20" required placeholder="4자리 이상 입력하세요">
+                    </div>
+                    {% elif not session.loggedin %}
                     <div class="mb-3">
                         <label for="comment_anonymous_password" class="form-label">비밀번호 <small class="text-muted">(삭제 시 필요)</small></label>
                         <input type="password" class="form-control" id="comment_anonymous_password" name="anonymous_password" 
@@ -290,7 +304,13 @@
                                         <span class="vip-badge blue-vip">VIP</span>
                                         {% endif %}
                                         </span>
-                                        <span class="text-muted">{{ post.created_at.strftime('%m-%d') }}</span>
+                                        <span class="text-muted">
+                                            {% if (post.created_at|string)[:10] == now[:10] %}
+                                                {{ post.created_at.strftime('%H:%M') }}
+                                            {% else %}
+                                                {{ post.created_at.strftime('%m-%d') }}
+                                            {% endif %}
+                                        </span>
                                         <span class="text-muted">조회:{{ post.view_count }}</span>
                                         <span class="text-muted">추천:{{ post.like_count }}</span>
                                     </div>
@@ -316,7 +336,13 @@
                                 {% elif post.is_vip == 2 %}
                                 <span class="vip-badge blue-vip">VIP</span>
                                 {% endif %}</td>
-				                <td class="text-center" style="font-size: 0.5rem;">{{ post.created_at.strftime('%m-%d') }}</td>
+                                <td class="text-center" style="font-size: 0.5rem;">
+                                    {% if (post.created_at|string)[:10] == now[:10] %}
+                                        {{ post.created_at.strftime('%H:%M') }}
+                                    {% else %}
+                                        {{ post.created_at.strftime('%m-%d') }}
+                                    {% endif %}
+                                </td>
                                 <td class="text-center" style="font-size: 0.5rem;">{{ post.view_count }}</td>
                                 <td class="text-center" style="font-size: 0.5rem;">{{ post.like_count }}</td>
                                 {% endif %}
@@ -396,7 +422,6 @@
 {% endif %}
 
 <!-- 익명 게시글 수정 비밀번호 확인 모달 -->
-{% if board.route == 'anonymous' and post.is_anonymous %}
 <div class="modal fade" id="editPasswordModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -475,7 +500,8 @@
         </div>
     </div>
 </div>
-{% endif %}
+
+<!-- Comment password modal available for all boards -->
 
 {% endblock %}
 
@@ -779,8 +805,9 @@
             data.posts.forEach(post => {
                 const isToday = post.created_at.substring(0, 10) === now.substring(0, 10);
                 const postDate = new Date(post.created_at);
-                const formattedDate = (postDate.getMonth() + 1).toString().padStart(2, '0') + '-' + 
-                                    postDate.getDate().toString().padStart(2, '0');
+                const formattedDate = isToday ? 
+                    postDate.getHours().toString().padStart(2, '0') + ':' + postDate.getMinutes().toString().padStart(2, '0') :
+                    (postDate.getMonth() + 1).toString().padStart(2, '0') + '-' + postDate.getDate().toString().padStart(2, '0');
                 
                 // VIP 배지 처리
                 let vipBadge = '';
@@ -905,7 +932,8 @@
         pagination.innerHTML = html;
     }
 </script>
-{% if board.route == 'anonymous' %}
+
+<!-- 댓글 삭제를 위한 JavaScript 함수 (모든 게시판에서 사용) -->
 <script>
     // 댓글 비밀번호 모달 표시 함수
     function showCommentPasswordModal(commentId) {
@@ -916,5 +944,4 @@
         modal.show();
     }
 </script>
-{% endif %}
 {% endblock %}

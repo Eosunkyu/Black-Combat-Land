@@ -147,7 +147,13 @@
                                     {% endif %}
 				    
                                 </td>
-                                <td class="text-center" style="font-size: 0.5rem;">{{ notice.created_at.strftime('%m-%d') }}</td>
+                                <td class="text-center" style="font-size: 0.5rem;">
+                                    {% if (notice.created_at|string)[:10] == now[:10] %}
+                                        {{ notice.created_at.strftime('%H:%M') }}
+                                    {% else %}
+                                        {{ notice.created_at.strftime('%m-%d') }}
+                                    {% endif %}
+                                </td>
                                 <td class="text-center" style="font-size: 0.5rem;">-</td>
                                 <td class="text-center" style="font-size: 0.5rem;">-</td>
                                 {% endif %}
@@ -156,15 +162,22 @@
                             {% endif %}
                             <!-- 일반 게시글 표시 -->
                         {% for post in posts %}
-                            {% if board.id in [4,8] %} <!-- VIP, BCN-->
+                            {% if board.id in [4,8] %} <!-- VIP, BCN 게시판은 무조건 썸네일 형태 -->
                             <tr>
-                                <td style="width: 25%;">
+                                <td style="width: 50%;">
                                     <a href="{{ url_for('board.view_post', board_route=post.route, post_id=post.id) }}" class="thumb-post card h-100 text-decoration-none text-dark">
-                                        {% set images = post.images_data|fromjson %}
                                         {% if board.id == 4 %}
-                                        <img src="{{ images['paths'][0] if images['paths'] else '/static/thumbs/default_vip.png' }}" class="card-img-top fixed-thumb" alt="썸네일">
+                                        {% if post.thumbnail_path %}
+                                        <img src="/{{ post.thumbnail_path }}" class="card-img-top fixed-thumb" alt="썸네일">
+                                        {% else %}
+                                        <img src="/static/thumbs/default_vip.png" class="card-img-top fixed-thumb" alt="썸네일">
+                                        {% endif %}
                                         {% elif board.id == 8 %}
-                                        <img src="{{ images['paths'][0] if images['paths'] else '/static/thumbs/default_bcn.png' }}" class="card-img-top fixed-thumb" alt="썸네일">
+                                        {% if post.thumbnail_path %}
+                                        <img src="/{{ post.thumbnail_path }}" class="card-img-top fixed-thumb" alt="썸네일">
+                                        {% else %}
+                                        <img src="/static/thumbs/default_bcn.png" class="card-img-top fixed-thumb" alt="썸네일">
+                                        {% endif %}
                                         {% endif %}
                                     </a>
                                 </td>
@@ -178,7 +191,11 @@
                                         <p class="card-text mb-0" style="font-size: 0.75rem;">
                                             <span class="text-muted">{{ post.nickname }}</span>
                                             <span class="text-muted">
+                                                {% if (post.created_at|string)[:10] == now[:10] %}
                                                 {{ post.created_at.strftime('%H:%M') }}
+                                                {% else %}
+                                                    {{ post.created_at.strftime('%m-%d') }}
+                                                {% endif %}
                                             </span> · <span class="text-muted">조회:{{ post.view_count }}</span> · <span class="text-muted">추천:{{post.like_count}}</span>
                                         </p>
                                     </a>
@@ -208,7 +225,13 @@
                                             <span class="vip-badge blue-vip">VIP</span>
                                             {% endif %}
                                         </span>
-                                        <span class="text-muted">{{ post.created_at.strftime('%m-%d') }}</span> · 
+                                        <span class="text-muted">
+                                            {% if (post.created_at|string)[:10] == now[:10] %}
+                                                {{ post.created_at.strftime('%H:%M') }}
+                                            {% else %}
+                                                {{ post.created_at.strftime('%m-%d') }}
+                                            {% endif %}
+                                        </span> · 
                                         <span class="text-muted">조회:{{ post.view_count }}</span> · 
                                         <span class="text-muted">추천:{{ post.like_count }}</span>
                                     </div>
@@ -234,7 +257,13 @@
                                 <span class="vip-badge blue-vip">VIP</span>
                                 {% endif %}</td>
 
-                                <td class="text-center" style="font-size: 0.5rem;">{{ post.created_at.strftime('%m-%d') }}</td>
+                                <td class="text-center" style="font-size: 0.5rem;">
+                                    {% if (post.created_at|string)[:10] == now[:10] %}
+                                        {{ post.created_at.strftime('%H:%M') }}
+                                    {% else %}
+                                        {{ post.created_at.strftime('%m-%d') }}
+                                    {% endif %}
+                                </td>
                                 <td class="text-center" style="font-size: 0.5rem;">{{ post.view_count }}</td>
                                 <td class="text-center" style="font-size: 0.5rem;">{{ post.like_count }}</td>
                                 {% endif %}
@@ -454,25 +483,25 @@
     @media (min-width: 992px) {
         /* 원래 스타일로 복원 */
         .table-board td {
-            padding: 0.5rem !important;
+            padding: 0.3rem !important;
             font-size: initial !important;
         }
         
         .table-board th {
-            padding: 0.5rem !important;
+            padding: 0.3rem !important;
             font-size: initial !important;
         }
         
         .table-board th:first-child {
-            padding-left: 0.5rem !important;
+            padding-left: 0.3rem !important;
         }
         
         .table-board th:last-child {
-            padding-right: 0.5rem !important;
+            padding-right: 0.3rem !important;
         }
         
         .table-board tr {
-            height: auto !important;
+            height: 28px !important;
         }
         
         /* 너비 초기화 */
@@ -516,5 +545,128 @@
         font-weight: normal;
         flex-shrink: 0;
     }
+
+    /* 썸네일 크기 설정 - 4:3 비율에 맞게 조정 */
+    .fixed-thumb {
+        width: 100%;
+        height: 200px; /* 높이를 200px로 증가 */
+        object-fit: cover; /* contain에서 cover로 변경하여 빈공간 제거 */
+        object-position: center center; /* 이미지 중앙 정렬 */
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+        display: block;
+    }
+
+    /* 썸네일 게시물 카드 크기 조정 - 더 크게 */
+    .thumb-post {
+        min-height: 200px;
+        overflow: hidden;
+        border: none; /* 중복 보더 제거 */
+        border-radius: 0;
+    }
+
+    /* 썸네일 컨테이너 너비 조정 - 50%로 증가 */
+    .table-board td[style*="width: 50%"] {
+        width: 50% !important;
+        vertical-align: top !important;
+        padding: 0.75rem !important;
+    }
+
+    /* 썸네일 행의 높이 조정 - 더 크게 */
+    .table-board tr:has(.thumb-post) {
+        height: 240px !important;
+    }
+
+    /* 썸네일 행의 텍스트 정렬 */
+    .table-board td:has(.thumb-post) {
+        vertical-align: top !important;
+        padding: 0.75rem !important;
+    }
+
+    /* 썸네일 옆 텍스트 영역 조정 */
+    .table-board td:has(.thumb-post) + td {
+        vertical-align: top !important;
+        padding: 0.75rem !important;
+        background: none !important;
+    }
+
+    .table-board td:has(.thumb-post) + td .post-title {
+        font-size: 1.2rem !important;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        line-height: 1.4;
+        color: #333 !important;
+    }
+
+    .table-board td:has(.thumb-post) + td h6 {
+        font-size: 0.9rem !important;
+        color: #666 !important;
+        margin-bottom: 0.75rem;
+        line-height: 1.5;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 3; /* 3줄까지 표시 */
+        -webkit-box-orient: vertical;
+        text-overflow: ellipsis;
+    }
+
+    .table-board td:has(.thumb-post) + td .card-text {
+        font-size: 0.8rem !important;
+        margin-top: auto;
+    }
+
+    /* 4:3 비율 썸네일을 위한 조정 */
+    @media (min-width: 768px) {
+        .fixed-thumb {
+            height: 225px; /* 4:3 비율에 더 가까운 높이 */
+        }
+        
+        .table-board tr:has(.thumb-post) {
+            height: 260px !important;
+        }
+    }
+
+    /* 모바일에서 썸네일 크기 조정 */
+    @media (max-width: 767px) {
+        .table-board td[style*="width: 50%"] {
+            width: 100% !important;
+            display: block;
+        }
+        
+        .table-board td:has(.thumb-post) + td {
+            width: 100% !important;
+            display: block;
+            padding-top: 0 !important;
+        }
+        
+        .fixed-thumb {
+            height: 180px;
+        }
+        
+        .table-board tr:has(.thumb-post) {
+            height: auto !important;
+        }
+        
+        .table-board tr:has(.thumb-post) td {
+            display: block;
+            width: 100% !important;
+        }
+    }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 썸네일 이미지 로드 상태만 확인 (비율 조정 제거)
+    const thumbnails = document.querySelectorAll('.fixed-thumb');
+    
+    thumbnails.forEach(function(img) {
+        // 이미지 로드 실패 시 기본 이미지로 대체하는 로직만 유지
+        img.addEventListener('error', function() {
+            console.log('Image load failed:', this.src);
+        });
+    });
+});
+</script>
+
 {% endblock %}

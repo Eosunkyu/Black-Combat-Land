@@ -9,6 +9,7 @@ import json
 import re
 import pytz
 import hashlib
+import time
 
 seoul_timezone = pytz.timezone('Asia/Seoul')
 
@@ -43,16 +44,28 @@ def get_anonymous_nickname(ip_address):
     cur.execute('SELECT COUNT(*) as count FROM anonymous_users')
     user_count = cur.fetchone()['count']
     
-    # 블랜1, 블랜2 형식으로 닉네임 생성
-    nickname = f"익명"
+    # 익명1, 익명2 형식으로 닉네임 생성 (기본값)
+    nickname_base = "익명"
     
     # 중복 확인 (혹시 모를 경우를 대비)
-    while True:
+    max_attempts = 1000  # 무한 루프 방지를 위한 최대 시도 횟수
+    attempts = 0
+    
+    while attempts < max_attempts:
+        if user_count == 0:
+            nickname = nickname_base
+        else:
+            nickname = f"{nickname_base}{user_count + 1}"
+            
         cur.execute('SELECT id FROM anonymous_users WHERE nickname = %s', (nickname,))
         if not cur.fetchone():
             break
         user_count += 1
-        nickname = f"익명"
+        attempts += 1
+    
+    # 최대 시도 횟수를 초과한 경우 고유한 닉네임 생성
+    if attempts >= max_attempts:
+        nickname = f"{nickname_base}{int(time.time())}"
     
     # 새 익명 사용자 등록
     cur.execute('''
@@ -135,19 +148,29 @@ def board_main(board_route):
         for post in posts:
             post['nickname'] = '익명'
     else:
-        # 일반 게시판은 작성자 정보 표시
+        # 일반 게시판은 작성자 정보 표시 (비로그인 사용자는 '블랜'으로 표시)
         cur.execute('''
-            SELECT posts.*, users.nickname, users.is_vip, posts.images_data, posts.content, posts.created_at,
-                  (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
-                  (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count,
-                  boards.name as board_name, boards.route as route
+            SELECT posts.*, 
+                   CASE 
+                       WHEN posts.is_anonymous = 1 AND posts.user_id = 0 AND %s != 'anonymous' THEN '블랜'
+                       WHEN posts.is_anonymous = 1 THEN '익명'
+                       ELSE users.nickname 
+                   END as nickname,
+                   CASE 
+                       WHEN posts.is_anonymous = 1 THEN NULL
+                       ELSE users.is_vip 
+                   END as is_vip,
+                   posts.images_data, posts.content, posts.created_at,
+                   (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
+                   (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count,
+                   boards.name as board_name, boards.route as route
             FROM posts
-            JOIN users ON posts.user_id = users.id
+            LEFT JOIN users ON posts.user_id = users.id AND posts.is_anonymous = 0
             JOIN boards ON posts.board_id = boards.id
             WHERE posts.board_id = %s
             ORDER BY posts.created_at DESC
             LIMIT %s OFFSET %s
-        ''', (board['id'], per_page, offset))
+        ''', (board['route'], board['id'], per_page, offset))
         
         posts = cur.fetchall()
     
@@ -204,11 +227,6 @@ def write_post(board_route):
         flash('VIP 게시판은 VIP 회원만 글을 작성할 수 있습니다.', 'danger')
         return redirect(url_for('board.board_main', board_route=board_route))
     
-    # 익명 게시판이 아닌 경우 로그인 필요
-    if board['route'] != 'anonymous' and 'loggedin' not in session:
-        flash('로그인이 필요합니다.', 'danger')
-        return redirect(url_for('auth.login'))
-    
     # 위치별 광고 선택
     # 사이드바 광고
     cur.execute('SELECT * FROM ads WHERE position = "side" AND is_active = 1 ORDER BY RAND() LIMIT 1')
@@ -227,12 +245,12 @@ def write_post(board_route):
         content = request.form['content']
         ip_address = request.remote_addr
         
-        # 익명 게시판인 경우 비밀번호 처리
+        # 비밀번호 처리 (익명 게시판 또는 비로그인 사용자)
         anonymous_password = None
-        if board['route'] == 'anonymous':
+        if board['route'] == 'anonymous' or 'loggedin' not in session:
             password = request.form.get('anonymous_password', '').strip()
             if not password:
-                flash('익명 게시판에서는 비밀번호를 입력해야 합니다.', 'danger')
+                flash('비밀번호를 입력해야 합니다.', 'danger')
                 return render_template('board/write.html', board=board, 
                                       sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad, is_mobile=is_mobile)
             if len(password) < 4:
@@ -281,13 +299,21 @@ def write_post(board_route):
         # 동영상 데이터 처리
         video_data = request.form.get('video_data', '[]')
         
+        # 썸네일 처리 (VIP, BCN 게시판만)
+        thumbnail_path = None
+        if board['route'] in ['vip', 'support']:
+            thumbnail_path = request.form.get('thumbnail_path', '').strip()
+            if thumbnail_path and not thumbnail_path.startswith('static/'):
+                thumbnail_path = None  # 잘못된 경로 무시
+        
         # 게시글 저장
-        user_id = session.get('id', 0) if board['route'] != 'anonymous' else 0
+        user_id = session.get('id', 0) if 'loggedin' in session else 0
+        is_anonymous = 1 if (board['route'] == 'anonymous' or 'loggedin' not in session) else 0
         
         cur.execute('''
-            INSERT INTO posts (board_id, user_id, title, content, video_data, created_at, view_count, is_anonymous, ip_address, anonymous_password)
-            VALUES (%s, %s, %s, %s, %s, NOW(), 0, %s, %s, %s)
-        ''', (board['id'], user_id, title, content, video_data, 1 if board['route'] == 'anonymous' else 0, ip_address, anonymous_password))
+            INSERT INTO posts (board_id, user_id, title, content, thumbnail_path, video_data, created_at, view_count, is_anonymous, ip_address, anonymous_password)
+            VALUES (%s, %s, %s, %s, %s, %s, NOW(), 0, %s, %s, %s)
+        ''', (board['id'], user_id, title, content, thumbnail_path, video_data, is_anonymous, ip_address, anonymous_password))
         
         mysql.connection.commit()
         post_id = cur.lastrowid
@@ -319,11 +345,21 @@ def view_post(board_route, post_id):
     
     # 게시글 조회
     cur.execute('''
-        SELECT posts.*, users.nickname, users.is_vip
+        SELECT posts.*, 
+               CASE 
+                   WHEN %s = 'anonymous' THEN '익명'
+                   WHEN posts.is_anonymous = 1 AND posts.user_id = 0 THEN '블랜'
+                   WHEN posts.is_anonymous = 1 THEN '익명'
+                   ELSE users.nickname 
+               END as nickname,
+               CASE 
+                   WHEN posts.is_anonymous = 1 THEN NULL
+                   ELSE users.is_vip 
+               END as is_vip
         FROM posts
-        LEFT JOIN users ON posts.user_id = users.id
+        LEFT JOIN users ON posts.user_id = users.id AND posts.is_anonymous = 0
         WHERE posts.id = %s AND posts.board_id = %s
-    ''', (post_id, board['id']))
+    ''', (board['route'], post_id, board['id']))
     
     post = cur.fetchone()
     
@@ -331,10 +367,15 @@ def view_post(board_route, post_id):
         cur.close()
         abort(404)
     
-    # 익명 게시판인 경우 IP 기반 닉네임 설정
-    if post['is_anonymous'] and post['ip_address']:
-        post['nickname'] = '익명'  # 게시글은 단순히 '익명'으로 표시
-    elif post['is_anonymous']:
+    # 익명 게시판이 아닌 경우 닉네임 설정을 명확히 처리
+    if board['route'] != 'anonymous':
+        if post['is_anonymous'] and post['user_id'] == 0:
+            post['nickname'] = '블랜'  # 비로그인 사용자
+        elif post['is_anonymous']:
+            post['nickname'] = '익명'  # 로그인 사용자가 익명 선택
+        # else: 이미 쿼리에서 users.nickname으로 설정됨
+    else:
+        # 익명 게시판은 모두 '익명'
         post['nickname'] = '익명'
     
     # 현재 로그인한 사용자가 관리자인지 확인
@@ -362,21 +403,24 @@ def view_post(board_route, post_id):
     
     # 댓글 조회
     cur.execute('''
-        SELECT comments.*, users.nickname, users.is_vip
+        SELECT comments.*, 
+               CASE 
+                   WHEN %s = 'anonymous' THEN '익명'
+                   WHEN comments.is_anonymous = 1 AND comments.user_id = 0 THEN '블랜'
+                   WHEN comments.is_anonymous = 1 THEN '익명'
+                   ELSE users.nickname 
+               END as nickname,
+               CASE 
+                   WHEN comments.is_anonymous = 1 THEN NULL
+                   ELSE users.is_vip 
+               END as is_vip
         FROM comments
-        LEFT JOIN users ON comments.user_id = users.id
+        LEFT JOIN users ON comments.user_id = users.id AND comments.is_anonymous = 0
         WHERE comments.post_id = %s
         ORDER BY comments.created_at ASC
-    ''', (post_id,))
+    ''', (board['route'], post_id))
     
     comments = cur.fetchall()
-    
-    # 익명 댓글의 IP 기반 닉네임 설정
-    for comment in comments:
-        if comment['is_anonymous'] and comment['ip_address']:
-            comment['nickname'] = '익명'  # 댓글도 단순히 '익명'으로 표시
-        elif comment['is_anonymous']:
-            comment['nickname'] = '익명'
     
     # 좋아요 정보 조회
     like_count = 0
@@ -436,11 +480,20 @@ def view_post(board_route, post_id):
         ''', (board['id'], per_page, offset))
     else:
         cur.execute('''
-            SELECT posts.*, users.nickname, users.is_vip,
+            SELECT posts.*, 
+                   CASE 
+                       WHEN posts.is_anonymous = 1 AND posts.user_id = 0 THEN '블랜'
+                       WHEN posts.is_anonymous = 1 THEN '익명'
+                       ELSE users.nickname 
+                   END as nickname,
+                   CASE 
+                       WHEN posts.is_anonymous = 1 THEN NULL
+                       ELSE users.is_vip 
+                   END as is_vip,
                    (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
                    (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
             FROM posts
-            JOIN users ON posts.user_id = users.id
+            LEFT JOIN users ON posts.user_id = users.id AND posts.is_anonymous = 0
             WHERE posts.board_id = %s
             ORDER BY posts.created_at DESC
             LIMIT %s OFFSET %s
@@ -492,19 +545,15 @@ def write_comment(board_route, post_id):
         cur.close()
         flash(f'차단된 IP 주소입니다{reason}. 관리자에게 문의하세요.', 'danger')
         return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
-    # 익명 게시판이 아닌 경우 로그인 필요
-    if board['route'] != 'anonymous' and 'loggedin' not in session:
-        flash('로그인이 필요합니다.', 'danger')
-        return redirect(url_for('auth.login'))
     
     content = request.form['content']
     
-    # 익명 게시판인 경우 비밀번호 처리
+    # 비밀번호 처리 (익명 게시판 또는 비로그인 사용자)
     anonymous_password = None
-    if board['route'] == 'anonymous':
+    if board['route'] == 'anonymous' or 'loggedin' not in session:
         password = request.form.get('anonymous_password', '').strip()
         if not password:
-            flash('익명 게시판에서는 비밀번호를 입력해야 합니다.', 'danger')
+            flash('비밀번호를 입력해야 합니다.', 'danger')
             return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
         if len(password) < 4:
             flash('비밀번호는 최소 4자리 이상이어야 합니다.', 'danger')
@@ -533,12 +582,13 @@ def write_comment(board_route, post_id):
         return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
     
     # 댓글 저장
-    user_id = session.get('id', 0) if board['route'] != 'anonymous' else 0
+    user_id = session.get('id', 0) if 'loggedin' in session else 0
+    is_anonymous = 1 if (board['route'] == 'anonymous' or 'loggedin' not in session) else 0
     
     cur.execute('''
         INSERT INTO comments (post_id, user_id, content, created_at, is_anonymous, ip_address, anonymous_password)
         VALUES (%s, %s, %s, NOW(), %s, %s, %s)
-    ''', (post_id, user_id, content, 1 if board['route'] == 'anonymous' else 0, ip_address, anonymous_password))
+    ''', (post_id, user_id, content, is_anonymous, ip_address, anonymous_password))
     
     mysql.connection.commit()
     cur.close()
@@ -705,12 +755,26 @@ def edit_post(board_route, post_id):
         # 동영상 데이터 처리
         video_data = request.form.get('video_data', '[]')
         
+        # 썸네일 처리 (VIP, BCN 게시판만)
+        thumbnail_path = None
+        if board['route'] in ['vip', 'support']:
+            thumbnail_path = request.form.get('thumbnail_path', '').strip()
+            if thumbnail_path and not thumbnail_path.startswith('static/'):
+                thumbnail_path = None  # 잘못된 경로 무시
+        
         # 게시글 수정
-        cur.execute('''
-            UPDATE posts 
-            SET title = %s, content = %s, video_data = %s, updated_at = NOW()
-            WHERE id = %s
-        ''', (title, content, video_data, post_id))
+        if board['route'] in ['vip', 'support']:
+            cur.execute('''
+                UPDATE posts 
+                SET title = %s, content = %s, thumbnail_path = %s, video_data = %s, updated_at = NOW()
+                WHERE id = %s
+            ''', (title, content, thumbnail_path, video_data, post_id))
+        else:
+            cur.execute('''
+                UPDATE posts 
+                SET title = %s, content = %s, video_data = %s, updated_at = NOW()
+                WHERE id = %s
+            ''', (title, content, video_data, post_id))
         
         mysql.connection.commit()
         cur.close()
@@ -875,11 +939,20 @@ def board_posts_json(board_route):
         ''', (board['id'], per_page, offset))
     else:
         cur.execute('''
-            SELECT posts.*, users.nickname, users.is_vip,
+            SELECT posts.*, 
+                   CASE 
+                       WHEN posts.is_anonymous = 1 AND posts.user_id = 0 THEN '블랜'
+                       WHEN posts.is_anonymous = 1 THEN '익명'
+                       ELSE users.nickname 
+                   END as nickname,
+                   CASE 
+                       WHEN posts.is_anonymous = 1 THEN NULL
+                       ELSE users.is_vip 
+                   END as is_vip,
                    (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
                    (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
             FROM posts
-            JOIN users ON posts.user_id = users.id
+            LEFT JOIN users ON posts.user_id = users.id AND posts.is_anonymous = 0
             WHERE posts.board_id = %s
             ORDER BY posts.created_at DESC
             LIMIT %s OFFSET %s
@@ -908,7 +981,7 @@ def verify_anonymous_post_password(board_route, post_id):
     cur.execute('SELECT * FROM boards WHERE route = %s', (board_route,))
     board = cur.fetchone()
     
-    if not board or board['route'] != 'anonymous':
+    if not board:
         cur.close()
         abort(404)
     
@@ -919,7 +992,7 @@ def verify_anonymous_post_password(board_route, post_id):
         flash('비밀번호를 입력해주세요.', 'danger')
         return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
     
-    # 게시글 정보 조회
+    # 게시글 정보 조회 (익명 게시판 또는 비로그인 사용자)
     cur.execute('SELECT * FROM posts WHERE id = %s AND board_id = %s AND is_anonymous = 1', 
                (post_id, board['id']))
     post = cur.fetchone()
@@ -958,7 +1031,7 @@ def edit_anonymous_post(board_route, post_id):
     cur.execute('SELECT * FROM boards WHERE route = %s', (board_route,))
     board = cur.fetchone()
     
-    if not board or board['route'] != 'anonymous':
+    if not board:
         cur.close()
         abort(404)
     
@@ -1009,12 +1082,26 @@ def edit_anonymous_post(board_route, post_id):
         # 동영상 데이터 처리
         video_data = request.form.get('video_data', '[]')
         
+        # 썸네일 처리 (VIP, BCN 게시판만)
+        thumbnail_path = None
+        if board['route'] in ['vip', 'support']:
+            thumbnail_path = request.form.get('thumbnail_path', '').strip()
+            if thumbnail_path and not thumbnail_path.startswith('static/'):
+                thumbnail_path = None  # 잘못된 경로 무시
+        
         # 게시글 수정
-        cur.execute('''
-            UPDATE posts 
-            SET title = %s, content = %s, video_data = %s, updated_at = NOW()
-            WHERE id = %s AND is_anonymous = 1
-        ''', (title, content, video_data, post_id))
+        if board['route'] in ['vip', 'support']:
+            cur.execute('''
+                UPDATE posts 
+                SET title = %s, content = %s, thumbnail_path = %s, video_data = %s, updated_at = NOW()
+                WHERE id = %s AND is_anonymous = 1
+            ''', (title, content, thumbnail_path, video_data, post_id))
+        else:
+            cur.execute('''
+                UPDATE posts 
+                SET title = %s, content = %s, video_data = %s, updated_at = NOW()
+                WHERE id = %s AND is_anonymous = 1
+            ''', (title, content, video_data, post_id))
         
         mysql.connection.commit()
         cur.close()
@@ -1028,7 +1115,12 @@ def edit_anonymous_post(board_route, post_id):
     
     # 닉네임 설정
     if post['ip_address']:
-        post['nickname'] = get_anonymous_nickname(post['ip_address'])
+        try:
+            post['nickname'] = get_anonymous_nickname(post['ip_address'])
+        except Exception as e:
+            # 오류 발생 시 기본 닉네임 사용
+            print(f"Error in get_anonymous_nickname: {e}")
+            post['nickname'] = '익명'
     else:
         post['nickname'] = '익명'
     
@@ -1047,7 +1139,7 @@ def delete_anonymous_post(board_route, post_id):
     cur.execute('SELECT * FROM boards WHERE route = %s', (board_route,))
     board = cur.fetchone()
     
-    if not board or board['route'] != 'anonymous':
+    if not board:
         cur.close()
         abort(404)
     
@@ -1113,7 +1205,7 @@ def verify_anonymous_comment_password(board_route, post_id, comment_id):
     cur.execute('SELECT * FROM boards WHERE route = %s', (board_route,))
     board = cur.fetchone()
     
-    if not board or board['route'] != 'anonymous':
+    if not board:
         cur.close()
         abort(404)
     

@@ -113,6 +113,13 @@
                                maxlength="20" required placeholder="4자리 이상 입력하세요">
                         <div class="form-text">이 비밀번호는 게시글 수정/삭제 시 필요합니다. 잊지 마세요!</div>
                     </div>
+                    {% elif not session.loggedin %}
+                    <div class="mb-3">
+                        <label for="anonymous_password" class="form-label">비밀번호 <small class="text-muted">(수정/삭제 시 필요)</small></label>
+                        <input type="password" class="form-control" id="anonymous_password" name="anonymous_password" 
+                               maxlength="20" required placeholder="4자리 이상 입력하세요">
+                        <div class="form-text">비로그인 상태에서 글 작성 시 비밀번호가 필요합니다. 잊지 마세요!</div>
+                    </div>
                     {% endif %}
                     
                     <div class="mb-3">
@@ -143,13 +150,49 @@
                                  class="p-3" 
                                  style="min-height: 250px; outline: none;"
                                  placeholder="내용을 입력하거나 이미지를 드래그하여 삽입하세요...">
-                            </div>
+                        </div>
                         </div>
                         <textarea class="form-control d-none" id="content" name="content" required></textarea>
                         <div class="mt-2">
                             <small class="text-muted">이미지를 드래그하여 본문에 바로 삽입하거나, 툴바의 <i class="fas fa-image"></i> 버튼을 클릭하세요. (최대 10개, 각 16MB 이하)</small>
                         </div>
                     </div>
+                    
+                    <!-- 썸네일 업로드 (VIP, BCN 게시판만) -->
+                    {% if board.route in ['vip', 'support'] %}
+                    <div class="mb-3">
+                        <label for="thumbnail" class="form-label">
+                            썸네일 이미지 
+                            <small class="text-muted">(선택사항, 최대 5MB)</small>
+                        </label>
+                        <div class="thumbnail-upload-area border rounded p-3 text-center" style="background-color: #f8f9fa; min-height: 120px; position: relative;">
+                            <div id="thumbnail-placeholder" class="d-flex flex-column align-items-center justify-content-center h-100">
+                                <i class="fas fa-image fa-2x text-muted mb-2"></i>
+                                <p class="text-muted mb-2">썸네일 이미지를 선택하거나 드래그하여 업로드하세요</p>
+                                <button type="button" id="selectThumbnailBtn" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-upload"></i> 파일 선택
+                                </button>
+                            </div>
+                            <div id="thumbnail-preview" class="d-none">
+                                <img id="thumbnail-img" src="" alt="썸네일 미리보기" class="img-fluid rounded" style="max-height: 200px;">
+                                <div class="mt-2">
+                                    <button type="button" id="removeThumbnailBtn" class="btn btn-danger btn-sm">
+                                        <i class="fas fa-trash"></i> 제거
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="thumbnail-uploading" class="d-none">
+                                <div class="spinner-border text-primary" role="status"></div>
+                                <p class="mt-2 mb-0">업로드 중...</p>
+                            </div>
+                        </div>
+                        <input type="file" id="thumbnailInput" accept="image/*" style="display: none;">
+                        <input type="hidden" id="thumbnailPath" name="thumbnail_path" value="">
+                        <small class="form-text text-muted">
+                            권장 크기: 400x300px 이상, JPG/PNG/GIF 형식
+                        </small>
+                    </div>
+                    {% endif %}
                     
                     <!-- 동영상 삽입 -->
                     <div class="mb-3">
@@ -282,6 +325,9 @@
         // placeholder 효과
         setupPlaceholder();
         
+        // 썸네일 업로드 설정
+        setupThumbnailUpload();
+        
         // 초기 포커스 설정 (에디터가 비어있을 때)
         if (editorContent.innerHTML.trim() === '' || 
             editorContent.innerHTML === '<br>' || 
@@ -401,8 +447,8 @@
                 e.preventDefault();
                 const file = items[i].getAsFile();
                 uploadImages([file]);
-                return;
-            }
+            return;
+        }
         }
         
         // 텍스트 붙여넣기의 경우 기본 동작 후 textarea 업데이트
@@ -454,8 +500,8 @@
             
             uploadSingleImage(file);
         });
-    }
-    
+        }
+        
     // 단일 이미지 업로드
     function uploadSingleImage(file) {
         // 임시 이미지 요소 생성 (로딩 표시)
@@ -559,7 +605,7 @@
             const range = selection.getRangeAt(0);
             range.deleteContents();
             range.insertNode(element);
-            
+        
             // 커서를 삽입된 요소 다음으로 이동
             range.setStartAfter(element);
             range.setEndAfter(element);
@@ -793,6 +839,127 @@
             }
         }
         return null;
+    }
+    
+    // 썸네일 업로드 설정
+    function setupThumbnailUpload() {
+        const thumbnailInput = document.getElementById('thumbnailInput');
+        const selectThumbnailBtn = document.getElementById('selectThumbnailBtn');
+        const removeThumbnailBtn = document.getElementById('removeThumbnailBtn');
+        const thumbnailUploadArea = document.querySelector('.thumbnail-upload-area');
+        
+        // 썸네일 관련 요소가 없으면 리턴 (VIP, BCN 게시판이 아닌 경우)
+        if (!thumbnailInput) return;
+        
+        // 파일 선택 버튼 클릭
+        selectThumbnailBtn.addEventListener('click', () => {
+            thumbnailInput.click();
+        });
+        
+        // 파일 선택 시
+        thumbnailInput.addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                uploadThumbnail(e.target.files[0]);
+            }
+        });
+        
+        // 썸네일 제거 버튼
+        removeThumbnailBtn.addEventListener('click', removeThumbnail);
+        
+        // 드래그 앤 드롭
+        thumbnailUploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.classList.add('border-primary');
+        });
+        
+        thumbnailUploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.classList.remove('border-primary');
+        });
+        
+        thumbnailUploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.classList.remove('border-primary');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type.startsWith('image/')) {
+                uploadThumbnail(files[0]);
+            } else {
+                alert('이미지 파일만 업로드할 수 있습니다.');
+            }
+        });
+    }
+    
+    // 썸네일 업로드
+    function uploadThumbnail(file) {
+        const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+        
+        if (file.size > MAX_SIZE) {
+            alert('썸네일 파일 크기는 5MB 이하여야 합니다.');
+            return;
+        }
+        
+        if (!file.type.startsWith('image/')) {
+            alert('이미지 파일만 업로드할 수 있습니다.');
+            return;
+        }
+        
+        // UI 상태 변경
+        showThumbnailUploading();
+        
+        const formData = new FormData();
+        formData.append('thumbnail', file);
+        formData.append('csrf_token', document.querySelector('[name="csrf_token"]').value);
+        
+        fetch('/upload_thumbnail', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showThumbnailPreview(data.path);
+                document.getElementById('thumbnailPath').value = data.path;
+                showNotification('썸네일이 업로드되었습니다.', 'success');
+            } else {
+                showThumbnailPlaceholder();
+                alert('썸네일 업로드에 실패했습니다: ' + data.error);
+            }
+        })
+        .catch(error => {
+            showThumbnailPlaceholder();
+            alert('썸네일 업로드 중 오류가 발생했습니다.');
+        });
+    }
+    
+    // 썸네일 제거
+    function removeThumbnail() {
+        document.getElementById('thumbnailPath').value = '';
+        showThumbnailPlaceholder();
+        showNotification('썸네일이 제거되었습니다.', 'info');
+    }
+    
+    // UI 상태 함수들
+    function showThumbnailPlaceholder() {
+        document.getElementById('thumbnail-placeholder').classList.remove('d-none');
+        document.getElementById('thumbnail-preview').classList.add('d-none');
+        document.getElementById('thumbnail-uploading').classList.add('d-none');
+    }
+    
+    function showThumbnailPreview(imagePath) {
+        document.getElementById('thumbnail-placeholder').classList.add('d-none');
+        document.getElementById('thumbnail-preview').classList.remove('d-none');
+        document.getElementById('thumbnail-uploading').classList.add('d-none');
+        document.getElementById('thumbnail-img').src = '/' + imagePath;
+    }
+    
+    function showThumbnailUploading() {
+        document.getElementById('thumbnail-placeholder').classList.add('d-none');
+        document.getElementById('thumbnail-preview').classList.add('d-none');
+        document.getElementById('thumbnail-uploading').classList.remove('d-none');
     }
 </script>
 
