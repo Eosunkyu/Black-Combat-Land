@@ -164,7 +164,7 @@
                         {% for post in posts %}
                             {% if board.id in [4,8] %} <!-- VIP, BCN 게시판은 무조건 썸네일 형태 -->
                             <tr class="thumb-row">
-                                <td class="thumb-image-cell" style="width: 35%;">
+                                <td class="thumb-image-cell" style="width: 25%;">
                                     <a href="{{ url_for('board.view_post', board_route=post.route, post_id=post.id) }}" class="d-block">
                                         {% if board.id == 4 %}
                                         {% if post.thumbnail_path %}
@@ -181,7 +181,7 @@
                                         {% endif %}
                                     </a>
                                 </td>
-                                <td class="thumb-content-cell" style="width: 65%;">
+                                <td class="thumb-content-cell" style="width: 75%;">
                                     <div class="thumb-content-area">
                                         <a href="{{ url_for('board.view_post', board_route=post.route, post_id=post.id) }}" class="text-decoration-none text-dark">
                                             <h4 class="post-title mb-2">
@@ -445,7 +445,7 @@
     }
    
     .table-board td {
-        padding: 0 !important;
+        padding: 0.5rem !important;
         vertical-align: middle;
         overflow: hidden;
     }
@@ -465,7 +465,7 @@
     }
     
     .table-board th:first-child {
-        padding-left: 0.3rem !important;
+        padding-left: 0rem !important;
     }
     
     .table-board th:last-child {
@@ -485,7 +485,7 @@
     @media (min-width: 992px) {
         /* 원래 스타일로 복원 */
         .table-board td {
-            padding: 0.3rem !important;
+            padding: 0.5rem !important;
             font-size: initial !important;
         }
         
@@ -495,7 +495,7 @@
         }
         
         .table-board th:first-child {
-            padding-left: 0.3rem !important;
+            padding-left: 0rem !important;
         }
         
         .table-board th:last-child {
@@ -551,18 +551,19 @@
     /* 썸네일 크기 설정 - 3:4 비율에 맞게 조정 */
     .fixed-thumb {
         width: 100%;
-        height: 120px; /* 200px에서 120px로 줄임 (유튜브 스타일) */
+        aspect-ratio: 16/9;/* 최소 가로길이 설정 */
+        height: auto; /* 200px에서 120px로 줄임 (유튜브 스타일) */
         object-fit: cover; /* contain에서 cover로 변경하여 빈공간 제거 */
         object-position: center center; /* 이미지 중앙 정렬 */
         background-color: #f8f9fa;
-        border-radius: 8px;
+        border-radius: 12px !important; /* 라운드 처리 강화 */
         border: none; /* 테두리 제거 */
         display: block;
     }
 
     /* 썸네일 게시물 카드 크기 조정 - 유튜브 스타일로 줄임 */
     .thumb-post {
-        min-height: 120px; /* 200px에서 120px로 줄임 */
+        min-height: 140px; /* 200px에서 120px로 줄임 */
         overflow: hidden;
         border: none; /* 중복 보더 제거 */
         border-radius: 0;
@@ -570,26 +571,29 @@
 
     /* 썸네일 컨테이너 너비 조정 - 30%:70% 비율 */
     .thumb-image-cell {
-        width: 30% !important;
         vertical-align: top !important;
-        padding: 0.5rem !important;
+        padding: 1rem !important; /* 패딩 더 증가 */
     }
 
     .thumb-content-cell {
-        width: 70% !important;
         vertical-align: top !important;
-        padding: 0.5rem !important;
+        padding: 1rem !important; /* 패딩 더 증가 */
     }
 
     /* 썸네일 행의 높이 조정 - 유튜브 스타일로 줄임 */
     .thumb-row {
-        height: 140px !important;
+        height: 160px !important; /* 높이 증가 */
+        background-color: #fff;
+        border-radius: 8px;
+        margin-bottom: 1.5rem !important; /* 행과 행 사이 여백 더 크게 증가 */
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* 카드 느낌의 그림자 추가 */
+        border: 1px solid #e9ecef; /* 카드 경계선 추가 */
     }
 
     /* 썸네일 셀 스타일 */
     .thumb-image-cell {
         vertical-align: top !important;
-        padding: 0.5rem !important;
+        padding: 1rem !important; /* 패딩 더 증가 */
     }
 
     /* 썸네일 옆 텍스트 영역 조정 */
@@ -629,38 +633,52 @@
     /* PC에서 3:4 비율 썸네일을 위한 조정 */
     @media (min-width: 768px) {
         .fixed-thumb {
-            height: 130px; /* 225px에서 120px로 줄임 (3:4 비율 유지) */
+            aspect-ratio: 16/9; /* 16:9 비율 설정 */
+            height: auto; /* aspect-ratio가 높이를 자동 계산하도록 설정 */
         }
         
         .table-board tr:has(.fixed-thumb) {
-            height: 140px !important; /* 260px에서 140px로 줄임 */
+            height: auto !important; /* 높이를 자동으로 조정하여 16:9 비율에 맞춤 */
+            min-height: 160px !important; /* 최소 높이 설정 */
+        }
+        
+        .thumb-row {
+            height: auto !important; /* 썸네일 행 높이도 자동 조정 */
+            min-height: 180px !important; /* 16:9 비율에 맞는 최소 높이 */
         }
     }
 
     /* 모바일에서 썸네일 크기 조정 */
     @media (max-width: 767px) {
         .thumb-image-cell {
-            width: 45% !important; /* 모바일에서만 45:55 비율 적용 */
+            width: 50% !important; /* 모바일에서만 45:55 비율 적용 */
             display: table-cell !important;
             vertical-align: top !important;
-            padding: 0.5rem !important;
+            padding: 1rem !important; /* 패딩 더 증가 */
         }
         
         .thumb-content-cell {
-            width: 55% !important; /* 모바일에서만 나머지 55% 적용 */
+            width: 50% !important; /* 모바일에서만 나머지 55% 적용 */
             display: table-cell !important;
-            padding: 0.5rem !important;
+            padding: 1rem !important; /* 패딩 더 증가 */
             vertical-align: top !important;
         }
         
         .thumb-row {
-            height: 110px !important;
+            height: 160px !important; /* 모바일 높이 증가 */
             display: table-row !important;
+            background-color: #fff;
+            border-radius: 8px;
+            margin-bottom: 1.5rem !important; /* 모바일에서도 행과 행 사이 여백 더 크게 증가 */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* 카드 느낌의 그림자 추가 */
+            border: 0px solid #e9ecef; /* 카드 경계선 추가 */
         }
         
         .fixed-thumb {
-            height: 90px; /* 120px에서 90px로 줄임 (모바일에서 더 작게) */
+            min-width: 0px;
+            height: 110px; /* 120px에서 90px로 줄임 (모바일에서 더 작게) */
             border: none; /* 모바일에서도 테두리 제거 */
+            border-radius: 12px !important; /* 모바일에서도 라운드 처리 강화 */
         }
 
         /* 모바일에서 썸네일 텍스트 크기 및 레이아웃 조정 */
@@ -672,7 +690,7 @@
             -webkit-line-clamp: 2; /* 제목 2줄까지 표시 */
             -webkit-box-orient: vertical;
             text-overflow: ellipsis;
-            margin-bottom: 0.3rem !important;
+            margin-bottom: 0.15rem !important;
         }
 
         .thumb-content-area .content-preview {
@@ -683,7 +701,7 @@
             -webkit-line-clamp: 1; /* 내용 1줄만 표시 */
             -webkit-box-orient: vertical;
             text-overflow: ellipsis;
-            margin-bottom: 0.3rem !important;
+            margin-bottom: 0.15rem !important;
         }
 
         .thumb-content-area .post-meta {
@@ -697,7 +715,7 @@
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
-            padding: 0.3rem;
+            padding: 0rem;
         }
     }
 </style>
