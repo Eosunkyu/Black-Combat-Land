@@ -685,7 +685,7 @@
     max-width: calc(100% - 65px); /* 시간 영역 공간 약간 축소 */
     display: flex;
     align-items: center;
-    font-size: 0.7rem;
+    font-size: 0.8rem; /* 0.7rem에서 0.8rem으로 1pt 증가 */
     white-space: nowrap;
     overflow: visible;
     position: relative;
@@ -789,15 +789,15 @@
     object-position: center center; /* 이미지 중앙 정렬 */
     background-color: #f8f9fa;
     border-radius: 8px;
-    border: 1px solid #dee2e6;
+    border: none; /* 기존 border: 1px solid #dee2e6; 제거 */
     display: block; /* 블록 요소로 설정 */
   }
 
   /* 썸네일 게시물 카드 크기 조정 */
   .thumb-post {
-    min-height: 260px;
+    min-height: 170px;
     overflow: hidden; /* 카드 영역 벗어나는 내용 숨김 */
-    border: 1px solid #dee2e6;
+    border: none; /* 기존 border: 1px solid #dee2e6; 제거 */
     border-radius: 8px;
   }
 
@@ -822,15 +822,20 @@
   .thumb-post .card-body {
     padding: 8px !important;
     overflow: hidden;
+    min-height: 60px; /* 제목과 메타 정보를 위한 최소 높이 확보 */
   }
 
   .thumb-post .card-title {
-    font-size: 0.8rem !important;
+    font-size: 0.9rem !important; /* 0.8rem에서 0.9rem으로 1pt 증가 */
     line-height: 1.2;
-    margin-bottom: 0.3rem !important;
-    white-space: nowrap;
+    margin-bottom: 8px !important; /* 0.3rem에서 8px로 고정 여백 증가 */
+    min-height: 24px; /* 제목 영역 최소 높이 확보 (1-2줄 대응) */
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* 최대 2줄까지 표시 */
+    -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: normal; /* nowrap에서 normal로 변경하여 줄바꿈 허용 */
     max-width: 100%;
   }
 
@@ -840,6 +845,10 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    position: absolute; /* 고정 위치 설정 */
+    bottom: 8px; /* 카드 하단에서 8px 위에 고정 */
+    left: 8px;
+    right: 8px;
   }
 
   /* 모바일에서 썸네일 컨테이너 완전 최적화 */
@@ -876,11 +885,14 @@
     }
 
     .thumb-post .card-title {
-      font-size: 0.7rem !important;
+      font-size: 0.8rem !important; /* 0.7rem에서 0.8rem으로 1pt 증가 */
+      min-height: 20px; /* 모바일에서 최소 높이 조정 */
+      margin-bottom: 6px !important; /* 모바일에서 여백 조정 */
     }
     
     .thumb-post .card-text {
       font-size: 0.6rem !important;
+      bottom: 6px; /* 모바일에서 하단 위치 조정 */
     }
 
   }

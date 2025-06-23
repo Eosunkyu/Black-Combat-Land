@@ -163,9 +163,9 @@
                             <!-- 일반 게시글 표시 -->
                         {% for post in posts %}
                             {% if board.id in [4,8] %} <!-- VIP, BCN 게시판은 무조건 썸네일 형태 -->
-                            <tr>
-                                <td style="width: 50%;">
-                                    <a href="{{ url_for('board.view_post', board_route=post.route, post_id=post.id) }}" class="thumb-post card h-100 text-decoration-none text-dark">
+                            <tr class="thumb-row">
+                                <td class="thumb-image-cell" style="width: 35%;">
+                                    <a href="{{ url_for('board.view_post', board_route=post.route, post_id=post.id) }}" class="d-block">
                                         {% if board.id == 4 %}
                                         {% if post.thumbnail_path %}
                                         <img src="/{{ post.thumbnail_path }}" class="card-img-top fixed-thumb" alt="썸네일">
@@ -181,24 +181,26 @@
                                         {% endif %}
                                     </a>
                                 </td>
-                                <td>
-                                    <a href="{{ url_for('board.view_post', board_route=post.route, post_id=post.id) }}" class="thumb-post card h-100 text-decoration-none text-dark">
-                                        <h4 class="post-title mb-3" >
-                                            <span class="post-title">{{ post.title }}</span>
-                                            {% if post.comment_count > 0 %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
-                                        </h4>
-                                        <h6 style="color: #6d6565;" class="card-title mb-1 text-truncate" >{{ post.content|striptags|truncate(100) }}</h6>
-                                        <p class="card-text mb-0" style="font-size: 0.75rem;">
-                                            <span class="text-muted">{{ post.nickname }}</span>
-                                            <span class="text-muted">
-                                                {% if (post.created_at|string)[:10] == now[:10] %}
-                                                {{ post.created_at.strftime('%H:%M') }}
-                                                {% else %}
-                                                    {{ post.created_at.strftime('%m-%d') }}
-                                                {% endif %}
-                                            </span> · <span class="text-muted">조회:{{ post.view_count }}</span> · <span class="text-muted">추천:{{post.like_count}}</span>
-                                        </p>
-                                    </a>
+                                <td class="thumb-content-cell" style="width: 65%;">
+                                    <div class="thumb-content-area">
+                                        <a href="{{ url_for('board.view_post', board_route=post.route, post_id=post.id) }}" class="text-decoration-none text-dark">
+                                            <h4 class="post-title mb-2">
+                                                {{ post.title }}
+                                                {% if post.comment_count > 0 %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
+                                            </h4>
+                                            <h6 class="content-preview mb-2">{{ post.content|striptags|truncate(100) }}</h6>
+                                            <p class="post-meta mb-0">
+                                                <span class="text-muted">{{ post.nickname }}</span>
+                                                <span class="text-muted">
+                                                    {% if (post.created_at|string)[:10] == now[:10] %}
+                                                    {{ post.created_at.strftime('%H:%M') }}
+                                                    {% else %}
+                                                        {{ post.created_at.strftime('%m-%d') }}
+                                                    {% endif %}
+                                                </span> · <span class="text-muted">조회:{{ post.view_count }}</span> · <span class="text-muted">추천:{{post.like_count}}</span>
+                                            </p>
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                             {% else %}
@@ -546,111 +548,156 @@
         flex-shrink: 0;
     }
 
-    /* 썸네일 크기 설정 - 4:3 비율에 맞게 조정 */
+    /* 썸네일 크기 설정 - 3:4 비율에 맞게 조정 */
     .fixed-thumb {
         width: 100%;
-        height: 200px; /* 높이를 200px로 증가 */
+        height: 120px; /* 200px에서 120px로 줄임 (유튜브 스타일) */
         object-fit: cover; /* contain에서 cover로 변경하여 빈공간 제거 */
         object-position: center center; /* 이미지 중앙 정렬 */
         background-color: #f8f9fa;
         border-radius: 8px;
-        border: 1px solid #dee2e6;
+        border: none; /* 테두리 제거 */
         display: block;
     }
 
-    /* 썸네일 게시물 카드 크기 조정 - 더 크게 */
+    /* 썸네일 게시물 카드 크기 조정 - 유튜브 스타일로 줄임 */
     .thumb-post {
-        min-height: 200px;
+        min-height: 120px; /* 200px에서 120px로 줄임 */
         overflow: hidden;
         border: none; /* 중복 보더 제거 */
         border-radius: 0;
     }
 
-    /* 썸네일 컨테이너 너비 조정 - 50%로 증가 */
-    .table-board td[style*="width: 50%"] {
-        width: 50% !important;
+    /* 썸네일 컨테이너 너비 조정 - 30%:70% 비율 */
+    .thumb-image-cell {
+        width: 30% !important;
         vertical-align: top !important;
-        padding: 0.75rem !important;
+        padding: 0.5rem !important;
     }
 
-    /* 썸네일 행의 높이 조정 - 더 크게 */
-    .table-board tr:has(.thumb-post) {
-        height: 240px !important;
+    .thumb-content-cell {
+        width: 70% !important;
+        vertical-align: top !important;
+        padding: 0.5rem !important;
     }
 
-    /* 썸네일 행의 텍스트 정렬 */
-    .table-board td:has(.thumb-post) {
+    /* 썸네일 행의 높이 조정 - 유튜브 스타일로 줄임 */
+    .thumb-row {
+        height: 140px !important;
+    }
+
+    /* 썸네일 셀 스타일 */
+    .thumb-image-cell {
         vertical-align: top !important;
-        padding: 0.75rem !important;
+        padding: 0.5rem !important;
     }
 
     /* 썸네일 옆 텍스트 영역 조정 */
-    .table-board td:has(.thumb-post) + td {
-        vertical-align: top !important;
-        padding: 0.75rem !important;
-        background: none !important;
+    .thumb-content-area {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        padding: 0.5rem;
     }
 
-    .table-board td:has(.thumb-post) + td .post-title {
-        font-size: 1.2rem !important;
+    .thumb-content-area .post-title {
+        font-size: 1rem !important; /* 1.2rem에서 1rem으로 줄임 */
         font-weight: 600;
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.5rem; /* 0.75rem에서 0.5rem으로 줄임 */
         line-height: 1.4;
         color: #333 !important;
     }
 
-    .table-board td:has(.thumb-post) + td h6 {
-        font-size: 0.9rem !important;
+    .thumb-content-area .content-preview {
+        font-size: 0.8rem !important; /* 0.9rem에서 0.8rem으로 줄임 */
         color: #666 !important;
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.5rem; /* 0.75rem에서 0.5rem으로 줄임 */
         line-height: 1.5;
         overflow: hidden;
         display: -webkit-box;
-        -webkit-line-clamp: 3; /* 3줄까지 표시 */
+        -webkit-line-clamp: 2; /* 3줄에서 2줄로 줄임 */
         -webkit-box-orient: vertical;
         text-overflow: ellipsis;
     }
 
-    .table-board td:has(.thumb-post) + td .card-text {
-        font-size: 0.8rem !important;
+    .thumb-content-area .post-meta {
+        font-size: 0.75rem !important; /* 0.8rem에서 0.75rem으로 줄임 */
         margin-top: auto;
     }
 
-    /* 4:3 비율 썸네일을 위한 조정 */
+    /* PC에서 3:4 비율 썸네일을 위한 조정 */
     @media (min-width: 768px) {
         .fixed-thumb {
-            height: 225px; /* 4:3 비율에 더 가까운 높이 */
+            height: 130px; /* 225px에서 120px로 줄임 (3:4 비율 유지) */
         }
         
-        .table-board tr:has(.thumb-post) {
-            height: 260px !important;
+        .table-board tr:has(.fixed-thumb) {
+            height: 140px !important; /* 260px에서 140px로 줄임 */
         }
     }
 
     /* 모바일에서 썸네일 크기 조정 */
     @media (max-width: 767px) {
-        .table-board td[style*="width: 50%"] {
-            width: 100% !important;
-            display: block;
+        .thumb-image-cell {
+            width: 45% !important; /* 모바일에서만 45:55 비율 적용 */
+            display: table-cell !important;
+            vertical-align: top !important;
+            padding: 0.5rem !important;
         }
         
-        .table-board td:has(.thumb-post) + td {
-            width: 100% !important;
-            display: block;
-            padding-top: 0 !important;
+        .thumb-content-cell {
+            width: 55% !important; /* 모바일에서만 나머지 55% 적용 */
+            display: table-cell !important;
+            padding: 0.5rem !important;
+            vertical-align: top !important;
+        }
+        
+        .thumb-row {
+            height: 110px !important;
+            display: table-row !important;
         }
         
         .fixed-thumb {
-            height: 180px;
+            height: 90px; /* 120px에서 90px로 줄임 (모바일에서 더 작게) */
+            border: none; /* 모바일에서도 테두리 제거 */
+        }
+
+        /* 모바일에서 썸네일 텍스트 크기 및 레이아웃 조정 */
+        .thumb-content-area .post-title {
+            font-size: 0.9rem !important;
+            line-height: 1.3 !important;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2; /* 제목 2줄까지 표시 */
+            -webkit-box-orient: vertical;
+            text-overflow: ellipsis;
+            margin-bottom: 0.3rem !important;
+        }
+
+        .thumb-content-area .content-preview {
+            font-size: 0.75rem !important;
+            line-height: 1.4 !important;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 1; /* 내용 1줄만 표시 */
+            -webkit-box-orient: vertical;
+            text-overflow: ellipsis;
+            margin-bottom: 0.3rem !important;
+        }
+
+        .thumb-content-area .post-meta {
+            font-size: 0.7rem !important;
+            margin-top: auto !important; /* 아래쪽에 고정 */
         }
         
-        .table-board tr:has(.thumb-post) {
-            height: auto !important;
-        }
-        
-        .table-board tr:has(.thumb-post) td {
-            display: block;
-            width: 100% !important;
+        /* 모바일에서 썸네일 컨텐츠 영역 높이 조정 */
+        .thumb-content-area {
+            height: 90px; /* 고정 높이 설정 */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            padding: 0.3rem;
         }
     }
 </style>
