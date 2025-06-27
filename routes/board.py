@@ -1150,7 +1150,7 @@ def delete_anonymous_post(board_route, post_id):
         datetime.now().timestamp() - session[auth_key].get('timestamp', 0) > 600):  # 10분 제한
         flash('비밀번호 인증이 필요합니다.', 'danger')
         cur.close()
-        return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
+        return redirect(url_for('board.view_post', board_route=board_route,  post_id=post_id))
     
     # 게시글 확인
     cur.execute('SELECT * FROM posts WHERE id = %s AND board_id = %s AND is_anonymous = 1', 
