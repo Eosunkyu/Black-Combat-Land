@@ -118,20 +118,26 @@
                                         <h6 class="card-title mb-1 text-truncate" >{{ post.title }}
                                         </h6>
                                         <p class="card-text mb-0" style="font-size: 0.75rem;">
-                                            <span class="text-muted">{{ post.nickname }}
-                                            {% if post.is_vip == 1 %}
-                                            <span class="vip-badge yellow-vip">VIP</span>
-                                            {% elif post.is_vip == 2 %}
-                                            <span class="vip-badge blue-vip">VIP</span>
-                                            {% endif %}
-                                            </span>
-                                            <span class="text-muted">
-                                                {% if post.created_at.date() == now.date() %}
-                                                    {{ post.created_at.strftime('%H:%M') }}
-                                                {% else %}
-                                                    {{ post.created_at.strftime('%m-%d') }}
-                                                {% endif %}
-                                            </span> · <span class="text-muted">조회:{{ post.view_count }}</span> · <span class="text-muted">추천:{{post.like_count}}</span>
+                                            <div class="thumb-meta-info">
+                                                <div class="thumb-author-line">
+                                                    <span class="text-muted">{{ post.nickname }}
+                                                    {% if post.is_vip == 1 %}
+                                                    <span class="vip-badge yellow-vip">VIP</span>
+                                                    {% elif post.is_vip == 2 %}
+                                                    <span class="vip-badge blue-vip">VIP</span>
+                                                    {% endif %}
+                                                    </span>
+                                                </div>
+                                                <div class="thumb-time-line">
+                                                    <span class="text-muted">
+                                                        {% if post.created_at.date() == now.date() %}
+                                                            {{ post.created_at.strftime('%H:%M') }}
+                                                        {% else %}
+                                                            {{ post.created_at.strftime('%m-%d') }}
+                                                        {% endif %}
+                                                    </span> · <span class="text-muted">조회:{{ post.view_count }}</span> · <span class="text-muted">추천:{{post.like_count}}</span>
+                                                </div>
+                                            </div>
                                         </p>
                                     </div>
                                 </a>
@@ -175,20 +181,26 @@
                                         <h6 class="card-title mb-1 text-truncate" >{{ post.title }}
                                         </h6>
                                         <p class="card-text mb-0" style="font-size: 0.75rem;">
-                                            <span class="text-muted">{{ post.nickname }}
-                                            {% if post.is_vip == 1 %}
-                                            <span class="vip-badge yellow-vip">VIP</span>
-                                            {% elif post.is_vip == 2 %}
-                                            <span class="vip-badge blue-vip">VIP</span>
-                                            {% endif %}
-                                            </span>
-                                            <span class="text-muted">
-                                                {% if post.created_at.date() == now.date() %}
-                                                    {{ post.created_at.strftime('%H:%M') }}
-                                                {% else %}
-                                                    {{ post.created_at.strftime('%m-%d') }}
-                                                {% endif %}
-                                            </span> · <span class="text-muted">조회:{{ post.view_count }}</span> · <span class="text-muted">추천:{{post.like_count}}</span>
+                                            <div class="thumb-meta-info">
+                                                <div class="thumb-author-line">
+                                                    <span class="text-muted">{{ post.nickname }}
+                                                    {% if post.is_vip == 1 %}
+                                                    <span class="vip-badge yellow-vip">VIP</span>
+                                                    {% elif post.is_vip == 2 %}
+                                                    <span class="vip-badge blue-vip">VIP</span>
+                                                    {% endif %}
+                                                    </span>
+                                                </div>
+                                                <div class="thumb-time-line">
+                                                    <span class="text-muted">
+                                                        {% if post.created_at.date() == now.date() %}
+                                                            {{ post.created_at.strftime('%H:%M') }}
+                                                        {% else %}
+                                                            {{ post.created_at.strftime('%m-%d') }}
+                                                        {% endif %}
+                                                    </span> · <span class="text-muted">조회:{{ post.view_count }}</span> · <span class="text-muted">추천:{{post.like_count}}</span>
+                                                </div>
+                                            </div>
                                         </p>
                                     </div>
                                 </a>
@@ -779,55 +791,67 @@
     color: #0d6efd;
   }
   
-  /* 썸네일 크기 설정 - 이미지 가득 채우기 */
+  /* 썸네일 크기 설정 - 이미지 크기 약간 줄임 */
   .fixed-thumb {
     width: 100%;
-    height: 140px;
-    object-fit: cover; /* contain에서 cover로 변경하여 빈공간 제거 */
+    aspect-ratio: 16/9 !important; /* 16:9 비율 강제 고정 */
+    height: auto !important; /* aspect-ratio에 맞춰 자동 계산 */
+    object-fit: contain !important; /* cover에서 contain으로 변경하여 이미지 잘림 방지 */
     object-position: center center; /* 이미지 중앙 정렬 */
-    background-color: #f8f9fa;
+    background-color: #f8f9fa; /* 빈 공간 배경색 */
     border-radius: 8px;
     border: none; /* 기존 border: 1px solid #dee2e6; 제거 */
     display: block; /* 블록 요소로 설정 */
+    max-height: 120px; /* 이미지 최대 높이 제한 */
   }
 
   /* 썸네일 게시물 카드 크기 조정 */
   .thumb-post {
-    min-height: 170px;
-    overflow: hidden; /* 카드 영역 벗어나는 내용 숨김 */
+    min-height: 170px; /* 원래 높이로 복원 */
+    overflow: visible !important; /* 메타정보가 잘리지 않도록 visible로 변경 */
     border: none; /* 기존 border: 1px solid #dee2e6; 제거 */
     border-radius: 8px;
+    margin-bottom: 10px !important; /* 카드 간격 추가 */
+    position: relative;
+    z-index: 1; /* 기본 z-index 설정 */
   }
 
   /* 썸네일 컨테이너 여백 완전 제거 */
   .thumb-body {
     padding: 1 !important;
     margin: 1 !important;
+    overflow: visible !important; /* 메타정보 영역이 잘리지 않도록 */
   }
 
   .thumb-body .row {
     height: 100%;
     margin: 1 !important; /* 여백 완전 제거 */
     padding: 1 !important;
+    overflow: visible !important; /* 행 영역도 visible로 */
   }
 
   .thumb-body .col {
-    margin-bottom: 1;
+    margin-bottom: 10px !important; /* 열 간격 추가 */
     padding: 2px !important; /* 최소한의 패딩만 유지 */
+    overflow: visible !important; /* 컬럼도 visible로 */
   }
 
   /* 썸네일 카드 바디 텍스트 처리 */
   .thumb-post .card-body {
     padding: 8px !important;
-    overflow: hidden;
-    min-height: 60px; /* 제목과 메타 정보를 위한 최소 높이 확보 */
+    overflow: visible !important; /* 카드 바디도 visible로 변경 */
+    min-height: 60px; /* 원래 크기로 복원 */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    z-index: 2; /* 메타 정보가 위에 표시되도록 */
   }
 
   .thumb-post .card-title {
-    font-size: 0.9rem !important; /* 0.8rem에서 0.9rem으로 1pt 증가 */
+    font-size: 0.85rem !important; /* 폰트 크기 약간 줄임 */
     line-height: 1.2;
-    margin-bottom: 8px !important; /* 0.3rem에서 8px로 고정 여백 증가 */
-    min-height: 24px; /* 제목 영역 최소 높이 확보 (1-2줄 대응) */
+    margin-bottom: 8px !important; /* 여백 원래대로 */
     display: -webkit-box;
     -webkit-line-clamp: 2; /* 최대 2줄까지 표시 */
     -webkit-box-orient: vertical;
@@ -835,18 +859,47 @@
     text-overflow: ellipsis;
     white-space: normal; /* nowrap에서 normal로 변경하여 줄바꿈 허용 */
     max-width: 100%;
+    height: 2.1rem; /* 2줄에 대한 고정 높이 설정 */
+    flex-shrink: 0; /* 크기 축소 방지 */
   }
 
-  .thumb-post .card-text {
-    font-size: 0.65rem !important;
+  /* 썸네일 메타 정보 두 줄 레이아웃 */
+  .thumb-meta-info {
+    font-size: 0.6rem !important; /* 메타 정보 폰트 크기 줄임 */
     line-height: 1.1;
+    height: 2.2rem; /* 메타 정보 영역 고정 높이 */
+    margin-top: auto; /* 카드 하단에 고정 */
+    flex-shrink: 0; /* 크기 축소 방지 */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end; /* 하단 정렬 */
+    position: relative;
+    z-index: 3; /* 가장 높은 z-index로 설정 */
+    background-color: rgba(255, 255, 255, 0.9); /* 반투명 배경 추가 */
+    padding: 2px 4px; /* 약간의 패딩 추가 */
+    border-radius: 4px; /* 둥근 모서리 */
+  }
+
+  .thumb-author-line {
+    margin-bottom: 2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    position: absolute; /* 고정 위치 설정 */
-    bottom: 8px; /* 카드 하단에서 8px 위에 고정 */
-    left: 8px;
-    right: 8px;
+    height: 1rem; /* 작성자 라인 고정 높이 */
+  }
+
+  .thumb-time-line {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    height: 1rem; /* 시간 라인 고정 높이 */
+  }
+
+  .thumb-post .card-text {
+    font-size: 0.6rem !important;
+    line-height: 1.1;
+    margin-top: auto; /* 카드 하단에 고정 */
+    flex-shrink: 0;
   }
 
   /* 모바일에서 썸네일 컨테이너 완전 최적화 */
@@ -854,45 +907,72 @@
     .thumb-body {
       padding: 1 !important;
       margin: 1 !important;
+      overflow: visible !important; /* 모바일에서도 visible */
     }
     
     .thumb-body .row {
       margin: 1 !important;
       padding: 1 !important;
       gap: 1 !important; /* Bootstrap 5의 gap 제거 */
+      overflow: visible !important;
     }
     
     .thumb-body .col {
       padding: 1 !important; /* 패딩을 약간 늘려서 짤림 방지 */
       margin: 1 !important;
+      margin-bottom: 15px !important; /* 모바일에서 더 큰 간격 */
+      overflow: visible !important;
     }
     
     .thumb-post {
       margin: 1 !important;
+      margin-bottom: 15px !important; /* 모바일에서 카드 간격 증가 */
       border-radius: 6px;
       width: 100% !important;
       height: 100% !important;
+      min-height: 170px; /* 원래 높이로 복원 */
+      overflow: visible !important; /* 모바일에서도 visible */
+      position: relative;
+      z-index: 1;
     }
     
     .fixed-thumb {
-      height: 120px;
+      aspect-ratio: 16/9 !important; /* 모바일에서도 16:9 비율 유지 */
+      height: auto !important;
       border-radius: 6px 6px 6px 6px; 
-      object-fit: cover;
+      object-fit: contain !important; /* 모바일에서도 이미지 잘림 방지 */
       object-position: center center;
       width: 100% !important;
+      max-height: 100px; /* 모바일에서 이미지 높이 더 줄임 */
+      background-color: #f8f9fa; /* 모바일에서도 빈 공간 배경색 설정 */
     }
 
     .thumb-post .card-title {
-      font-size: 0.8rem !important; /* 0.7rem에서 0.8rem으로 1pt 증가 */
-      min-height: 20px; /* 모바일에서 최소 높이 조정 */
+      font-size: 0.8rem !important;
       margin-bottom: 6px !important; /* 모바일에서 여백 조정 */
+      height: 2rem; /* 모바일 제목 고정 높이 */
     }
     
-    .thumb-post .card-text {
-      font-size: 0.6rem !important;
-      bottom: 6px; /* 모바일에서 하단 위치 조정 */
+    .thumb-post .card-body {
+      min-height: 60px; /* 원래 크기로 복원 */
+      padding: 6px !important;
+      overflow: visible !important; /* 모바일 카드 바디도 visible */
+      z-index: 2;
     }
 
+    .thumb-meta-info {
+      font-size: 0.55rem !important;
+      height: 2rem; /* 모바일 메타 정보 고정 높이 */
+      background-color: rgba(255, 255, 255, 0.95); /* 모바일에서 더 진한 배경 */
+      padding: 3px 5px; /* 모바일에서 패딩 증가 */
+      border-radius: 4px;
+      z-index: 3;
+    }
+
+    .thumb-author-line,
+    .thumb-time-line {
+      height: 0.9rem; /* 모바일에서 각 라인 높이 조정 */
+    }
   }
   
 </style>
