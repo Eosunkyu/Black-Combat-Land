@@ -796,9 +796,9 @@
     width: 100%;
     aspect-ratio: 16/9 !important; /* 16:9 비율 강제 고정 */
     height: auto !important; /* aspect-ratio에 맞춰 자동 계산 */
-    object-fit: contain !important; /* cover에서 contain으로 변경하여 이미지 잘림 방지 */
+    object-fit: contain !important; /* contain으로 변경하여 이미지가 절대 잘리지 않음 */
     object-position: center center; /* 이미지 중앙 정렬 */
-    background-color: #f8f9fa; /* 빈 공간 배경색 */
+    background-color: transparent; /* 투명 배경으로 변경 */
     border-radius: 8px;
     border: none; /* 기존 border: 1px solid #dee2e6; 제거 */
     display: block; /* 블록 요소로 설정 */
@@ -940,11 +940,11 @@
       aspect-ratio: 16/9 !important; /* 모바일에서도 16:9 비율 유지 */
       height: auto !important;
       border-radius: 6px 6px 6px 6px; 
-      object-fit: contain !important; /* 모바일에서도 이미지 잘림 방지 */
+      object-fit: contain !important; /* 모바일에서도 이미지가 절대 잘리지 않음 */
       object-position: center center;
       width: 100% !important;
       max-height: 100px; /* 모바일에서 이미지 높이 더 줄임 */
-      background-color: #f8f9fa; /* 모바일에서도 빈 공간 배경색 설정 */
+      background-color: transparent; /* 모바일에서도 투명 배경 */
     }
 
     .thumb-post .card-title {

@@ -196,15 +196,17 @@
                                 <small class="text-muted ms-2" style="font-size: 0.5rem;">{{ comment.created_at.strftime('%m-%d %H:%M') }}</small>
                             </div>
                             <div>
-                                {% if 'loggedin' in session and (session.id == comment.user_id or session.id == post.user_id) %}
+                                {% if session.is_admin %}
                                 <form action="{{ url_for('board.delete_comment', board_route=board.route, post_id=post.id, comment_id=comment.id) }}" method="post" class="d-inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                     <button type="submit" class="btn btn-sm text-secondary" onclick="return confirm('정말 삭제하시겠습니까?');">X</button>
                                 </form>
-                                {% elif board.route == 'anonymous' and comment.is_anonymous %}
-                                <button type="button" class="btn btn-sm text-secondary" 
-                                        onclick="showCommentPasswordModal('{{ comment.id }}')">X</button>
-                                {% elif comment.is_anonymous and comment.user_id == 0 %}
+                                {% elif 'loggedin' in session and (session.id == comment.user_id or session.id == post.user_id) %}
+                                <form action="{{ url_for('board.delete_comment', board_route=board.route, post_id=post.id, comment_id=comment.id) }}" method="post" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-sm text-secondary" onclick="return confirm('정말 삭제하시겠습니까?');">X</button>
+                                </form>
+                                {% elif (board.route == 'anonymous' and comment.is_anonymous) or (comment.is_anonymous and comment.user_id == 0) %}
                                 <button type="button" class="btn btn-sm text-secondary" 
                                         onclick="showCommentPasswordModal('{{ comment.id }}')">X</button>
                                 {% endif %}
@@ -225,7 +227,8 @@
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <div class="mb-3">
                         <label for="content" class="form-label">댓글 작성</label>
-                        <textarea class="form-control" id="content" name="content" rows="3" required></textarea>
+                        <textarea class="form-control" id="content" name="content" rows="3" maxlength="500" required></textarea>
+                        <div class="form-text">최대 500자까지 입력 가능합니다.</div>
                     </div>
                     {% if board.route == 'anonymous' %}
                     <div class="mb-3">
@@ -314,9 +317,6 @@
                                         <span class="text-muted">조회:{{ post.view_count }}</span>
                                         <span class="text-muted">추천:{{ post.like_count }}</span>
                                     </div>
-                                    {% if board.id in [4,8] %}
-                                    <div class="text-muted small mt-1">{{ post.content|striptags|truncate(50) }}</div>
-                                    {% endif %}
                                 </td>
                                 {% else %}
                                 <td>
@@ -327,9 +327,6 @@
                                         {% if post.comment_count > 0 and board.route not in ['vip', 'support'] %}<span class="text-primary comment-count">[{{ post.comment_count }}]</span>{% endif %}
                                         {% if (post.created_at|string)[:10] == now[:10] %}<span class="text-danger new-badge">N</span>{% endif %}
                                     </a>
-                                    {% if board.id in [4,8] %}
-                                    <div class="text-muted small">{{ post.content|striptags|truncate(50) }}</div>
-                                    {% endif %}
                                 </td>
 				                <td class="text-left" style="font-size: 0.5rem;">{{ post.nickname }}{% if post.is_vip == 1 %}
                                 <span class="vip-badge yellow-vip">VIP</span>
@@ -839,7 +836,6 @@
                                     <span class="text-muted">조회:${post.view_count}</span>
                                     <span class="text-muted">추천:${post.like_count}</span>
                                 </div>
-                                ${data.board.id == 4 || data.board.id == 8 ? `<div class="text-muted small mt-1">${post.content.replace(/<[^>]*>/g, '').substring(0, 50)}${post.content.length > 50 ? '...' : ''}</div>` : ''}
                             </td>
                         </tr>
                     `;
@@ -854,9 +850,8 @@
                                     ${post.comment_count > 0 && boardRoute !== 'vip' && boardRoute !== 'support' ? `<span class="text-primary comment-count">[${post.comment_count}]</span>` : ''}
                                     ${isToday ? '<span class="text-danger new-badge">N</span>' : ''}
                                 </a>
-                                ${data.board.id == 4 || data.board.id == 8 ? `<div class="text-muted small">${post.content.replace(/<[^>]*>/g, '').substring(0, 50)}${post.content.length > 50 ? '...' : ''}</div>` : ''}
                             </td>
-                            <td class="text-left" style="font-size: 0.5rem;">${post.nickname}${vipBadge}</td>
+				                <td class="text-left" style="font-size: 0.5rem;">${post.nickname}${vipBadge}</td>
                             <td class="text-center" style="font-size: 0.5rem;">${formattedDate}</td>
                             <td class="text-center" style="font-size: 0.5rem;">${post.view_count}</td>
                             <td class="text-center" style="font-size: 0.5rem;">${post.like_count}</td>

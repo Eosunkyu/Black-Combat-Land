@@ -581,6 +581,11 @@ def write_comment(board_route, post_id):
         flash('댓글 내용을 입력해주세요.', 'danger')
         return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
     
+    # 댓글 길이 검증 (500자 제한)
+    if len(content) > 500:
+        flash('댓글은 500자 이내로 입력해주세요.', 'danger')
+        return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
+    
     # 댓글 저장
     user_id = session.get('id', 0) if 'loggedin' in session else 0
     is_anonymous = 1 if (board['route'] == 'anonymous' or 'loggedin' not in session) else 0
@@ -747,8 +752,8 @@ def edit_post(board_route, post_id):
         content = request.form['content']
         
         # 제목 길이 검증
-        if len(title) > 40:
-            flash('제목은 40자 이내로 입력해주세요.', 'danger')
+        if len(title) > 50:
+            flash('제목은 50자 이내로 입력해주세요.', 'danger')
             return render_template('board/edit.html', board=board, post=post, 
                                   sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad, is_mobile=is_mobile)
         
@@ -887,12 +892,13 @@ def delete_comment(board_route, post_id, comment_id):
         cur.close()
         abort(404)
     
-    # 권한 확인: 댓글 작성자 또는 게시글 작성자 또는 관리자만 삭제 가능
-    # 관리자는 항상 삭제 가능하도록 조건 순서 변경
-    if not session.get('is_admin') and session['id'] != comment['user_id'] and session['id'] != post['user_id']:
-        flash('댓글 삭제 권한이 없습니다.', 'danger')
-        cur.close()
-        return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
+    # 권한 확인: 관리자는 모든 댓글 삭제 가능, 일반 사용자는 자신의 댓글이나 자신의 게시글 댓글만 삭제 가능
+    if not session.get('is_admin'):
+        user_id = session.get('id')
+        if user_id != comment['user_id'] and user_id != post['user_id']:
+            flash('댓글 삭제 권한이 없습니다.', 'danger')
+            cur.close()
+            return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
     
     # 댓글 삭제
     cur.execute('DELETE FROM comments WHERE id = %s', (comment_id,))

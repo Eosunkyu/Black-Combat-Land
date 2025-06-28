@@ -186,21 +186,25 @@
                                         <div class="thumb-content-container">
                                             <div class="thumb-content-area">
                                                 <a href="{{ url_for('board.view_post', board_route=post.route, post_id=post.id) }}" class="text-decoration-none text-dark">
-                                                    <h4 class="post-title mb-2">
+                                                    <h4 class="post-title mb-2 thumb-title-wrap" data-original-title="{{ post.title }}">
                                                         {{ post.title }}
                                                         {% if post.comment_count > 0 and board.id not in [4,8] %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
                                                     </h4>
-                                                    <h6 class="content-preview mb-2">{{ post.content|striptags|truncate(100) }}</h6>
+                                                    <h6 class="content-preview mb-2 thumb-content-wrap" data-original-content="{{ post.content|striptags|truncate(100, True) }}">{{ post.content|striptags|truncate(100) }}</h6>
                                                 </a>
                                                 <p class="post-meta mb-0">
-                                                    <span class="text-muted">{{ post.nickname }}</span>
-                                                    <span class="text-muted">
-                                                        {% if (post.created_at|string)[:10] == now[:10] %}
-                                                        {{ post.created_at.strftime('%H:%M') }}
-                                                        {% else %}
-                                                            {{ post.created_at.strftime('%m-%d') }}
-                                                        {% endif %}
-                                                    </span> · <span class="text-muted">조회:{{ post.view_count }}</span> · <span class="text-muted">추천:{{post.like_count}}</span>
+                                                    <div class="meta-line-1">
+                                                        <span class="text-muted">{{ post.nickname }}</span>
+                                                    </div>
+                                                    <div class="meta-line-2">
+                                                        <span class="text-muted">
+                                                            {% if (post.created_at|string)[:10] == now[:10] %}
+                                                            {{ post.created_at.strftime('%H:%M') }}
+                                                            {% else %}
+                                                                {{ post.created_at.strftime('%m-%d') }}
+                                                            {% endif %}
+                                                        </span> · <span class="text-muted">조회:{{ post.view_count }}</span> · <span class="text-muted">추천:{{post.like_count}}</span>
+                                                    </div>
                                                 </p>
                                             </div>
                                         </div>
@@ -621,9 +625,9 @@
     }
 
     .thumb-content-area .post-title {
-        font-size: 1rem !important; /* 1.2rem에서 1rem으로 줄임 */
+        font-size: 1rem !important;
         font-weight: 600;
-        margin-bottom: 0.5rem; /* 0.75rem에서 0.5rem으로 줄임 */
+        margin-bottom: 0.5rem;
         line-height: 1.4;
         color: #333 !important;
     }
@@ -793,7 +797,7 @@
         line-height: 1.5;
         overflow: hidden;
         display: -webkit-box;
-        -webkit-line-clamp: 2;
+        -webkit-line-clamp: 2; /* PC에서 2줄까지 */
         -webkit-box-orient: vertical;
         text-overflow: ellipsis;
         margin-bottom: 0;
@@ -807,6 +811,58 @@
         margin-top: auto;
         margin-bottom: 0;
         flex-shrink: 0; /* 메타 정보는 축소되지 않도록 */
+    }
+
+    /* 메타 정보 2줄 분할 스타일 */
+    .meta-line-1, .meta-line-2 {
+        line-height: 1.2;
+        margin-bottom: 2px;
+    }
+
+    .meta-line-1 {
+        font-weight: 500; /* 닉네임 약간 굵게 */
+        font-size: 0.75rem !important; /* 메타정보와 동일한 크기 */
+    }
+
+    .meta-line-2 {
+        font-size: 0.7rem !important;
+        opacity: 0.8;
+    }
+
+    /* PC에서 썸네일 제목과 내용 명확하게 2줄씩 표시 */
+    @media (min-width: 768px) {
+        .thumb-content-area .post-title {
+            font-size: 1.1rem !important;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-bottom: 0.5rem;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2; /* PC에서 제목 2줄 고정 */
+            -webkit-box-orient: vertical;
+            text-overflow: ellipsis;
+            white-space: normal;
+            height: calc(1.1rem * 1.4 * 2); /* 2줄 높이 고정 */
+        }
+
+        .thumb-content-area .content-preview {
+            font-size: 0.85rem !important;
+            color: #666 !important;
+            line-height: 1.5;
+            margin-bottom: 0.5rem;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2; /* PC에서 내용 2줄 고정 */
+            -webkit-box-orient: vertical;
+            text-overflow: ellipsis;
+            white-space: normal;
+            word-break: break-word;
+            height: calc(0.85rem * 1.5 * 2); /* 2줄 높이 고정 */
+        }
+
+        .thumb-card {
+            min-height: 140px; /* PC에서 카드 높이 증가 */
+        }
     }
 
     /* 모바일 반응형 - 새 카드 구조 */
@@ -826,12 +882,11 @@
         
         .thumb-content-area .post-title {
             font-size: 0.9rem !important;
-            -webkit-line-clamp: 3; /* 모바일에서는 3줄까지 */
+            -webkit-line-clamp: 4; /* 모바일에서는 4줄까지 */
         }
         
         .thumb-content-area .content-preview {
-            font-size: 0.75rem !important;
-            -webkit-line-clamp: 1; /* 모바일에서는 1줄만 */
+            display: none !important; /* 모바일에서 내용 숨김 */
         }
         
         .thumb-content-area .post-meta {
@@ -850,6 +905,40 @@ document.addEventListener('DOMContentLoaded', function() {
         img.addEventListener('error', function() {
             console.log('Image load failed:', this.src);
         });
+    });
+    
+    // VIP, BCN 게시판 제목과 내용 줄바꿈 처리
+    function wrapTextByLength(text, maxLength) {
+        if (text.length <= maxLength) {
+            return text;
+        }
+        
+        let result = '';
+        for (let i = 0; i < text.length; i += maxLength) {
+            if (i > 0) result += '<br>';
+            result += text.substr(i, maxLength);
+        }
+        return result;
+    }
+    
+    // 제목 처리 (25자마다 줄바꿈)
+    const thumbTitles = document.querySelectorAll('.thumb-title-wrap');
+    thumbTitles.forEach(function(element) {
+        const originalTitle = element.getAttribute('data-original-title');
+        if (originalTitle && originalTitle.length > 25) {
+            const wrappedTitle = wrapTextByLength(originalTitle, 25);
+            element.innerHTML = wrappedTitle;
+        }
+    });
+    
+    // 내용 처리 (40자마다 줄바꿈)
+    const thumbContents = document.querySelectorAll('.thumb-content-wrap');
+    thumbContents.forEach(function(element) {
+        const originalContent = element.getAttribute('data-original-content');
+        if (originalContent && originalContent.length > 40) {
+            const wrappedContent = wrapTextByLength(originalContent, 40);
+            element.innerHTML = wrappedContent;
+        }
     });
 });
 </script>
