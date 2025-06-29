@@ -1,13 +1,19 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
 from flask_login import login_user, login_required, logout_user, current_user
 import re
-from flask import current_app
 import secrets
 import datetime
 
 auth_bp = Blueprint('auth', __name__)
 # app.py가 auth라는 이름으로 import하므로 별칭 추가
 auth = auth_bp
+
+# MySQL과 bcrypt 접근 함수
+def get_mysql():
+    return current_app.extensions['mysql']
+
+def get_bcrypt():
+    return current_app.extensions['bcrypt']
 
 # 최대 길이 제한 상수 정의
 MAX_USERNAME_LENGTH = 20
@@ -20,7 +26,8 @@ MAX_MESSAGE_CONTENT_LENGTH = 1000
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     # 현재 앱 컨텍스트에서 mysql과 bcrypt 가져오기
-    from app import mysql, bcrypt
+    mysql = get_mysql()
+    bcrypt = get_bcrypt()
     
     if request.method == 'POST':
         # 폼 데이터 가져오기
@@ -122,7 +129,8 @@ def register():
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     # 현재 앱 컨텍스트에서 mysql과 bcrypt 가져오기
-    from app import mysql, bcrypt
+    mysql = get_mysql()
+    bcrypt = get_bcrypt()
     
     if request.method == 'POST':
         # 폼 데이터 가져오기
@@ -202,7 +210,7 @@ def logout():
 @login_required
 def profile():
     # 현재 앱 컨텍스트에서 mysql 가져오기
-    from app import mysql
+    mysql = get_mysql()
     
     # 데이터베이스 연결
     cur = mysql.connection.cursor()
@@ -257,7 +265,7 @@ def find_account():
 # 아이디 찾기 처리
 @auth_bp.route('/find-id', methods=['POST'])
 def find_id():
-    from app import mysql
+    mysql = get_mysql()
     
     email = request.form.get('email')
     nickname = request.form.get('nickname')
@@ -307,7 +315,7 @@ def find_id():
 
 # 데이터베이스에 password_reset_tokens 테이블이 없을 경우 생성
 def create_reset_token_table():
-    from app import mysql
+    mysql = get_mysql()
     
     cur = mysql.connection.cursor()
     # 테이블 존재 여부 확인
@@ -328,7 +336,7 @@ def create_reset_token_table():
 # 비밀번호 재설정 요청 처리
 @auth_bp.route('/reset-password', methods=['POST'])
 def reset_password():
-    from app import mysql
+    mysql = get_mysql()
     
     username = request.form.get('username')
     email = request.form.get('email')
@@ -399,7 +407,7 @@ def reset_password():
 # 비밀번호 재설정 폼
 @auth_bp.route('/reset-password/<token>', methods=['GET'])
 def reset_password_form(token):
-    from app import mysql
+    mysql = get_mysql()
     
     # 토큰 유효성 검사
     cur = mysql.connection.cursor()
@@ -419,7 +427,8 @@ def reset_password_form(token):
 # 비밀번호 재설정 완료
 @auth_bp.route('/complete-reset-password', methods=['POST'])
 def complete_reset_password():
-    from app import mysql, bcrypt
+    mysql = get_mysql()
+    bcrypt = get_bcrypt()
     
     token = request.form.get('token')
     password = request.form.get('password')
@@ -488,7 +497,8 @@ def complete_reset_password():
 @auth_bp.route('/edit-profile', methods=['GET', 'POST'])
 @login_required
 def edit_profile():
-    from app import mysql, bcrypt
+    mysql = get_mysql()
+    bcrypt = get_bcrypt()
     
     if request.method == 'POST':
         # 폼 데이터 가져오기
@@ -595,7 +605,7 @@ def edit_profile():
 @auth_bp.route('/messages')
 @login_required
 def messages():
-    from app import mysql
+    mysql = get_mysql()
     
     # 받은 쪽지/보낸 쪽지 구분
     message_type = request.args.get('type', 'received')
@@ -635,7 +645,7 @@ def messages():
 @auth_bp.route('/messages/<int:message_id>')
 @login_required
 def view_message(message_id):
-    from app import mysql
+    mysql = get_mysql()
     
     cur = mysql.connection.cursor()
     
@@ -669,7 +679,7 @@ def view_message(message_id):
 @auth_bp.route('/send-message', methods=['GET', 'POST'])
 @login_required
 def send_message():
-    from app import mysql
+    mysql = get_mysql()
     
     # 답장인 경우 수신자 정보 미리 설정
     receiver_id = request.args.get('to')
@@ -741,7 +751,7 @@ def send_message():
 @auth_bp.route('/delete-message/<int:message_id>', methods=['POST'])
 @login_required
 def delete_message(message_id):
-    from app import mysql
+    mysql = get_mysql()
     
     cur = mysql.connection.cursor()
     
@@ -790,7 +800,7 @@ def delete_message(message_id):
 @auth_bp.route('/friends')
 @login_required
 def friends():
-    from app import mysql
+    mysql = get_mysql()
     
     cur = mysql.connection.cursor()
     
@@ -850,7 +860,7 @@ def friends():
 @auth_bp.route('/add-friend', methods=['POST'])
 @login_required
 def add_friend():
-    from app import mysql
+    mysql = get_mysql()
     
     nickname = request.form.get('nickname')
     
@@ -915,7 +925,7 @@ def add_friend():
 @auth_bp.route('/respond-friend-request/<int:request_id>/<action>', methods=['POST'])
 @login_required
 def respond_friend_request(request_id, action):
-    from app import mysql
+    mysql = get_mysql()
     
     if action not in ['accept', 'reject']:
         flash('잘못된 요청입니다.', 'danger')
@@ -961,7 +971,7 @@ def respond_friend_request(request_id, action):
 @auth_bp.route('/remove-friend/<int:friend_id>', methods=['POST'])
 @login_required
 def remove_friend(friend_id):
-    from app import mysql
+    mysql = get_mysql()
     
     cur = mysql.connection.cursor()
     
@@ -994,7 +1004,7 @@ def remove_friend(friend_id):
 @auth_bp.route('/block-user/<int:user_id>', methods=['POST'])
 @login_required
 def block_user(user_id):
-    from app import mysql
+    mysql = get_mysql()
     
     cur = mysql.connection.cursor()
     
@@ -1031,7 +1041,7 @@ def block_user(user_id):
 @auth_bp.route('/unblock-user/<int:block_id>', methods=['POST'])
 @login_required
 def unblock_user(block_id):
-    from app import mysql
+    mysql = get_mysql()
     
     cur = mysql.connection.cursor()
     

@@ -35,9 +35,9 @@ def create_app():
     app.config['MYSQL_HOST'] = 'localhost'
     app.config['MYSQL_USER'] = 'root'
     app.config['MYSQL_PASSWORD'] = '1234'  # MySQL 비밀번호 설정
-    app.config['MYSQL_HOST'] = '127.0.0.1'
-    app.config['MYSQL_USER'] = 'adminUser'
-    app.config['MYSQL_PASSWORD'] = 'tjsrbQhshd!@34' # MySQL 비밀번호 설정
+    #app.config['MYSQL_HOST'] = '13.125.219.53'
+    #app.config['MYSQL_USER'] = 'adminUser'
+    #app.config['MYSQL_PASSWORD'] = 'tjsrbQhshd!@34' # MySQL 비밀번호 설정
     app.config['MYSQL_DB'] = 'blackcombat'
     app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
     app.config['UPLOAD_FOLDER'] = 'static/uploads'

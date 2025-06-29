@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+
+{% block title %}게시글 삭제 확인{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        게시글 삭제 확인
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <strong>주의!</strong> 이 작업은 되돌릴 수 없습니다.
+                    </div>
+                    
+                    <h6>삭제할 게시글:</h6>
+                    <div class="border p-3 mb-3">
+                        <strong>{{ post.title }}</strong>
+                        <br>
+                        <small class="text-muted">
+                            작성일: {{ post.created_at.strftime('%Y-%m-%d %H:%M') }}
+                        </small>
+                    </div>
+                    
+                    <p>정말로 이 게시글을 삭제하시겠습니까?</p>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('board.view_post', board_route=board.route, post_id=post.id) }}" 
+                           class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> 취소
+                        </a>
+                        
+                        <form method="POST" action="{{ action_url }}" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+                            <button type="submit" class="btn btn-danger" 
+                                    onclick="return confirm('정말로 삭제하시겠습니까?')">
+                                <i class="fas fa-trash"></i> 삭제
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
