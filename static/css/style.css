@@ -558,6 +558,8 @@ h6.card-title {
 }
 
 .yellow-vip {
+    position: relative;
+    top: 2px;
     display: inline-block;
     background-image: url('/static/thumbs/gold_vip.png');
     background-size: cover;
@@ -568,6 +570,8 @@ h6.card-title {
 }
 
 .blue-vip {
+    position: relative;
+    top: 2px;
     display: inline-block;
     background-image: url('/static/thumbs/silver_vip.png');
     background-size: cover;
@@ -575,6 +579,11 @@ h6.card-title {
     background-position: center;
     width: 10px;
     height: 10px;
+}
+
+.vip-detail-size {
+    width: 20px;
+    height: 20px;
 }
 
 /* PC 화면, 더 큰 화면에서는 더 큰 여백 적용 */
