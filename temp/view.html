@@ -1,0 +1,942 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ post.title }} - {{ board.name }} - BLACK COMBAT LAND{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 좌측 칼럼 (로그인 영역) -->
+    <div class="col-lg-2 left-column d-none d-lg-block content-padding">
+        {% if not session.loggedin %}
+        <div class="login-form-container">
+            <!-- 로그인 제목 추가 -->
+            <h5 class="mb-2 text-nowrap">회원 로그인</h5>
+            <div class="login-highlighted mb-3"></div>
+            <!-- 폼 요소 먼저 배치 -->
+            <form action="{{ url_for('auth.login') }}" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="mb-2">
+                    <input type="text" class="form-control" name="username" placeholder="ID" required>
+                </div>
+                <div class="mb-2">
+                    <input type="password" class="form-control" name="password" placeholder="비밀번호" required>
+                </div>
+                <div class="d-flex flex-column mb-2">
+                    <button type="submit" class="btn btn-dark">로그인</button>
+                </div>
+                <div class="small mb-3">
+                    <a href="{{ url_for('auth.register') }}" class="text-decoration-none text-nowrap">회원가입</a>
+		    </br>
+		    <a href="{{ url_for('auth.find_account') }}" class="text-decoration-none text-nowrap">아이디/비밀번호찾기</a>
+                </div>
+            </form>
+        </div>
+        {% else %}
+        <div class="login-form-container">
+            <div class="member-info mb-3">
+                <p class="mb-2"><strong>{{ session.nickname }}님</strong> 환영합니다</p>
+                {% if session.is_vip == 1 %}
+                <span class="vip-badge yellow-vip">VIP 회원</span>
+                {% elif session.is_vip == 2 %}
+                <span class="vip-badge blue-vip">VIP 회원</span>
+                {% endif %}
+            </div>
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('auth.profile') }}"class="btn btn-outline-secondary btn-sm d-none d-lg-block">내 정보</a>
+                <a href="{{ url_for('auth.messages') }}" class="btn btn-outline-secondary btn-sm d-none d-lg-block">쪽지함</a>
+                <a href="{{ url_for('auth.friends') }}" class="btn btn-outline-secondary btn-sm d-none d-lg-block">친구관리</a>
+                {% if session.is_admin %}
+                <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-primary btn-sm d-none d-lg-block">관리자 페이지</a>
+                {% endif %}
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-sm d-none d-lg-block">로그아웃</a>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- 사이드바 광고 -->
+        {% if sidebar_ad %}
+        <div class="card mb-4 mt-4 sidebar-ad p-0 border-0">
+            
+            <div class="text-center p-0">
+                {% if sidebar_ad.link_url and sidebar_ad.image_path %}
+                <a href="{{ sidebar_ad.link_url }}" target="_blank" style="display:block; width:100%;">
+                    <img src="{{ url_for('static', filename=sidebar_ad.image_path) }}" alt="{{ sidebar_ad.title }}" style="width:100%; max-width:100%; height:auto; display:block;" class="img-fluid">
+                </a>
+                {% elif sidebar_ad.image_path %}
+                <img src="{{ url_for('static', filename=sidebar_ad.image_path) }}" alt="{{ sidebar_ad.title }}" style= "width:100%; max-width:100%; height:auto; display:block;"  class="img-fluid">
+                {% else %}
+                <p class="mb-1"><strong>{{ sidebar_ad.title }}</strong></p>
+                <p class="small">{{ sidebar_ad.content }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- 중앙 컨텐츠 영역 -->
+    <div class="col-lg-7 mid-column p-0">
+        <!-- 배너 광고 -->
+        {% if banner_ad %}
+        <div class="card mb-4 banner-ad">
+            
+            <div class="card-body text-center">
+                {% if banner_ad.link_url and banner_ad.image_path %}
+                <a href="{{ banner_ad.link_url }}" target="_blank">
+                    <img src="{{ url_for('static', filename=banner_ad.image_path) }}" alt="{{ banner_ad.title }}" class="img-fluid rounded">
+                </a>
+                {% elif banner_ad.image_path %}
+                <img src="{{ url_for('static', filename=banner_ad.image_path) }}" alt="{{ banner_ad.title }}" class="img-fluid rounded">
+                {% else %}
+                <h5>{{ banner_ad.title }}</h5>
+                <p>{{ banner_ad.content }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{{ board.name }}</h5>
+                <a href="{{ url_for('board.board_main', board_route=board.route) }}" class="btn btn-sm btn-secondary">목록으로</a>
+            </div>
+            <div class="card-body">
+                <h4 class="post-title mb-3">
+                <span class="post-title">{{ post.title }}</span>
+                </h4>
+                <div class="d-flex justify-content-start mb-3 bg-light">
+                    <div>
+                        <span class="me-2">{{ post.nickname}}</span>{% if post.is_vip == 1 %}<span class="yellow-vip">VIP</span>{% elif post.is_vip == 2 %}<span class="blue-vip">VIP</span>{% endif %}
+                        <small class="text-muted">
+                            {% if (post.created_at|string)[:10] == now[:10] %}
+                                {{ post.created_at.strftime('%H:%M') }}
+                            {% else %}
+                                {{ post.created_at.strftime('%m-%d') }}
+                        {% endif %}
+                        </small>
+                    </div>
+                    <div>
+                        <small class="text-muted">&nbsp;&nbsp;&nbsp;&nbsp;조회 {{ post.view_count }}</small>
+                    </div>
+                </div>
+                
+                <div class="post-content mb-4">
+                    {{ post.content|safe }}
+                </div>
+                
+                
+                <!-- 동영상 콘텐츠 -->
+                {% if post.video_data %}
+                <div class="video-content mb-4">
+                    <h5 class="mb-3">동영상</h5>
+                    <div class="video-container">
+                        {% set videos = post.video_data|fromjson %}
+                        {% for video in videos %}
+                        <div class="mb-3">
+                            {% if video.type == 'url' %}
+                            <div class="ratio ratio-16x9 mb-2">
+                                <iframe src="{{ get_embed_url(video.content) }}" allowfullscreen></iframe>
+                            </div>
+                            <p class="small text-muted">원본 링크: <a href="{{ video.content }}" target="_blank">{{ video.content }}</a></p>
+                            {% else %}
+                            <div class="embed-responsive">
+                                {{ video.content|safe }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="d-flex justify-content-between mt-4">
+                    <div>
+                        {% if 'loggedin' in session and (session.id == post.user_id or session.is_admin) %}
+                        <a href="{{ url_for('board.edit_post', board_route=board.route, post_id=post.id) }}" class="btn btn-outline-primary me-2">수정</a>
+                        <form action="{{ url_for('board.delete_post', board_route=board.route, post_id=post.id) }}" method="post" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-outline-danger" onclick="return confirm('정말 삭제하시겠습니까?');">삭제</button>
+                        </form>
+                        {% elif board.route == 'anonymous' and post.is_anonymous %}
+                        <button type="button" class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#editPasswordModal">수정</button>
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deletePasswordModal">삭제</button>
+                        {% elif post.is_anonymous and post.user_id == 0 %}
+                        <button type="button" class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#editPasswordModal">수정</button>
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deletePasswordModal">삭제</button>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <form action="{{ url_for('board.like_post', board_route=board.route, post_id=post.id) }}" method="post" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn {% if is_liked %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                <i class="bi bi-hand-thumbs-up"></i> 추천 {{ like_count }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 댓글 섹션 -->
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">댓글</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if comments %}
+                <div class="comment-list mb-4 p-0">
+                    {% for comment in comments %}
+                    <div class="comment mb-0 p-2 border rounded">
+                        <div class="d-flex justify-content-between mb-2">
+                            <div>
+                                <span class="fw-bold">{{ comment.nickname }}</span>
+                                {% if comment.is_vip == 1 %}
+                                <span class="vip-badge yellow-vip">VIP</span>
+                                {% elif comment.is_vip == 2 %}
+                                <span class="vip-badge blue-vip">VIP</span>
+                                {% endif %}
+                                <small class="text-muted ms-2" style="font-size: 0.5rem;">{{ comment.created_at.strftime('%m-%d %H:%M') }}</small>
+                            </div>
+                            <div>
+                                {% if session.is_admin %}
+                                <form action="{{ url_for('board.delete_comment', board_route=board.route, post_id=post.id, comment_id=comment.id) }}" method="post" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-sm text-secondary" onclick="return confirm('정말 삭제하시겠습니까?');">X</button>
+                                </form>
+                                {% elif 'loggedin' in session and (session.id == comment.user_id or session.id == post.user_id) %}
+                                <form action="{{ url_for('board.delete_comment', board_route=board.route, post_id=post.id, comment_id=comment.id) }}" method="post" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-sm text-secondary" onclick="return confirm('정말 삭제하시겠습니까?');">X</button>
+                                </form>
+                                {% elif (board.route == 'anonymous' and comment.is_anonymous) or (comment.is_anonymous and comment.user_id == 0) %}
+                                <button type="button" class="btn btn-sm text-secondary" 
+                                        onclick="showCommentPasswordModal('{{ comment.id }}')">X</button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div>
+                            {{ comment.content|nl2br }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-center mb-4">아직 댓글이 없습니다.</p>
+                {% endif %}
+                
+                <!-- 댓글 작성 폼 -->
+                <form action="{{ url_for('board.write_comment', board_route=board.route, post_id=post.id) }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="mb-3">
+                        <label for="content" class="form-label">댓글 작성</label>
+                        <textarea class="form-control" id="content" name="content" rows="3" maxlength="500" required></textarea>
+                        <div class="form-text">최대 500자까지 입력 가능합니다.</div>
+                    </div>
+                    {% if board.route == 'anonymous' %}
+                    <div class="mb-3">
+                        <label for="comment_anonymous_password" class="form-label">비밀번호 <small class="text-muted">(삭제 시 필요)</small></label>
+                        <input type="password" class="form-control" id="comment_anonymous_password" name="anonymous_password" 
+                               maxlength="20" required placeholder="4자리 이상 입력하세요">
+                    </div>
+                    {% elif not session.loggedin %}
+                    <div class="mb-3">
+                        <label for="comment_anonymous_password" class="form-label">비밀번호 <small class="text-muted">(삭제 시 필요)</small></label>
+                        <input type="password" class="form-control" id="comment_anonymous_password" name="anonymous_password" 
+                               maxlength="20" required placeholder="4자리 이상 입력하세요">
+                    </div>
+                    {% endif %}
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">댓글 등록</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- 푸터 광고 -->
+        {% if center_ad %}
+        <div class="container-fluid mt-4">
+            <div class="card mb-4 center_ad">
+                
+                <div class="card-body text-center">
+                    {% if center_ad.link_url and center_ad.image_path %}
+                    <a href="{{ center_ad.link_url }}" target="_blank">
+                        <img src="{{ url_for('static', filename=center_ad.image_path) }}" alt="{{ center_ad.title }}" class="img-fluid rounded">
+                    </a>
+                    {% elif center_ad.image_path %}
+                    <img src="{{ url_for('static', filename=center_ad.image_path) }}" alt="{{ center_ad.title }}" class="img-fluid rounded">
+                    {% else %}
+                    <h5>{{ center_ad.title }}</h5>
+                    <p>{{ center_ad.content }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        <!-- 댓글 아래 게시판 리스트 추가 -->
+        <div class="card mb-3">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{{ board.name }} 게시판</h5>
+                <a href="{{ url_for('board.write_post', board_route=board.route) }}" class="btn btn-sm btn-primary">글쓰기</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-board mb-0">
+                        <thead class="table-light">
+                            <tr class="mobile_hidden">
+                                <th style="font-size: 0.6rem;">제목</th>
+				                <th style="width: 60px; font-size: 0.6rem;">글쓴이</th>
+                                <th style="width: 31px; font-size: 0.6rem; text-align: center;">작성일</th>
+                                <th style="width: 21px; font-size: 0.6rem; text-align: center;">조회</th>
+                                <th style="width: 26px; font-size: 0.6rem; text-align: center;">추천</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for post in posts %}
+                            <tr>
+                                {% if is_mobile %}
+                                <td colspan="5" style="padding: 5px !important;">
+                                    <a href="{{ url_for('board.view_post', board_route=board.route, post_id=post.id) }}" class="post-title">
+                                        <span class="post-title-text" data-full-title="{{ post.title }}">
+                                            {{ post.title }}
+                                        </span>
+                                        {% if post.comment_count > 0 and board.route not in ['vip', 'support'] %}<span class="text-primary comment-count">[{{ post.comment_count }}]</span>{% endif %}
+                                        {% if (post.created_at|string)[:10] == now[:10] %}<span class="text-danger new-badge">N</span>{% endif %}
+                                    </a>
+                                    <div class="card-text mb-0" style="font-size: 0.75rem;">
+                                        <span class="text-muted">
+                                        {{ post.nickname }}{% if post.is_vip == 1 %}
+                                        <span class="vip-badge yellow-vip">VIP</span>
+                                        {% elif post.is_vip == 2 %}
+                                        <span class="vip-badge blue-vip">VIP</span>
+                                        {% endif %}
+                                        </span>
+                                        <span class="text-muted">
+                                            {% if (post.created_at|string)[:10] == now[:10] %}
+                                                {{ post.created_at.strftime('%H:%M') }}
+                                            {% else %}
+                                                {{ post.created_at.strftime('%m-%d') }}
+                                            {% endif %}
+                                        </span>
+                                        <span class="text-muted">조회:{{ post.view_count }}</span>
+                                        <span class="text-muted">추천:{{ post.like_count }}</span>
+                                    </div>
+                                </td>
+                                {% else %}
+                                <td>
+                                    <a href="{{ url_for('board.view_post', board_route=board.route, post_id=post.id) }}" class="post-title">
+                                        <span class="post-title-text" data-full-title="{{ post.title }}">
+                                            {{ post.title }}
+                                        </span>
+                                        {% if post.comment_count > 0 and board.route not in ['vip', 'support'] %}<span class="text-primary comment-count">[{{ post.comment_count }}]</span>{% endif %}
+                                        {% if (post.created_at|string)[:10] == now[:10] %}<span class="text-danger new-badge">N</span>{% endif %}
+                                    </a>
+                                </td>
+				                <td class="text-left" style="font-size: 0.5rem;">{{ post.nickname }}{% if post.is_vip == 1 %}
+                                <span class="vip-badge yellow-vip">VIP</span>
+                                {% elif post.is_vip == 2 %}
+                                <span class="vip-badge blue-vip">VIP</span>
+                                {% endif %}</td>
+                                <td class="text-center" style="font-size: 0.5rem;">
+                                    {% if (post.created_at|string)[:10] == now[:10] %}
+                                        {{ post.created_at.strftime('%H:%M') }}
+                                    {% else %}
+                                        {{ post.created_at.strftime('%m-%d') }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-center" style="font-size: 0.5rem;">{{ post.view_count }}</td>
+                                <td class="text-center" style="font-size: 0.5rem;">{{ post.like_count }}</td>
+                                {% endif %}
+                            </tr>
+                            
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4">게시글이 없습니다.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 페이지네이션 -->
+        {% if total_pages > 1 %}
+        <nav>
+            <ul class="pagination justify-content-center" id="pagination">
+                {% if page > 1 %}
+                <li class="page-item">
+                    <a class="page-link pagination-link" href="#" data-page="{{ page-1 }}">이전</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">이전</span>
+                </li>
+                {% endif %}
+                
+                {% for p in range(1, total_pages + 1) %}
+                {% if p == page %}
+                <li class="page-item active">
+                    <span class="page-link">{{ p }}</span>
+                </li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link pagination-link" href="#" data-page="{{ p }}">{{ p }}</a>
+                </li>
+                {% endif %}
+                {% endfor %}
+                
+                {% if page < total_pages %}
+                <li class="page-item">
+                    <a class="page-link pagination-link" href="#" data-page="{{ page+1 }}">다음</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">다음</span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 푸터 광고 -->
+{% if footer_ad %}
+<div class="container mt-4">
+    <div class="card mb-4 footer-ad">
+
+        <div class="card-body text-center">
+            {% if footer_ad.link_url and footer_ad.image_path %}
+            <a href="{{ footer_ad.link_url }}" target="_blank">
+                <img src="{{ url_for('static', filename=footer_ad.image_path) }}" alt="{{ footer_ad.title }}" class="img-fluid rounded">
+            </a>
+            {% elif footer_ad.image_path %}
+            <img src="{{ url_for('static', filename=footer_ad.image_path) }}" alt="{{ footer_ad.title }}" class="img-fluid rounded">
+            {% else %}
+            <h5>{{ footer_ad.title }}</h5>
+            <p>{{ footer_ad.content }}</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- 익명 게시글 수정 비밀번호 확인 모달 -->
+<div class="modal fade" id="editPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">게시글 수정</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('board.verify_anonymous_post_password', board_route=board.route, post_id=post.id) }}" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="action" value="edit">
+                    <div class="mb-3">
+                        <label for="edit_password" class="form-label">게시글 작성 시 입력한 비밀번호를 입력하세요</label>
+                        <input type="password" class="form-control" id="edit_password" name="password" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                    <button type="submit" class="btn btn-primary">확인</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 익명 게시글 삭제 비밀번호 확인 모달 -->
+<div class="modal fade" id="deletePasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">게시글 삭제</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('board.verify_anonymous_post_password', board_route=board.route, post_id=post.id) }}" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="action" value="delete">
+                    <div class="mb-3">
+                        <label for="delete_password" class="form-label">게시글 작성 시 입력한 비밀번호를 입력하세요</label>
+                        <input type="password" class="form-control" id="delete_password" name="password" required>
+                    </div>
+                    <div class="alert alert-warning">
+                        <strong>주의:</strong> 게시글을 삭제하면 모든 댓글도 함께 삭제되며 복구할 수 없습니다.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                    <button type="submit" class="btn btn-danger">삭제</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 익명 댓글 삭제 비밀번호 확인 모달 -->
+<div class="modal fade" id="commentPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">댓글 삭제</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="commentPasswordForm" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="mb-3">
+                        <label for="comment_delete_password" class="form-label">댓글 작성 시 입력한 비밀번호를 입력하세요</label>
+                        <input type="password" class="form-control" id="comment_delete_password" name="password" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                    <button type="submit" class="btn btn-danger">삭제</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Comment password modal available for all boards -->
+
+{% endblock %}
+
+{% block scripts %}
+<style>
+    /* view.html에서 이미지 삭제 버튼 숨기기 */
+    .post-content .btn-danger,
+    .post-content .position-absolute {
+        display: none !important;
+    }
+    
+    /* view.html에서 이미지 좌측 정렬 */
+    .post-content img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 4px;
+        display: block;
+        margin: 15px 0; /* 좌측 정렬 */
+    }
+    
+    /* 이미지 컨테이너 스타일 정리 */
+    .post-content .position-relative {
+        display: block;
+        margin: 15px 0;
+    }
+    
+    /* 테이블 내 게시물 제목 스타일 (목록용) */
+    .table-board .post-title-text {
+        display: inline-block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 13px;
+        vertical-align: middle;
+        max-width: 100%; /* 제목만 표시하므로 100%로 변경 */
+        white-space: nowrap;
+    }
+    
+    .table-board .post-title {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        overflow: hidden;
+    }
+    
+    /* 새 글 표시 스타일 */
+    .new-badge {
+        font-size: 11px;
+        font-weight: bold;
+        margin-left: 3px;
+        flex-shrink: 0;
+    }
+    
+    /* 작성자 이름 스타일 */
+    .author-name {
+        font-size: 11px;
+        margin-left: 3px;
+        color: #666;
+        flex-shrink: 0;
+    }
+    
+    /* 배지 스타일 수정 */
+    .badge {
+        display: inline-block;
+        vertical-align: middle;
+        margin-left: 3px;
+        line-height: 1;
+        flex-shrink: 0;
+    }
+    
+    /* VIP 배지 간격 제거 */
+    .vip-badge {
+        margin-left: 0 !important;
+    }
+    
+    .table-board td {
+        padding: 0 !important;
+        vertical-align: middle;
+        overflow: hidden;
+    }
+    
+    /* 제목 셀 너비 제한 */
+    .table-board td:first-child {
+        max-width: 200px;
+        width: 200px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .table-board th {
+        padding: 0 !important;
+        vertical-align: middle;
+    }
+    
+    .table-board th:first-child {
+        padding-left: 0.3rem !important;
+    }
+    
+    .table-board th:last-child {
+        padding-right: 0.3rem !important;
+    }
+    
+    .table-board tr {
+        height: 35px !important;
+    }
+    
+    /* 글쓴이 폰트 사이즈 설정 */
+    .table-board td:nth-child(2) {
+        font-size: 13px !important;
+    }
+    
+    /* PC 화면에서의 스타일 (992px 이상) */
+    @media (min-width: 992px) {
+        /* 원래 스타일로 복원 */
+        .table-board td {
+            padding: 0.5rem !important;
+            font-size: initial !important;
+        }
+        
+        .table-board th {
+            padding: 0.5rem !important;
+            font-size: initial !important;
+        }
+        
+        .table-board th:first-child {
+            padding-left: 0.5rem !important;
+        }
+        
+        .table-board th:last-child {
+            padding-right: 0.5rem !important;
+        }
+        
+        .table-board tr {
+            height: auto !important;
+        }
+        
+        /* 너비 초기화 */
+        .table-board th:nth-child(2) {
+            width: 150px !important;
+        }
+        
+        .table-board th:nth-child(3) {
+            width: 100px !important;
+        }
+        
+        .table-board th:nth-child(4) {
+            width: 70px !important;
+        }
+        
+        .table-board th:nth-child(5) {
+            width: 70px !important;
+        }
+        
+        /* 제목 폰트 크기 복원 - 13px 폰트 유지 */
+        .post-title-text {
+            font-size: 13px;
+        }
+        
+        /* 제목 셀 너비 PC 버전 */
+        .table-board td:first-child {
+            max-width: calc(100% - 390px);
+            width: auto;
+        }
+        
+        /* 글쓴이 폰트 사이즈 유지 */
+        .table-board td:nth-child(2) {
+            font-size: 13px !important;
+        }
+    }
+    
+    /* 댓글 갯수 스타일 */
+    .comment-count {
+        font-size: 11px;
+        vertical-align: middle;
+        font-weight: normal;
+        flex-shrink: 0;
+    }
+    
+    /* 게시물 내용 링크 스타일 */
+    .post-content a {
+        color: #0066cc !important;
+        text-decoration: underline !important;
+    }
+    
+    .post-content a:hover {
+        color: #004499 !important;
+        text-decoration: underline !important;
+    }
+    
+    /* 모바일에서 댓글 폼 여백 추가 */
+    @media (max-width: 991px) {
+        .card-body form {
+            padding: 15px !important;
+        }
+        
+        .card-body form .mb-3 {
+            margin-left: 10px !important;
+            margin-right: 10px !important;
+        }
+        
+        .card-body form .form-control {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+        
+        .card-body form .d-grid {
+            margin-left: 10px !important;
+            margin-right: 10px !important;
+        }
+        
+        .card-body form .form-label {
+            margin-left: 0 !important;
+            padding-left: 5px !important;
+        }
+    }
+</style>
+<script>
+    // 캐러셀 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+        const carousel = document.getElementById('imageCarousel');
+        if (carousel) {
+            new bootstrap.Carousel(carousel, {
+                interval: false
+            });
+        }
+        
+        // 게시물 내용의 URL을 자동으로 링크로 변환
+        const postContent = document.querySelector('.post-content');
+        if (postContent) {
+            convertUrlsToLinks(postContent);
+        }
+        
+        // 페이지네이션 링크 클릭 이벤트 처리
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('pagination-link')) {
+                e.preventDefault();
+                const page = e.target.getAttribute('data-page');
+                const boardRoute = '{{ board.route }}';
+                
+                // AJAX 요청
+                fetch(`/board/${boardRoute}/posts?page=${page}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        updatePostList(data);
+                        updatePagination(data);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            }
+        });
+    });
+    
+    // URL을 링크로 변환하는 함수
+    function convertUrlsToLinks(element) {
+        // URL 정규표현식 (http, https, www로 시작하는 URL 감지)
+        const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/gi;
+        
+        // 텍스트 노드만 처리하기 위한 재귀 함수
+        function processTextNodes(node) {
+            if (node.nodeType === Node.TEXT_NODE) {
+                const text = node.textContent;
+                if (urlRegex.test(text)) {
+                    const newText = text.replace(urlRegex, function(url) {
+                        // www로 시작하는 경우 http:// 추가
+                        const href = url.startsWith('www.') ? 'http://' + url : url;
+                        return `<a href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+                    });
+                    
+                    // 새로운 HTML로 교체
+                    const wrapper = document.createElement('div');
+                    wrapper.innerHTML = newText;
+                    
+                    // 텍스트 노드를 새로운 노드들로 교체
+                    const parent = node.parentNode;
+                    while (wrapper.firstChild) {
+                        parent.insertBefore(wrapper.firstChild, node);
+                    }
+                    parent.removeChild(node);
+                }
+            } else if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== 'A') {
+                // a 태그가 아닌 요소의 자식 노드들을 처리
+                const children = Array.from(node.childNodes);
+                children.forEach(child => processTextNodes(child));
+            }
+        }
+        
+        processTextNodes(element);
+    }
+    
+    // 게시물 목록 업데이트 함수
+    function updatePostList(data) {
+        const tbody = document.querySelector('.table-board tbody');
+        const boardRoute = data.board.route;
+        const now = data.now;
+        let html = '';
+        
+        if (data.posts.length === 0) {
+            html = '<tr><td colspan="5" class="text-center py-4">게시글이 없습니다.</td></tr>';
+        } else {
+            data.posts.forEach(post => {
+                const isToday = post.created_at.substring(0, 10) === now.substring(0, 10);
+                const postDate = new Date(post.created_at);
+                const formattedDate = isToday ? 
+                    postDate.getHours().toString().padStart(2, '0') + ':' + postDate.getMinutes().toString().padStart(2, '0') :
+                    (postDate.getMonth() + 1).toString().padStart(2, '0') + '-' + postDate.getDate().toString().padStart(2, '0');
+                
+                // VIP 배지 처리
+                let vipBadge = '';
+                if (post.is_vip === 1) {
+                    vipBadge = '<span class="vip-badge yellow-vip">VIP</span>';
+                } else if (post.is_vip === 2) {
+                    vipBadge = '<span class="vip-badge blue-vip">VIP</span>';
+                }
+                
+                // 모바일 체크 (간단히 화면 크기로 판단)
+                const isMobile = window.innerWidth < 992;
+                
+                if (isMobile) {
+                    html += `
+                        <tr>
+                            <td colspan="5" style="padding: 5px !important;">
+                                <a href="/board/${boardRoute}/${post.id}" class="post-title">
+                                    <span class="post-title-text" data-full-title="${post.title}">
+                                        ${post.title}
+                                    </span>
+                                    ${post.comment_count > 0 && boardRoute !== 'vip' && boardRoute !== 'support' ? `<span class="text-primary comment-count">[${post.comment_count}]</span>` : ''}
+                                    ${isToday ? '<span class="text-danger new-badge">N</span>' : ''}
+                                </a>
+                                <div class="card-text mb-0" style="font-size: 0.75rem;">
+                                    <span class="text-muted">
+                                        ${post.nickname}${vipBadge}
+                                    </span>
+                                    <span class="text-muted">${formattedDate}</span>
+                                    <span class="text-muted">조회:${post.view_count}</span>
+                                    <span class="text-muted">추천:${post.like_count}</span>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    html += `
+                        <tr>
+                            <td>
+                                <a href="/board/${boardRoute}/${post.id}" class="post-title">
+                                    <span class="post-title-text" data-full-title="${post.title}">
+                                        ${post.title}
+                                    </span>
+                                    ${post.comment_count > 0 && boardRoute !== 'vip' && boardRoute !== 'support' ? `<span class="text-primary comment-count">[${post.comment_count}]</span>` : ''}
+                                    ${isToday ? '<span class="text-danger new-badge">N</span>' : ''}
+                                </a>
+                            </td>
+				                <td class="text-left" style="font-size: 0.5rem;">${post.nickname}${vipBadge}</td>
+                            <td class="text-center" style="font-size: 0.5rem;">${formattedDate}</td>
+                            <td class="text-center" style="font-size: 0.5rem;">${post.view_count}</td>
+                            <td class="text-center" style="font-size: 0.5rem;">${post.like_count}</td>
+                        </tr>
+                    `;
+                }
+            });
+        }
+        
+        tbody.innerHTML = html;
+    }
+    
+    // 페이지네이션 업데이트 함수
+    function updatePagination(data) {
+        const pagination = document.getElementById('pagination');
+        const currentPage = data.page;
+        const totalPages = data.total_pages;
+        
+        if (totalPages <= 1) {
+            pagination.parentElement.style.display = 'none';
+            return;
+        }
+        
+        let html = '';
+        
+        // 이전 버튼
+        if (currentPage > 1) {
+            html += `
+                <li class="page-item">
+                    <a class="page-link pagination-link" href="#" data-page="${currentPage - 1}">이전</a>
+                </li>
+            `;
+        } else {
+            html += `
+                <li class="page-item disabled">
+                    <span class="page-link">이전</span>
+                </li>
+            `;
+        }
+        
+        // 페이지 번호
+        for (let p = 1; p <= totalPages; p++) {
+            if (p === currentPage) {
+                html += `
+                    <li class="page-item active">
+                        <span class="page-link">${p}</span>
+                    </li>
+                `;
+            } else {
+                html += `
+                    <li class="page-item">
+                        <a class="page-link pagination-link" href="#" data-page="${p}">${p}</a>
+                    </li>
+                `;
+            }
+        }
+        
+        // 다음 버튼
+        if (currentPage < totalPages) {
+            html += `
+                <li class="page-item">
+                    <a class="page-link pagination-link" href="#" data-page="${currentPage + 1}">다음</a>
+                </li>
+            `;
+        } else {
+            html += `
+                <li class="page-item disabled">
+                    <span class="page-link">다음</span>
+                </li>
+            `;
+        }
+        
+        pagination.innerHTML = html;
+    }
+</script>
+
+<!-- 댓글 삭제를 위한 JavaScript 함수 (모든 게시판에서 사용) -->
+<script>
+    // 댓글 비밀번호 모달 표시 함수
+    function showCommentPasswordModal(commentId) {
+        const form = document.getElementById('commentPasswordForm');
+        form.action = `/board/{{ board.route }}/{{ post.id }}/comment/${commentId}/verify_password`;
+        
+        const modal = new bootstrap.Modal(document.getElementById('commentPasswordModal'));
+        modal.show();
+    }
+</script>
+{% endblock %}

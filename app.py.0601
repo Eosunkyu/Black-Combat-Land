@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, flash, request, session, jsonify
+from flask import Flask, render_template, redirect, url_for, flash, request, session
 from flask_mysqldb import MySQL
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -10,8 +10,6 @@ import secrets
 from markupsafe import Markup
 import json
 import re
-import random
-import pytz
 
 # 애플리케이션 팩토리 패턴 적용
 def create_app():
@@ -24,52 +22,30 @@ def create_app():
     app.config['SESSION_COOKIE_SECURE'] = False  # 개발환경에서는 False, 배포 시 True로 변경
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_USE_SIGNER'] = True  # 쿠키 서명 활성화
-    # 이모티콘 지원을 위한 MySQL 설정 강화
     app.config['MYSQL_CHARSET'] = 'utf8mb4'
-    app.config['MYSQL_USE_UNICODE'] = True
-    app.config['MYSQL_CUSTOM_OPTIONS'] = {
-        'charset': 'utf8mb4',
-        'use_unicode': True,
-        'init_command': "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci; SET character_set_connection=utf8mb4; SET character_set_client=utf8mb4; SET character_set_results=utf8mb4;"
-    }
-    #app.config['MYSQL_HOST'] = 'localhost'
-    #app.config['MYSQL_USER'] = 'root'
-    #app.config['MYSQL_PASSWORD'] = '1234'  # MySQL 비밀번호 설정
-    app.config['MYSQL_HOST'] = '13.125.219.53'
-    app.config['MYSQL_USER'] = 'adminUser'
-    app.config['MYSQL_PASSWORD'] = 'tjsrbQhshd!@34' # MySQL 비밀번호 설정
+    app.config['MYSQL_HOST'] = 'localhost'
+    app.config['MYSQL_USER'] = 'root'
+    app.config['MYSQL_PASSWORD'] = 'Aj3%mY1E' # MySQL 비밀번호 설정
+    #app.config['MYSQL_HOST'] = '13.125.219.53'
+    #app.config['MYSQL_USER'] = 'adminUser'
+    #app.config['MYSQL_PASSWORD'] = 'tjsrbQhshd!@34' # MySQL 비밀번호 설정
     app.config['MYSQL_DB'] = 'blackcombat'
     app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
     app.config['UPLOAD_FOLDER'] = 'static/uploads'
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 최대 16MB 파일
     
-    # MySQL, Bcrypt, LoginManager 초기화
-    mysql = MySQL(app)
-    bcrypt = Bcrypt(app)
-    login_manager = LoginManager(app)
-    login_manager.login_view = 'auth.login'  # 로그인 페이지 경로 설정
+    return app
 
-    # CSRF 보호 기능 활성화
-    csrf = CSRFProtect(app)
-    app.config['WTF_CSRF_ENABLED'] = True
-    app.config['WTF_CSRF_SECRET_KEY'] = app.config['SECRET_KEY']  # 또는 별도의 키 사용
+app = create_app()
+mysql = MySQL(app)
+bcrypt = Bcrypt(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'auth.login'  # 로그인 페이지 경로 설정
 
-    # Extensions를 current_app에서 접근할 수 있도록 등록
-    app.extensions['mysql'] = mysql
-    app.extensions['bcrypt'] = bcrypt
-
-    # Blueprint 등록은 create_app 함수 내부에서
-    from routes.auth import auth
-    from routes.board import board_bp
-    from routes.admin import admin_bp
-
-    app.register_blueprint(auth, url_prefix='/auth')
-    app.register_blueprint(board_bp)
-    app.register_blueprint(admin_bp)
-    
-    return app, mysql, bcrypt, login_manager, csrf
-
-app, mysql, bcrypt, login_manager, csrf = create_app()
+# CSRF 보호 기능 활성화
+csrf = CSRFProtect(app)
+app.config['WTF_CSRF_ENABLED'] = True
+app.config['WTF_CSRF_SECRET_KEY'] = app.config['SECRET_KEY']  # 또는 별도의 키 사용
 
 # CSRF 예외 경로 추가 (필요한 경우)
 @csrf.exempt
@@ -160,99 +136,14 @@ def inject_notification_counts():
         # 로그인하지 않은 경우 0으로 설정
         return dict(unread_count=0, friend_request_count=0)
 
-# 이미지 업로드 API 엔드포인트
-@app.route('/upload_image', methods=['POST'])
-def upload_image():
-    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-    MAX_FILE_SIZE = 16 * 1024 * 1024
-    
-    def allowed_file(filename):
-        return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-    
-    if 'image' not in request.files:
-        return jsonify({'success': False, 'error': '파일이 없습니다.'})
-    
-    file = request.files['image']
-    if file.filename == '':
-        return jsonify({'success': False, 'error': '파일이 선택되지 않았습니다.'})
-    
-    if not allowed_file(file.filename):
-        return jsonify({'success': False, 'error': '허용되지 않는 파일 형식입니다.'})
-    
-    # 파일 크기 체크
-    file.seek(0, os.SEEK_END)
-    file_size = file.tell()
-    file.seek(0)
-    
-    if file_size > MAX_FILE_SIZE:
-        return jsonify({'success': False, 'error': '파일 크기가 16MB를 초과합니다.'})
-    
-    try:
-        seoul_timezone = pytz.timezone('Asia/Seoul')
-        filename = secure_filename(file.filename or '')
-        filename = f"{datetime.now(seoul_timezone).strftime('%Y%m%d%H%M%S')}_{random.randint(1000, 9999)}_{filename}"
-        
-        upload_folder = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
-        os.makedirs(upload_folder, exist_ok=True)
-        
-        file_path = os.path.join(upload_folder, filename)
-        file.save(file_path)
-        
-        # URL을 반환할 때 'static/' 접두사 제거
-        return jsonify({
-            'success': True,
-            'path': f"static/uploads/{filename}",
-            'filename': filename
-        })
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+# 라우트 임포트는 app 생성 후에 해야 함
+from routes.auth import auth
+from routes.board import board_bp
+from routes.admin import admin_bp
 
-# 썸네일 업로드 API 엔드포인트
-@app.route('/upload_thumbnail', methods=['POST'])
-def upload_thumbnail():
-    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-    MAX_FILE_SIZE = 5 * 1024 * 1024  # 썸네일은 5MB로 제한
-    
-    def allowed_file(filename):
-        return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-    
-    if 'thumbnail' not in request.files:
-        return jsonify({'success': False, 'error': '썸네일 파일이 없습니다.'})
-    
-    file = request.files['thumbnail']
-    if file.filename == '':
-        return jsonify({'success': False, 'error': '썸네일 파일이 선택되지 않았습니다.'})
-    
-    if not allowed_file(file.filename):
-        return jsonify({'success': False, 'error': '허용되지 않는 파일 형식입니다.'})
-    
-    # 파일 크기 체크
-    file.seek(0, os.SEEK_END)
-    file_size = file.tell()
-    file.seek(0)
-    
-    if file_size > MAX_FILE_SIZE:
-        return jsonify({'success': False, 'error': '썸네일 파일 크기가 5MB를 초과합니다.'})
-    
-    try:
-        seoul_timezone = pytz.timezone('Asia/Seoul')
-        filename = secure_filename(file.filename or '')
-        filename = f"thumb_{datetime.now(seoul_timezone).strftime('%Y%m%d%H%M%S')}_{random.randint(1000, 9999)}_{filename}"
-        
-        # 썸네일 전용 폴더 생성
-        thumbs_folder = os.path.join(app.root_path, 'static', 'thumbs')
-        os.makedirs(thumbs_folder, exist_ok=True)
-        
-        file_path = os.path.join(thumbs_folder, filename)
-        file.save(file_path)
-        
-        return jsonify({
-            'success': True,
-            'path': f"static/thumbs/{filename}",
-            'filename': filename
-        })
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+app.register_blueprint(auth, url_prefix='/auth')
+app.register_blueprint(board_bp)
+app.register_blueprint(admin_bp)
 
 # 홈페이지 라우트
 @app.route('/')
@@ -264,23 +155,22 @@ def index():
     
     # 베스트 게시글 가져오기 (좋아요 수 기준)
     cur.execute('''
-        SELECT posts.id, posts.title, posts.created_at, posts.view_count,
-               CASE 
-                   WHEN boards.route = 'anonymous' THEN '익명'
-                   WHEN posts.is_anonymous = 1 AND posts.user_id = 0 THEN '블랜'
-                   WHEN posts.is_anonymous = 1 THEN '익명'
-                   ELSE COALESCE(users.nickname, '블랜')
-               END as nickname,
-               CASE 
-                   WHEN posts.is_anonymous = 1 THEN NULL 
-                   ELSE users.is_vip 
-               END as is_vip,
-               boards.name as board_name, boards.route as board_route,
-               (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count,
-               (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count
+        SELECT 
+            posts.id, 
+            posts.title, 
+            posts.created_at, 
+            posts.view_count, 
+            CASE 
+                WHEN boards.route = 'anonymous' THEN '익명' 
+                ELSE users.nickname 
+            END as nickname,
+            boards.name as board_name, 
+            (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count,
+            (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
+            boards.route as board_route
         FROM posts 
-        LEFT JOIN users ON posts.user_id = users.id AND posts.is_anonymous = 0
-        JOIN boards ON posts.board_id = boards.id 
+        LEFT JOIN users ON posts.user_id = users.id
+        JOIN boards ON posts.board_id = boards.id
         ORDER BY like_count DESC, posts.created_at DESC
         LIMIT 8
     ''')
@@ -298,29 +188,32 @@ def index():
         board_list = inject_board_list()['boards']
     
     for board in board_list:
-        # 모든 게시판에서 통일된 쿼리 사용 - thumbnail_path 추가
-        cur.execute('''
-            SELECT posts.id, posts.title, posts.created_at, posts.view_count, images_data, thumbnail_path,
-                   CASE 
-                       WHEN %s = 'anonymous' THEN '익명'
-                       WHEN posts.is_anonymous = 1 AND posts.user_id = 0 THEN '블랜'
-                       WHEN posts.is_anonymous = 1 THEN '익명'
-                       ELSE COALESCE(users.nickname, '블랜')
-                   END as nickname,
-                   CASE 
-                       WHEN posts.is_anonymous = 1 THEN NULL
-                       ELSE users.is_vip 
-                   END as is_vip,
-                   boards.route as board_route, boards.name as board_name,
-                   (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
-                   (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
-            FROM posts 
-            LEFT JOIN users ON posts.user_id = users.id AND posts.is_anonymous = 0
-            JOIN boards ON posts.board_id = boards.id
-            WHERE posts.board_id = %s
-            ORDER BY posts.created_at DESC
-            LIMIT 8
-        ''', (board['route'], board['id']))
+        # 익명 게시판은 별도 처리 (user_id가 0인 게시물도 조회)
+        if board['route'] == 'anonymous':
+            cur.execute('''
+                SELECT posts.id, posts.title, posts.created_at, posts.view_count, images_data,
+                       '익명' as nickname, boards.route as board_route, boards.name as board_name,
+                       (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
+                       (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
+                FROM posts 
+                JOIN boards ON posts.board_id = boards.id
+                WHERE posts.board_id = %s
+                ORDER BY posts.created_at DESC
+                LIMIT 8
+            ''', (board['id'],))
+        else:
+            cur.execute('''
+                SELECT posts.id, posts.title, posts.created_at, posts.view_count, images_data,
+                        users.nickname, boards.route as board_route, boards.name as board_name,
+                       (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
+                       (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
+                FROM posts 
+                JOIN users ON posts.user_id = users.id
+                JOIN boards ON posts.board_id = boards.id
+                WHERE posts.board_id = %s
+                ORDER BY posts.created_at DESC
+                LIMIT 8
+            ''', (board['id'],))
         board_posts[board['route']] = cur.fetchall()
     
     # 실시간 게시글 (모든 게시판에서 최신순으로)
@@ -331,21 +224,15 @@ def index():
             posts.created_at, 
             posts.view_count, 
             CASE 
-                WHEN boards.route = 'anonymous' THEN '익명'
-                WHEN posts.is_anonymous = 1 AND posts.user_id = 0 THEN '블랜'
-                WHEN posts.is_anonymous = 1 THEN '익명'
-                ELSE COALESCE(users.nickname, '블랜')
+                WHEN boards.route = 'anonymous' THEN '익명' 
+                ELSE users.nickname 
             END as nickname,
-            CASE 
-                WHEN posts.is_anonymous = 1 THEN NULL
-                ELSE users.is_vip 
-            END as is_vip,
             boards.name as board_name, 
             boards.route as board_route,
             (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count,
             (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count
         FROM posts 
-        LEFT JOIN users ON posts.user_id = users.id AND posts.is_anonymous = 0
+        LEFT JOIN users ON posts.user_id = users.id
         JOIN boards ON posts.board_id = boards.id
         ORDER BY posts.created_at DESC
         LIMIT 15

@@ -32,12 +32,12 @@ def create_app():
         'use_unicode': True,
         'init_command': "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci; SET character_set_connection=utf8mb4; SET character_set_client=utf8mb4; SET character_set_results=utf8mb4;"
     }
-    #app.config['MYSQL_HOST'] = 'localhost'
-    #app.config['MYSQL_USER'] = 'root'
-    #app.config['MYSQL_PASSWORD'] = '1234'  # MySQL 비밀번호 설정
-    app.config['MYSQL_HOST'] = '13.125.219.53'
-    app.config['MYSQL_USER'] = 'adminUser'
-    app.config['MYSQL_PASSWORD'] = 'tjsrbQhshd!@34' # MySQL 비밀번호 설정
+    app.config['MYSQL_HOST'] = 'localhost'
+    app.config['MYSQL_USER'] = 'root'
+    app.config['MYSQL_PASSWORD'] = '1234'  # MySQL 비밀번호 설정
+    #app.config['MYSQL_HOST'] = '13.125.219.53'
+    #app.config['MYSQL_USER'] = 'adminUser'
+    #app.config['MYSQL_PASSWORD'] = 'tjsrbQhshd!@34' # MySQL 비밀번호 설정
     app.config['MYSQL_DB'] = 'blackcombat'
     app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
     app.config['UPLOAD_FOLDER'] = 'static/uploads'
@@ -198,59 +198,10 @@ def upload_image():
         file_path = os.path.join(upload_folder, filename)
         file.save(file_path)
         
-        # URL을 반환할 때 'static/' 접두사 제거
-        return jsonify({
-            'success': True,
-            'path': f"static/uploads/{filename}",
-            'filename': filename
-        })
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-# 썸네일 업로드 API 엔드포인트
-@app.route('/upload_thumbnail', methods=['POST'])
-def upload_thumbnail():
-    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-    MAX_FILE_SIZE = 5 * 1024 * 1024  # 썸네일은 5MB로 제한
-    
-    def allowed_file(filename):
-        return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-    
-    if 'thumbnail' not in request.files:
-        return jsonify({'success': False, 'error': '썸네일 파일이 없습니다.'})
-    
-    file = request.files['thumbnail']
-    if file.filename == '':
-        return jsonify({'success': False, 'error': '썸네일 파일이 선택되지 않았습니다.'})
-    
-    if not allowed_file(file.filename):
-        return jsonify({'success': False, 'error': '허용되지 않는 파일 형식입니다.'})
-    
-    # 파일 크기 체크
-    file.seek(0, os.SEEK_END)
-    file_size = file.tell()
-    file.seek(0)
-    
-    if file_size > MAX_FILE_SIZE:
-        return jsonify({'success': False, 'error': '썸네일 파일 크기가 5MB를 초과합니다.'})
-    
-    try:
-        seoul_timezone = pytz.timezone('Asia/Seoul')
-        filename = secure_filename(file.filename or '')
-        filename = f"thumb_{datetime.now(seoul_timezone).strftime('%Y%m%d%H%M%S')}_{random.randint(1000, 9999)}_{filename}"
+        relative_path = os.path.join('static', 'uploads', filename).replace('\\', '/')
         
-        # 썸네일 전용 폴더 생성
-        thumbs_folder = os.path.join(app.root_path, 'static', 'thumbs')
-        os.makedirs(thumbs_folder, exist_ok=True)
-        
-        file_path = os.path.join(thumbs_folder, filename)
-        file.save(file_path)
-        
-        return jsonify({
-            'success': True,
-            'path': f"static/thumbs/{filename}",
-            'filename': filename
-        })
+        return jsonify({'success': True, 'path': relative_path})
+    
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
@@ -269,9 +220,10 @@ def index():
                    WHEN boards.route = 'anonymous' THEN '익명'
                    WHEN posts.is_anonymous = 1 AND posts.user_id = 0 THEN '블랜'
                    WHEN posts.is_anonymous = 1 THEN '익명'
-                   ELSE COALESCE(users.nickname, '블랜')
+                   ELSE users.nickname 
                END as nickname,
                CASE 
+                   WHEN boards.route = 'anonymous' THEN NULL 
                    WHEN posts.is_anonymous = 1 THEN NULL 
                    ELSE users.is_vip 
                END as is_vip,
@@ -298,29 +250,32 @@ def index():
         board_list = inject_board_list()['boards']
     
     for board in board_list:
-        # 모든 게시판에서 통일된 쿼리 사용 - thumbnail_path 추가
-        cur.execute('''
-            SELECT posts.id, posts.title, posts.created_at, posts.view_count, images_data, thumbnail_path,
-                   CASE 
-                       WHEN %s = 'anonymous' THEN '익명'
-                       WHEN posts.is_anonymous = 1 AND posts.user_id = 0 THEN '블랜'
-                       WHEN posts.is_anonymous = 1 THEN '익명'
-                       ELSE COALESCE(users.nickname, '블랜')
-                   END as nickname,
-                   CASE 
-                       WHEN posts.is_anonymous = 1 THEN NULL
-                       ELSE users.is_vip 
-                   END as is_vip,
-                   boards.route as board_route, boards.name as board_name,
-                   (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
-                   (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
-            FROM posts 
-            LEFT JOIN users ON posts.user_id = users.id AND posts.is_anonymous = 0
-            JOIN boards ON posts.board_id = boards.id
-            WHERE posts.board_id = %s
-            ORDER BY posts.created_at DESC
-            LIMIT 8
-        ''', (board['route'], board['id']))
+        # 익명 게시판은 별도 처리 (user_id가 0인 게시물도 조회)
+        if board['route'] == 'anonymous':
+            cur.execute('''
+                SELECT posts.id, posts.title, posts.created_at, posts.view_count, images_data,
+                       '익명' as nickname, NULL as is_vip, boards.route as board_route, boards.name as board_name,
+                       (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
+                       (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
+                FROM posts 
+                JOIN boards ON posts.board_id = boards.id
+                WHERE posts.board_id = %s
+                ORDER BY posts.created_at DESC
+                LIMIT 8
+            ''', (board['id'],))
+        else:
+            cur.execute('''
+                SELECT posts.id, posts.title, posts.created_at, posts.view_count, images_data,
+                        users.nickname, users.is_vip, boards.route as board_route, boards.name as board_name,
+                       (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
+                       (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
+                FROM posts 
+                JOIN users ON posts.user_id = users.id
+                JOIN boards ON posts.board_id = boards.id
+                WHERE posts.board_id = %s
+                ORDER BY posts.created_at DESC
+                LIMIT 8
+            ''', (board['id'],))
         board_posts[board['route']] = cur.fetchall()
     
     # 실시간 게시글 (모든 게시판에서 최신순으로)
@@ -331,13 +286,11 @@ def index():
             posts.created_at, 
             posts.view_count, 
             CASE 
-                WHEN boards.route = 'anonymous' THEN '익명'
-                WHEN posts.is_anonymous = 1 AND posts.user_id = 0 THEN '블랜'
-                WHEN posts.is_anonymous = 1 THEN '익명'
-                ELSE COALESCE(users.nickname, '블랜')
+                WHEN boards.route = 'anonymous' THEN '익명' 
+                ELSE users.nickname 
             END as nickname,
             CASE 
-                WHEN posts.is_anonymous = 1 THEN NULL
+                WHEN boards.route = 'anonymous' THEN NULL 
                 ELSE users.is_vip 
             END as is_vip,
             boards.name as board_name, 
@@ -345,7 +298,7 @@ def index():
             (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count,
             (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count
         FROM posts 
-        LEFT JOIN users ON posts.user_id = users.id AND posts.is_anonymous = 0
+        LEFT JOIN users ON posts.user_id = users.id
         JOIN boards ON posts.board_id = boards.id
         ORDER BY posts.created_at DESC
         LIMIT 15
