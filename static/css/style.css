@@ -557,6 +557,26 @@ h6.card-title {
     font-size: 11px !important;
 }
 
+.yellow-vip {
+    display: inline-block;
+    background-image: url('/static/thumbs/gold_vip.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    width: 10px;
+    height: 10px;
+}
+
+.blue-vip {
+    display: inline-block;
+    background-image: url('/static/thumbs/silver_vip.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    width: 10px;
+    height: 10px;
+}
+
 /* PC 화면, 더 큰 화면에서는 더 큰 여백 적용 */
 @media (min-width: 992px) {
     .ad-section {

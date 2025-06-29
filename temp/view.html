@@ -35,9 +35,9 @@
             <div class="member-info mb-3">
                 <p class="mb-2"><strong>{{ session.nickname }}님</strong> 환영합니다</p>
                 {% if session.is_vip == 1 %}
-                <span class="vip-badge yellow-vip">VIP 회원</span>
+                <span class="vip-badge yellow-vip"></span>
                 {% elif session.is_vip == 2 %}
-                <span class="vip-badge blue-vip">VIP 회원</span>
+                <span class="vip-badge blue-vip"></span>
                 {% endif %}
             </div>
             <div class="d-grid gap-2">
@@ -104,7 +104,7 @@
                 </h4>
                 <div class="d-flex justify-content-start mb-3 bg-light">
                     <div>
-                        <span class="me-2">{{ post.nickname}}</span>{% if post.is_vip == 1 %}<span class="yellow-vip">VIP</span>{% elif post.is_vip == 2 %}<span class="blue-vip">VIP</span>{% endif %}
+                        <span class="me-2">{{ post.nickname}}</span>{% if post.is_vip == 1 %}<span class="yellow-vip"></span>{% elif post.is_vip == 2 %}<span class="blue-vip"></span>{% endif %}
                         <small class="text-muted">
                             {% if (post.created_at|string)[:10] == now[:10] %}
                                 {{ post.created_at.strftime('%H:%M') }}
@@ -189,9 +189,9 @@
                             <div>
                                 <span class="fw-bold">{{ comment.nickname }}</span>
                                 {% if comment.is_vip == 1 %}
-                                <span class="vip-badge yellow-vip">VIP</span>
+                                <span class="vip-badge yellow-vip"></span>
                                 {% elif comment.is_vip == 2 %}
-                                <span class="vip-badge blue-vip">VIP</span>
+                                <span class="vip-badge blue-vip"></span>
                                 {% endif %}
                                 <small class="text-muted ms-2" style="font-size: 0.5rem;">{{ comment.created_at.strftime('%m-%d %H:%M') }}</small>
                             </div>
@@ -302,9 +302,9 @@
                                     <div class="card-text mb-0" style="font-size: 0.75rem;">
                                         <span class="text-muted">
                                         {{ post.nickname }}{% if post.is_vip == 1 %}
-                                        <span class="vip-badge yellow-vip">VIP</span>
+                                        <span class="vip-badge yellow-vip"></span>
                                         {% elif post.is_vip == 2 %}
-                                        <span class="vip-badge blue-vip">VIP</span>
+                                        <span class="vip-badge blue-vip"></span>
                                         {% endif %}
                                         </span>
                                         <span class="text-muted">
@@ -329,9 +329,9 @@
                                     </a>
                                 </td>
 				                <td class="text-left" style="font-size: 0.5rem;">{{ post.nickname }}{% if post.is_vip == 1 %}
-                                <span class="vip-badge yellow-vip">VIP</span>
+                                <span class="vip-badge yellow-vip"></span>
                                 {% elif post.is_vip == 2 %}
-                                <span class="vip-badge blue-vip">VIP</span>
+                                <span class="vip-badge blue-vip"></span>
                                 {% endif %}</td>
                                 <td class="text-center" style="font-size: 0.5rem;">
                                     {% if (post.created_at|string)[:10] == now[:10] %}
@@ -809,9 +809,9 @@
                 // VIP 배지 처리
                 let vipBadge = '';
                 if (post.is_vip === 1) {
-                    vipBadge = '<span class="vip-badge yellow-vip">VIP</span>';
+                    vipBadge = '<span class="vip-badge yellow-vip"></span>';
                 } else if (post.is_vip === 2) {
-                    vipBadge = '<span class="vip-badge blue-vip">VIP</span>';
+                    vipBadge = '<span class="vip-badge blue-vip"></span>';
                 }
                 
                 // 모바일 체크 (간단히 화면 크기로 판단)

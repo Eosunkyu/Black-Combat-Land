@@ -35,9 +35,9 @@
             <div class="member-info mb-3">
                 <p class="mb-2"><strong>{{ session.nickname }}님</strong> 환영합니다</p>
                 {% if session.is_vip == 1 %}
-                <span class="vip-badge yellow-vip">VIP 회원</span>
+                <span class="vip-badge yellow-vip"></span>
                 {% elif session.is_vip == 2 %}
-                <span class="vip-badge blue-vip">VIP 회원</span>
+                <span class="vip-badge blue-vip"></span>
                 {% endif %}
             </div>
             <div class="d-grid gap-2">
@@ -230,9 +230,9 @@
                                         <span class="text-muted">
                                             {{ post.nickname }}
                                             {% if board.route != 'anonymous' and post.is_vip == 1 %}
-                                            <span class="vip-badge yellow-vip">VIP</span>
+                                            <span class="vip-badge yellow-vip"></span>
                                             {% elif board.route != 'anonymous' and post.is_vip == 2 %}
-                                            <span class="vip-badge blue-vip">VIP</span>
+                                            <span class="vip-badge blue-vip"></span>
                                             {% endif %}
                                         </span>
                                         <span class="text-muted">
@@ -262,9 +262,9 @@
                                 </td>
                                 <td class="text-left" style="font-size: 0.5rem;">{{ post.nickname }}
                                 {% if board.route != 'anonymous' and post.is_vip == 1 %}
-                                <span class="vip-badge yellow-vip">VIP</span>
+                                <span class="vip-badge yellow-vip"></span>
                                 {% elif board.route != 'anonymous' and post.is_vip == 2 %}
-                                <span class="vip-badge blue-vip">VIP</span>
+                                <span class="vip-badge blue-vip"></span>
                                 {% endif %}</td>
 
                                 <td class="text-center" style="font-size: 0.5rem;">

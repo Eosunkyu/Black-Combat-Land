@@ -16,9 +16,9 @@
                 <p><strong>가입일:</strong> {{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '-' }}</p>
                 <p><strong>최근 로그인:</strong> {{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else '-' }}</p>
                 {% if session.is_vip == 1 %}
-                <p><span class="vip-badge yellow-vip">VIP 회원</span></p>
+                <p><span class="vip-badge yellow-vip"></span></p>
                 {% elif session.is_vip == 2 %}
-                <p><span class="vip-badge blue-vip">VIP 회원</span></p>
+                <p><span class="vip-badge blue-vip"></span></p>
                 {% endif %}
                 <div class="d-grid gap-2 mt-3">
                     <a href="{{ url_for('auth.edit_profile') }}" class="btn btn-outline-primary">회원 정보 수정</a>

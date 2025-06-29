@@ -35,9 +35,9 @@
             <div class="member-info mb-3">
                 <p class="mb-2"><strong>{{ session.nickname }}님</strong> 환영합니다</p>
                 {% if session.is_vip == 1 %}
-                <span class="vip-badge yellow-vip">VIP 회원</span>
+                <span class="vip-badge yellow-vip"></span>
                 {% elif session.is_vip == 2 %}
-                <span class="vip-badge blue-vip">VIP 회원</span>
+                <span class="vip-badge blue-vip"></span>
                 {% endif %}
             </div>
             <div class="d-grid gap-2">

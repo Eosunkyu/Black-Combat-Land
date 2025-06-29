@@ -35,9 +35,9 @@
             <div class="member-info mb-3">
                 <p class="mb-2"><strong>{{ session.nickname }}님</strong> 환영합니다</p>
                 {% if session.is_vip == 1 %}
-                <span class="vip-badge yellow-vip">VIP 회원</span>
+                <span class="vip-badge yellow-vip"></span>
                 {% elif session.is_vip == 2 %}
-                <span class="vip-badge blue-vip">VIP 회원</span>
+                <span class="vip-badge blue-vip"></span>
                 {% endif %}
             </div>
             <div class="d-grid gap-2">
@@ -122,9 +122,9 @@
                                                 <div class="thumb-author-line">
                                                     <span class="text-muted">{{ post.nickname }}
                                                     {% if post.is_vip == 1 %}
-                                                    <span class="vip-badge yellow-vip">VIP</span>
+                                                    <span class="vip-badge yellow-vip"></span>
                                                     {% elif post.is_vip == 2 %}
-                                                    <span class="vip-badge blue-vip">VIP</span>
+                                                    <span class="vip-badge blue-vip"></span>
                                                     {% endif %}
                                                     </span>
                                                 </div>
@@ -185,9 +185,9 @@
                                                 <div class="thumb-author-line">
                                                     <span class="text-muted">{{ post.nickname }}
                                                     {% if post.is_vip == 1 %}
-                                                    <span class="vip-badge yellow-vip">VIP</span>
+                                                    <span class="vip-badge yellow-vip"></span>
                                                     {% elif post.is_vip == 2 %}
-                                                    <span class="vip-badge blue-vip">VIP</span>
+                                                    <span class="vip-badge blue-vip"></span>
                                                     {% endif %}
                                                     </span>
                                                 </div>
@@ -240,9 +240,9 @@
                                     <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">
                                         <span class="text-muted">{{ post.nickname }}
                                         {% if post.is_vip == 1 %}
-                                        <span class="vip-badge yellow-vip">VIP</span>
+                                        <span class="vip-badge yellow-vip"></span>
                                         {% elif post.is_vip == 2 %}
-                                        <span class="vip-badge blue-vip">VIP</span>
+                                        <span class="vip-badge blue-vip"></span>
                                         {% endif %}
                                         </span>
                                         {% if post.created_at.date() == now.date() %}
@@ -289,9 +289,9 @@
                                     <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">
                                         <span class="text-muted">{{ post.nickname }}
                                         {% if post.is_vip == 1 %}
-                                        <span class="vip-badge yellow-vip">VIP</span>
+                                        <span class="vip-badge yellow-vip"></span>
                                         {% elif post.is_vip == 2 %}
-                                        <span class="vip-badge blue-vip">VIP</span>
+                                        <span class="vip-badge blue-vip"></span>
                                         {% endif %}
                                         </span>
                                         {% if post.created_at.date() == now.date() %}
@@ -337,9 +337,9 @@
                                     <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">
                                         <span class="text-muted">{{ post.nickname }}
                                         {% if post.is_vip == 1 %}
-                                        <span class="vip-badge yellow-vip">VIP</span>
+                                        <span class="vip-badge yellow-vip"></span>
                                         {% elif post.is_vip == 2 %}
-                                        <span class="vip-badge blue-vip">VIP</span>
+                                        <span class="vip-badge blue-vip"></span>
                                         {% endif %}
                                         </span>
                                         {% if post.created_at.date() == now.date() %}
@@ -386,9 +386,9 @@
                                     <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">
                                         <span class="text-muted">{{ post.nickname }}
                                         {% if post.is_vip == 1 %}
-                                        <span class="vip-badge yellow-vip">VIP</span>
+                                        <span class="vip-badge yellow-vip"></span>
                                         {% elif post.is_vip == 2 %}
-                                        <span class="vip-badge blue-vip">VIP</span>
+                                        <span class="vip-badge blue-vip"></span>
                                         {% endif %}
                                         </span>
                                         {% if post.created_at.date() == now.date() %}
@@ -438,9 +438,9 @@
                                     <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">
                                         <span class="text-muted">{{ post.nickname }}
                                         {% if post.is_vip == 1 %}
-                                        <span class="vip-badge yellow-vip">VIP</span>
+                                        <span class="vip-badge yellow-vip"></span>
                                         {% elif post.is_vip == 2 %}
-                                        <span class="vip-badge blue-vip">VIP</span>
+                                        <span class="vip-badge blue-vip"></span>
                                         {% endif %}
                                         </span>
                                         {% if post.created_at.date() == now.date() %}
@@ -488,9 +488,9 @@
                                     <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">
                                         <span class="text-muted">{{ post.nickname }}
                                         {% if post.is_vip == 1 %}
-                                        <span class="vip-badge yellow-vip">VIP</span>
+                                        <span class="vip-badge yellow-vip"></span>
                                         {% elif post.is_vip == 2 %}
-                                        <span class="vip-badge blue-vip">VIP</span>
+                                        <span class="vip-badge blue-vip"></span>
                                         {% endif %}
                                         </span>
                                         {% if post.created_at.date() == now.date() %}
@@ -537,9 +537,9 @@
                                     <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">
                                         <span class="text-muted">{{ post.nickname }}
                                         {% if post.is_vip == 1 %}
-                                        <span class="vip-badge yellow-vip">VIP</span>
+                                        <span class="vip-badge yellow-vip"></span>
                                         {% elif post.is_vip == 2 %}
-                                        <span class="vip-badge blue-vip">VIP</span>
+                                        <span class="vip-badge blue-vip"></span>
                                         {% endif %}
                                         </span>
                                         {% if post.created_at.date() == now.date() %}
@@ -585,9 +585,9 @@
                                     <small class="text-muted post-time" data-timestamp="{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}">
                                         <span class="text-muted">{{ post.nickname }}
                                         {% if post.is_vip == 1 %}
-                                        <span class="vip-badge yellow-vip">VIP</span>
+                                        <span class="vip-badge yellow-vip"></span>
                                         {% elif post.is_vip == 2 %}
-                                        <span class="vip-badge blue-vip">VIP</span>
+                                        <span class="vip-badge blue-vip"></span>
                                         {% endif %}
                                         </span>
                                         {% if post.created_at.date() == now.date() %}
@@ -782,7 +782,7 @@
     border-radius: 0.25rem;
     margin-left: 0 !important;
   }
-
+/* 
   .yellow-vip {
     color: #ffc107;
   }
@@ -790,7 +790,7 @@
   .blue-vip {
     color: #C3C3C3;
   }
-  
+*/
   /* 썸네일 크기 설정 - 이미지 크기 약간 줄임 */
   .fixed-thumb {
     width: 100%;
