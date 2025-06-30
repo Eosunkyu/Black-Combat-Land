@@ -921,25 +921,29 @@ document.addEventListener('DOMContentLoaded', function() {
         return result;
     }
     
-    // 제목 처리 (25자마다 줄바꿈)
-    const thumbTitles = document.querySelectorAll('.thumb-title-wrap');
-    thumbTitles.forEach(function(element) {
-        const originalTitle = element.getAttribute('data-original-title');
-        if (originalTitle && originalTitle.length > 35) {
-            const wrappedTitle = wrapTextByLength(originalTitle, 35);
-            element.innerHTML = wrappedTitle;
-        }
-    });
+    // 제목 처리 (35자마다 줄바꿈) - PC에서만 적용
+    if (window.innerWidth >= 768) {
+        const thumbTitles = document.querySelectorAll('.thumb-title-wrap');
+        thumbTitles.forEach(function(element) {
+            const originalTitle = element.getAttribute('data-original-title');
+            if (originalTitle && originalTitle.length > 35) {
+                const wrappedTitle = wrapTextByLength(originalTitle, 35);
+                element.innerHTML = wrappedTitle;
+            }
+        });
+    }
     
-    // 내용 처리 (40자마다 줄바꿈)
-    const thumbContents = document.querySelectorAll('.thumb-content-wrap');
-    thumbContents.forEach(function(element) {
-        const originalContent = element.getAttribute('data-original-content');
-        if (originalContent && originalContent.length > 40) {
-            const wrappedContent = wrapTextByLength(originalContent, 40);
-            element.innerHTML = wrappedContent;
-        }
-    });
+    // 내용 처리 (40자마다 줄바꿈) - PC에서만 적용
+    if (window.innerWidth >= 768) {
+        const thumbContents = document.querySelectorAll('.thumb-content-wrap');
+        thumbContents.forEach(function(element) {
+            const originalContent = element.getAttribute('data-original-content');
+            if (originalContent && originalContent.length > 40) {
+                const wrappedContent = wrapTextByLength(originalContent, 40);
+                element.innerHTML = wrappedContent;
+            }
+        });
+    }
 });
 </script>
 
