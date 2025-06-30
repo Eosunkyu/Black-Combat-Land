@@ -291,8 +291,8 @@ def write_post(board_route):
                                   sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad, is_mobile=is_mobile)
         
         # 제목 길이 검증
-        if len(title) > 50:
-            flash('제목은 50자 이내로 입력해주세요.', 'danger')
+        if len(title) > 70:
+            flash('제목은 70자 이내로 입력해주세요.', 'danger')
             return render_template('board/write.html', board=board, 
                                   sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad, is_mobile=is_mobile)
         
@@ -1081,7 +1081,7 @@ def edit_anonymous_post(board_route, post_id):
                                   sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad, is_mobile=is_mobile)
         
         if len(title) > 70:
-            flash('제목은 50자 이내로 입력해주세요.', 'danger')
+            flash('제목은 70자 이내로 입력해주세요.', 'danger')
             return render_template('board/edit_anonymous.html', board=board, post=post, 
                                   sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad, is_mobile=is_mobile)
         
