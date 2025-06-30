@@ -925,8 +925,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const thumbTitles = document.querySelectorAll('.thumb-title-wrap');
     thumbTitles.forEach(function(element) {
         const originalTitle = element.getAttribute('data-original-title');
-        if (originalTitle && originalTitle.length > 25) {
-            const wrappedTitle = wrapTextByLength(originalTitle, 25);
+        if (originalTitle && originalTitle.length > 35) {
+            const wrappedTitle = wrapTextByLength(originalTitle, 35);
             element.innerHTML = wrappedTitle;
         }
     });
