@@ -304,8 +304,8 @@
                 </li>
                 {% endif %}
                 
-                {% set start_page = [1, page - 4]|max %}
-                {% set end_page = [total_pages, page + 4]|min %}
+                {% set start_page = [1, page - 2]|max %}
+                {% set end_page = [total_pages, page + 2]|min %}
                 
                 {% if start_page > 1 %}
                 <li class="page-item">
