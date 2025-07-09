@@ -370,7 +370,21 @@
                 </li>
                 {% endif %}
                 
-                {% for p in range(1, total_pages + 1) %}
+                {% set start_page = [1, page - 4]|max %}
+                {% set end_page = [total_pages, page + 4]|min %}
+                
+                {% if start_page > 1 %}
+                <li class="page-item">
+                    <a class="page-link pagination-link" href="#" data-page="1">1</a>
+                </li>
+                {% if start_page > 2 %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+                {% endif %}
+                {% endif %}
+                
+                {% for p in range(start_page, end_page + 1) %}
                 {% if p == page %}
                 <li class="page-item active">
                     <span class="page-link">{{ p }}</span>
@@ -381,6 +395,17 @@
                 </li>
                 {% endif %}
                 {% endfor %}
+                
+                {% if end_page < total_pages %}
+                {% if end_page < total_pages - 1 %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+                {% endif %}
+                <li class="page-item">
+                    <a class="page-link pagination-link" href="#" data-page="{{ total_pages }}">{{ total_pages }}</a>
+                </li>
+                {% endif %}
                 
                 {% if page < total_pages %}
                 <li class="page-item">
@@ -941,8 +966,28 @@
             `;
         }
         
+        // 페이지 범위 계산
+        const startPage = Math.max(1, currentPage - 4);
+        const endPage = Math.min(totalPages, currentPage + 4);
+        
+        // 첫 페이지 및 ... 표시
+        if (startPage > 1) {
+            html += `
+                <li class="page-item">
+                    <a class="page-link pagination-link" href="#" data-page="1">1</a>
+                </li>
+            `;
+            if (startPage > 2) {
+                html += `
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                `;
+            }
+        }
+        
         // 페이지 번호
-        for (let p = 1; p <= totalPages; p++) {
+        for (let p = startPage; p <= endPage; p++) {
             if (p === currentPage) {
                 html += `
                     <li class="page-item active">
@@ -956,6 +1001,22 @@
                     </li>
                 `;
             }
+        }
+        
+        // 마지막 페이지 및 ... 표시
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                html += `
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                `;
+            }
+            html += `
+                <li class="page-item">
+                    <a class="page-link pagination-link" href="#" data-page="${totalPages}">${totalPages}</a>
+                </li>
+            `;
         }
         
         // 다음 버튼

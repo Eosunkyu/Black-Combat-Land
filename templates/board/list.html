@@ -304,7 +304,21 @@
                 </li>
                 {% endif %}
                 
-                {% for p in range(1, total_pages + 1) %}
+                {% set start_page = [1, page - 4]|max %}
+                {% set end_page = [total_pages, page + 4]|min %}
+                
+                {% if start_page > 1 %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('board.board_main', board_route=board.route, page=1) }}">1</a>
+                </li>
+                {% if start_page > 2 %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+                {% endif %}
+                {% endif %}
+                
+                {% for p in range(start_page, end_page + 1) %}
                 {% if p == page %}
                 <li class="page-item active">
                     <span class="page-link">{{ p }}</span>
@@ -315,6 +329,17 @@
                 </li>
                 {% endif %}
                 {% endfor %}
+                
+                {% if end_page < total_pages %}
+                {% if end_page < total_pages - 1 %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+                {% endif %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('board.board_main', board_route=board.route, page=total_pages) }}">{{ total_pages }}</a>
+                </li>
+                {% endif %}
                 
                 {% if page < total_pages %}
                 <li class="page-item">
