@@ -359,7 +359,7 @@
         <!-- 페이지네이션 -->
         {% if total_pages > 1 %}
         <nav>
-            <ul class="pagination justify-content-center" id="pagination">
+            <ul class="pagination justify-content-center pagination-mobile" id="pagination">
                 {% if page > 1 %}
                 <li class="page-item">
                     <a class="page-link pagination-link" href="#" data-page="{{ page-1 }}">이전</a>
@@ -712,6 +712,55 @@
         .card-body form .form-label {
             margin-left: 0 !important;
             padding-left: 5px !important;
+        }
+    }
+
+    /* 모바일 페이지네이션 스타일 */
+    @media (max-width: 767px) {
+        .pagination-mobile {
+            flex-wrap: wrap;
+            gap: 2px;
+            padding: 0 10px;
+        }
+        
+        .pagination-mobile .page-item {
+            margin: 0 1px;
+        }
+        
+        .pagination-mobile .page-link {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+            min-width: 32px;
+            text-align: center;
+            border-radius: 4px;
+        }
+        
+        .pagination-mobile .page-item.active .page-link {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        
+        /* 페이지네이션 컨테이너 */
+        nav {
+            overflow-x: auto;
+            padding: 0 5px;
+        }
+        
+        nav::-webkit-scrollbar {
+            height: 3px;
+        }
+        
+        nav::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        nav::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+        
+        nav::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
     }
 </style>
