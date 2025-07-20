@@ -112,6 +112,9 @@ def board_main(board_route):
         cur.close()
         abort(404)
     
+    # 검색 파라미터 가져오기
+    search_type = request.args.get('search_type', '')
+    search_query = request.args.get('search_query', '')
     
     # 페이지네이션
     page = request.args.get('page', 1, type=int)
@@ -129,19 +132,43 @@ def board_main(board_route):
     ''')
     notices = cur.fetchall()
     
+    # 검색 조건 생성
+    search_condition = ""
+    search_params = []
+    
+    if search_query:
+        if search_type == 'title':
+            search_condition = " AND posts.title LIKE %s"
+            search_params = [f'%{search_query}%']
+        elif search_type == 'content':
+            search_condition = " AND posts.content LIKE %s"
+            search_params = [f'%{search_query}%']
+        elif search_type == 'title_content':
+            search_condition = " AND (posts.title LIKE %s OR posts.content LIKE %s)"
+            search_params = [f'%{search_query}%', f'%{search_query}%']
+        elif search_type == 'nickname':
+            if board['route'] == 'anonymous':
+                # 익명 게시판에서는 작성자 검색 불가
+                search_condition = " AND 1=0"
+            else:
+                search_condition = " AND users.nickname LIKE %s"
+                search_params = [f'%{search_query}%']
+    
     # 게시글 조회
     if board['route'] == 'anonymous':
         # 익명 게시판은 단순히 '익명'으로 표시
-        cur.execute('''
+        query = '''
             SELECT posts.*, posts.ip_address, posts.images_data, posts.content, posts.created_at,
                   (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
                   (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count, boards.name as board_name
             FROM posts
             JOIN boards ON posts.board_id = boards.id
-            WHERE posts.board_id = %s
+            WHERE posts.board_id = %s{}
             ORDER BY posts.created_at DESC
             LIMIT %s OFFSET %s
-        ''', (board['id'], per_page, offset))
+        '''.format(search_condition)
+        
+        cur.execute(query, [board['id']] + search_params + [per_page, offset])
         
         posts = cur.fetchall()
         # 익명 게시판에서는 게시글에 단순히 '익명' 설정
@@ -149,7 +176,7 @@ def board_main(board_route):
             post['nickname'] = '익명'
     else:
         # 일반 게시판은 작성자 정보 표시 (비로그인 사용자는 '블랜'으로 표시)
-        cur.execute('''
+        query = '''
             SELECT posts.*, 
                    CASE 
                        WHEN posts.is_anonymous = 1 AND posts.user_id = 0 AND %s != 'anonymous' THEN '블랜'
@@ -167,15 +194,40 @@ def board_main(board_route):
             FROM posts
             LEFT JOIN users ON posts.user_id = users.id AND posts.is_anonymous = 0
             JOIN boards ON posts.board_id = boards.id
-            WHERE posts.board_id = %s
+            WHERE posts.board_id = %s{}
             ORDER BY posts.created_at DESC
             LIMIT %s OFFSET %s
-        ''', (board['route'], board['id'], per_page, offset))
+        '''.format(search_condition)
+        
+        cur.execute(query, [board['route'], board['id']] + search_params + [per_page, offset])
         
         posts = cur.fetchall()
     
-    # 총 게시글 수 조회 (페이지네이션용)
-    cur.execute('SELECT COUNT(*) as count FROM posts WHERE board_id = %s', (board['id'],))
+    # 총 게시글 수 조회 (페이지네이션용) - 검색 조건 포함
+    if board['route'] == 'anonymous':
+        count_query = '''
+            SELECT COUNT(*) as count 
+            FROM posts 
+            WHERE board_id = %s{}
+        '''.format(search_condition)
+        cur.execute(count_query, [board['id']] + search_params)
+    else:
+        # 닉네임으로 검색하는 경우 JOIN 필요
+        if search_type == 'nickname' and search_query:
+            count_query = '''
+                SELECT COUNT(*) as count 
+                FROM posts 
+                LEFT JOIN users ON posts.user_id = users.id AND posts.is_anonymous = 0
+                WHERE posts.board_id = %s{}
+            '''.format(search_condition)
+        else:
+            count_query = '''
+                SELECT COUNT(*) as count 
+                FROM posts 
+                WHERE board_id = %s{}
+            '''.format(search_condition)
+        cur.execute(count_query, [board['id']] + search_params)
+    
     total_count = cur.fetchone()['count']
     total_pages = (total_count + per_page - 1) // per_page
     
@@ -199,7 +251,8 @@ def board_main(board_route):
     
     return render_template('board/list.html', board=board, posts=posts, notices=notices,
                           page=page, total_pages=total_pages, now=now,
-                          sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad, is_mobile=is_mobile)
+                          sidebar_ad=sidebar_ad, banner_ad=banner_ad, footer_ad=footer_ad, is_mobile=is_mobile,
+                          search_type=search_type, search_query=search_query)
 
 # 게시글 작성 화면
 @board_bp.route('/board/<string:board_route>/write', methods=['GET', 'POST'])
@@ -922,29 +975,80 @@ def board_posts_json(board_route):
         cur.close()
         abort(404)
     
+    # 검색 파라미터 가져오기
+    search_type = request.args.get('search_type', '')
+    search_query = request.args.get('search_query', '')
+    
     # 페이지네이션
     page = request.args.get('page', 1, type=int)
     per_page = 15
     offset = (page - 1) * per_page
     
-    # 총 게시글 수 조회 (페이지네이션용)
-    cur.execute('SELECT COUNT(*) as count FROM posts WHERE board_id = %s', (board['id'],))
+    # 검색 조건 생성
+    search_condition = ""
+    search_params = []
+    
+    if search_query:
+        if search_type == 'title':
+            search_condition = " AND posts.title LIKE %s"
+            search_params = [f'%{search_query}%']
+        elif search_type == 'content':
+            search_condition = " AND posts.content LIKE %s"
+            search_params = [f'%{search_query}%']
+        elif search_type == 'title_content':
+            search_condition = " AND (posts.title LIKE %s OR posts.content LIKE %s)"
+            search_params = [f'%{search_query}%', f'%{search_query}%']
+        elif search_type == 'nickname':
+            if board['route'] == 'anonymous':
+                # 익명 게시판에서는 작성자 검색 불가
+                search_condition = " AND 1=0"
+            else:
+                search_condition = " AND users.nickname LIKE %s"
+                search_params = [f'%{search_query}%']
+    
+    # 총 게시글 수 조회 (페이지네이션용) - 검색 조건 포함
+    if board['route'] == 'anonymous':
+        count_query = '''
+            SELECT COUNT(*) as count 
+            FROM posts 
+            WHERE board_id = %s{}
+        '''.format(search_condition)
+        cur.execute(count_query, [board['id']] + search_params)
+    else:
+        # 닉네임으로 검색하는 경우 JOIN 필요
+        if search_type == 'nickname' and search_query:
+            count_query = '''
+                SELECT COUNT(*) as count 
+                FROM posts 
+                LEFT JOIN users ON posts.user_id = users.id AND posts.is_anonymous = 0
+                WHERE posts.board_id = %s{}
+            '''.format(search_condition)
+        else:
+            count_query = '''
+                SELECT COUNT(*) as count 
+                FROM posts 
+                WHERE board_id = %s{}
+            '''.format(search_condition)
+        cur.execute(count_query, [board['id']] + search_params)
+    
     total_count = cur.fetchone()['count']
     total_pages = (total_count + per_page - 1) // per_page
     
     # 게시글 조회
     if board['route'] == 'anonymous':
-        cur.execute('''
+        query = '''
             SELECT posts.*, '익명' as nickname,
                    (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
                    (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
             FROM posts
-            WHERE posts.board_id = %s
+            WHERE posts.board_id = %s{}
             ORDER BY posts.created_at DESC
             LIMIT %s OFFSET %s
-        ''', (board['id'], per_page, offset))
+        '''.format(search_condition)
+        
+        cur.execute(query, [board['id']] + search_params + [per_page, offset])
     else:
-        cur.execute('''
+        query = '''
             SELECT posts.*, 
                    CASE 
                        WHEN posts.is_anonymous = 1 AND posts.user_id = 0 THEN '블랜'
@@ -959,10 +1063,12 @@ def board_posts_json(board_route):
                    (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
             FROM posts
             LEFT JOIN users ON posts.user_id = users.id AND posts.is_anonymous = 0
-            WHERE posts.board_id = %s
+            WHERE posts.board_id = %s{}
             ORDER BY posts.created_at DESC
             LIMIT %s OFFSET %s
-        ''', (board['id'], per_page, offset))
+        '''.format(search_condition)
+        
+        cur.execute(query, [board['id']] + search_params + [per_page, offset])
     
     posts = cur.fetchall()
     cur.close()

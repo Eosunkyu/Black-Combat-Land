@@ -419,6 +419,28 @@
             </ul>
         </nav>
         {% endif %}
+        
+        <!-- 검색 폼 -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <form action="{{ url_for('board.board_main', board_route=board.route) }}" method="get" class="row g-2 justify-content-center">
+                    <div class="col-auto">
+                        <select name="search_type" class="form-select form-select-sm">
+                            <option value="title">제목</option>
+                            <option value="content">내용</option>
+                            <option value="title_content">제목+내용</option>
+                            <option value="nickname">글쓴이</option>
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <input type="text" name="search_query" class="form-control form-control-sm" placeholder="검색어" value="">
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary btn-sm">검색</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 
