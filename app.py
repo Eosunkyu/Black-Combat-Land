@@ -389,7 +389,7 @@ def sitemap_xml():
     return app.send_static_file('sitemap.xml')
 
 @app.route('/favicon.ico')
-def sitemap_xml():
+def favicon():
     return app.send_static_file('favicon.ico')
 
 # 개인정보처리방침 페이지
