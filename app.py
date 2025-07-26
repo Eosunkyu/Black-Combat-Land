@@ -57,6 +57,8 @@ def create_app():
     # Extensions를 current_app에서 접근할 수 있도록 등록
     app.extensions['mysql'] = mysql
     app.extensions['bcrypt'] = bcrypt
+    app.add_url_rule('/favicon.ico',
+                 redirect_to=url_for('static', filename='favicon.ico'))
 
     # Blueprint 등록은 create_app 함수 내부에서
     from routes.auth import auth
