@@ -145,7 +145,7 @@ def inject_csrf_token():
 @app.context_processor
 def inject_vip_types():
     # VIP 타입 상수 정의
-    return dict(VIP_YELLOW=1, VIP_BLUE=2)
+    return dict(VIP_YELLOW=1, VIP_BLUE=2, VIP_BLACK=3)
 
 # 알림 정보 주입
 @app.context_processor

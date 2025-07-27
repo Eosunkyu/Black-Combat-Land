@@ -38,6 +38,8 @@
                 <span class="vip-badge yellow-vip"></span>
                 {% elif session.is_vip == 2 %}
                 <span class="vip-badge blue-vip"></span>
+                {% elif session.is_vip == 3 %}
+                <span class="vip-badge black-vip"></span>
                 {% endif %}
             </div>
             <div class="d-grid gap-2">
@@ -389,6 +391,8 @@
                                         <span class="vip-badge yellow-vip"></span>
                                         {% elif post.is_vip == 2 %}
                                         <span class="vip-badge blue-vip"></span>
+                                        {% elif post.is_vip == 3 %}
+                                        <span class="vip-badge black-vip"></span>
                                         {% endif %}
                                         </span>
                                         {% if post.created_at.date() == now.date() %}
@@ -441,6 +445,8 @@
                                         <span class="vip-badge yellow-vip"></span>
                                         {% elif post.is_vip == 2 %}
                                         <span class="vip-badge blue-vip"></span>
+                                        {% elif post.is_vip == 3 %}
+                                        <span class="vip-badge black-vip"></span>
                                         {% endif %}
                                         </span>
                                         {% if post.created_at.date() == now.date() %}
@@ -491,6 +497,8 @@
                                         <span class="vip-badge yellow-vip"></span>
                                         {% elif post.is_vip == 2 %}
                                         <span class="vip-badge blue-vip"></span>
+                                        {% elif post.is_vip == 3 %}
+                                        <span class="vip-badge black-vip"></span>
                                         {% endif %}
                                         </span>
                                         {% if post.created_at.date() == now.date() %}
@@ -540,6 +548,8 @@
                                         <span class="vip-badge yellow-vip"></span>
                                         {% elif post.is_vip == 2 %}
                                         <span class="vip-badge blue-vip"></span>
+                                        {% elif post.is_vip == 3 %}
+                                        <span class="vip-badge black-vip"></span>
                                         {% endif %}
                                         </span>
                                         {% if post.created_at.date() == now.date() %}
@@ -588,6 +598,8 @@
                                         <span class="vip-badge yellow-vip"></span>
                                         {% elif post.is_vip == 2 %}
                                         <span class="vip-badge blue-vip"></span>
+                                        {% elif post.is_vip == 3 %}
+                                        <span class="vip-badge black-vip"></span>
                                         {% endif %}
                                         </span>
                                         {% if post.created_at.date() == now.date() %}

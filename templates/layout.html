@@ -45,6 +45,9 @@
         .blue-vip {
           color: #C3C3C3;
         }
+        .black-vip {
+          color: #000000;
+        }
         /* 네비게이션 버튼 스타일 */
         .board-navigation-section .nav-btn, 
         .board-navigation-section .btn.nav-btn,
@@ -209,6 +212,8 @@
             <span class="vip-badge yellow-vip"></span>
             {% elif session.is_vip == 2 %}
             <span class="vip-badge blue-vip"></span>
+            {% elif session.is_vip == 3 %}
+            <span class="vip-badge black-vip"></span>
             {% endif %}
         </div>
         <div class="d-grid gap-2">

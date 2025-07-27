@@ -125,7 +125,8 @@ def toggle_vip(user_id):
         vip_message = {
             '0': f"{user['nickname']} 사용자의 VIP 권한이 해제되었습니다.",
             '1': f"{user['nickname']} 사용자를 노란색 VIP로 설정했습니다.",
-            '2': f"{user['nickname']} 사용자를 파란색 VIP로 설정했습니다."
+            '2': f"{user['nickname']} 사용자를 파란색 VIP로 설정했습니다.",
+            '3': f"{user['nickname']} 사용자를 흑색 VIP로 설정했습니다."
         }
         flash(vip_message.get(vip_type, "VIP 상태가 변경되었습니다."), 'success')
         

@@ -111,7 +111,7 @@ a:hover {
 
 /* 페이지네이션 스타일 */
 .pagination .page-item.active .page-link {
-    background-color: #81c0ff;
+    background-color: #007bff;
     border-color: #343a40;
 }
 
@@ -574,6 +574,18 @@ h6.card-title {
     top: 2px;
     display: inline-block;
     background-image: url('/static/thumbs/silver_vip.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    width: 10px;
+    height: 10px;
+}
+
+.black-vip {
+    position: relative;
+    top: 2px;
+    display: inline-block;
+    background-image: url('/static/thumbs/black_vip.png');
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center;

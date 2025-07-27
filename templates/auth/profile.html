@@ -19,6 +19,8 @@
                 <p><span class="vip-badge yellow-vip"></span></p>
                 {% elif session.is_vip == 2 %}
                 <p><span class="vip-badge blue-vip"></span></p>
+                {% elif session.is_vip == 3 %}
+                <p><span class="vip-badge black-vip"></span></p>
                 {% endif %}
                 <div class="d-grid gap-2 mt-3">
                     <a href="{{ url_for('auth.edit_profile') }}" class="btn btn-outline-primary">회원 정보 수정</a>

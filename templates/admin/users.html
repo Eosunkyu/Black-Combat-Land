@@ -51,6 +51,8 @@
                                         <span class="vip-badge yellow-vip"></span>
                                         {% elif user.is_vip == 2 %}
                                         <span class="vip-badge blue-vip"></span>
+                                        {% elif user.is_vip == 3 %}
+                                        <span class="vip-badge black-vip"></span>
                                         {% else %}
                                         <span class="badge bg-secondary">일반</span>
                                         {% endif %}
@@ -81,6 +83,13 @@
                                                             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                                             <input type="hidden" name="vip_type" value="2">
                                                             <button type="submit" class="dropdown-item">파란 VIP 설정</button>
+                                                        </form>
+                                                    </li>
+                                                    <li>
+                                                        <form action="{{ url_for('admin.toggle_vip', user_id=user.id) }}" method="POST" style="display:inline-block;">
+                                                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                                            <input type="hidden" name="vip_type" value="3">
+                                                            <button type="submit" class="dropdown-item">블랙 VIP 설정</button>
                                                         </form>
                                                     </li>
                                                 </ul>
