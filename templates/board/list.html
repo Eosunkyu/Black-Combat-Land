@@ -111,7 +111,7 @@
                     {% elif board.route not in ['vip', 'support', 'question', 'analysis', 'game_news'] %}
                         {% set can_write = true %}
                     {% endif %}
-                {% elif board.route in ['anonymous', 'free'] %}
+                {% elif board.route in ['anonymous', 'free', 'news'] %}
                     {% set can_write = true %}
                 {% endif %}
                 
