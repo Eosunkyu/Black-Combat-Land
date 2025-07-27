@@ -120,10 +120,10 @@
                 {% else %}
                 <span class="btn btn-sm btn-secondary disabled">
                     {% if board.route == 'vip' %}VIP 전용
-                    {% elif board.route == 'support' %}BCN 전용
+                    {% elif board.route == 'support' %}VIP 전용
                     {% elif board.route == 'question' %}VIP 전용
-                    {% elif board.route == 'analysis' %}BCN 전용
-                    {% elif board.route == 'game_news' %}BCN 전용
+                    {% elif board.route == 'analysis' %}VIP 전용
+                    {% elif board.route == 'game_news' %}VIP 전용
                     {% else %}로그인 필요
                     {% endif %}
                 </span>
@@ -198,7 +198,7 @@
                                 <td colspan="5" class="p-0">
                                     <div class="d-flex thumb-card">
                                         <div class="thumb-image-container">
-                                            <a href="{{ url_for('board.view_post', board_route=post.route, post_id=post.id) }}">
+                                            <a href="{{ url_for('board.view_post', board_route=post.route, post_id=post.id, page=page, search_type=search_type if search_type else '', search_query=search_query if search_query else '') }}">
                                                 {% if board.id == 4 %}
                                                 {% if post.thumbnail_path %}
                                                 <img src="/{{ post.thumbnail_path }}" class="fixed-thumb" alt="썸네일">
@@ -216,7 +216,7 @@
                                         </div>
                                         <div class="thumb-content-container">
                                             <div class="thumb-content-area">
-                                                <a href="{{ url_for('board.view_post', board_route=post.route, post_id=post.id) }}" class="text-decoration-none text-dark">
+                                                <a href="{{ url_for('board.view_post', board_route=post.route, post_id=post.id, page=page, search_type=search_type if search_type else '', search_query=search_query if search_query else '') }}" class="text-decoration-none text-dark">
                                                     <h4 class="post-title mb-2 thumb-title-wrap" data-original-title="{{ post.title }}">
                                                         {{ post.title }}
                                                         {% if post.comment_count > 0 and board.id not in [4,8] %}<span class="comment-count">[{{ post.comment_count }}]</span>{% endif %}
@@ -246,7 +246,7 @@
                             <tr>
                                 {% if is_mobile %}
                                 <td colspan="5" style="padding: 5px !important;">
-				                    <a href="{{ url_for('board.view_post', board_route=board.route, post_id=post.id) }}" class="post-title">
+				                    <a href="{{ url_for('board.view_post', board_route=board.route, post_id=post.id, page=page, search_type=search_type if search_type else '', search_query=search_query if search_query else '') }}" class="post-title">
                                         <span class="post-title-text" data-full-title="{{ post.title }}">
                                             {{ post.title }}
                                         </span>
@@ -279,7 +279,7 @@
                                 </td>
                                 {% else %}
                                 <td>
-                                    <a href="{{ url_for('board.view_post', board_route=board.route, post_id=post.id) }}" class="post-title">
+                                    <a href="{{ url_for('board.view_post', board_route=board.route, post_id=post.id, page=page, search_type=search_type if search_type else '', search_query=search_query if search_query else '') }}" class="post-title">
                                         <span class="post-title-text" data-full-title="{{ post.title }}">
                                             {{ post.title }}
                                         </span>

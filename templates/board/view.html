@@ -96,7 +96,7 @@
         <div class="card mb-4">
             <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">{{ board.name }}</h5>
-                <a href="{{ url_for('board.board_main', board_route=board.route) }}" class="btn btn-sm btn-secondary">목록으로</a>
+                <a href="{{ url_for('board.board_main', board_route=board.route, page=request.args.get('page', 1), search_type=request.args.get('search_type', '') if request.args.get('search_type') else '', search_query=request.args.get('search_query', '') if request.args.get('search_query') else '') }}" class="btn btn-sm btn-secondary">목록으로</a>
             </div>
             <div class="card-body">
                 <h4 class="post-title mb-3">
@@ -292,7 +292,7 @@
                             <tr>
                                 {% if is_mobile %}
                                 <td colspan="5" style="padding: 5px !important;">
-                                    <a href="{{ url_for('board.view_post', board_route=board.route, post_id=post.id) }}" class="post-title">
+                                    <a href="{{ url_for('board.view_post', board_route=board.route, post_id=post.id, page=request.args.get('page', 1), search_type=request.args.get('search_type', '') if request.args.get('search_type') else '', search_query=request.args.get('search_query', '') if request.args.get('search_query') else '') }}" class="post-title">
                                         <span class="post-title-text" data-full-title="{{ post.title }}">
                                             {{ post.title }}
                                         </span>
@@ -320,7 +320,7 @@
                                 </td>
                                 {% else %}
                                 <td>
-                                    <a href="{{ url_for('board.view_post', board_route=board.route, post_id=post.id) }}" class="post-title">
+                                    <a href="{{ url_for('board.view_post', board_route=board.route, post_id=post.id, page=request.args.get('page', 1), search_type=request.args.get('search_type', '') if request.args.get('search_type') else '', search_query=request.args.get('search_query', '') if request.args.get('search_query') else '') }}" class="post-title">
                                         <span class="post-title-text" data-full-title="{{ post.title }}">
                                             {{ post.title }}
                                         </span>
@@ -362,7 +362,7 @@
             <ul class="pagination justify-content-center pagination-mobile" id="pagination">
                 {% if page > 1 %}
                 <li class="page-item">
-                    <a class="page-link pagination-link" href="#" data-page="{{ page-1 }}">이전</a>
+                    <a class="page-link pagination-link" href="#" data-page="{{ page-1 }}" data-original-page="{{ request.args.get('page', 1) }}" data-original-search-type="{{ request.args.get('search_type', '') }}" data-original-search-query="{{ request.args.get('search_query', '') }}">이전</a>
                 </li>
                 {% else %}
                 <li class="page-item disabled">
@@ -375,7 +375,7 @@
                 
                 {% if start_page > 1 %}
                 <li class="page-item">
-                    <a class="page-link pagination-link" href="#" data-page="1">1</a>
+                    <a class="page-link pagination-link" href="#" data-page="1" data-original-page="{{ request.args.get('page', 1) }}" data-original-search-type="{{ request.args.get('search_type', '') }}" data-original-search-query="{{ request.args.get('search_query', '') }}">1</a>
                 </li>
                 {% if start_page > 2 %}
                 <li class="page-item disabled">
@@ -391,7 +391,7 @@
                 </li>
                 {% else %}
                 <li class="page-item">
-                    <a class="page-link pagination-link" href="#" data-page="{{ p }}">{{ p }}</a>
+                    <a class="page-link pagination-link" href="#" data-page="{{ p }}" data-original-page="{{ request.args.get('page', 1) }}" data-original-search-type="{{ request.args.get('search_type', '') }}" data-original-search-query="{{ request.args.get('search_query', '') }}">{{ p }}</a>
                 </li>
                 {% endif %}
                 {% endfor %}
@@ -403,13 +403,13 @@
                 </li>
                 {% endif %}
                 <li class="page-item">
-                    <a class="page-link pagination-link" href="#" data-page="{{ total_pages }}">{{ total_pages }}</a>
+                    <a class="page-link pagination-link" href="#" data-page="{{ total_pages }}" data-original-page="{{ request.args.get('page', 1) }}" data-original-search-type="{{ request.args.get('search_type', '') }}" data-original-search-query="{{ request.args.get('search_query', '') }}">{{ total_pages }}</a>
                 </li>
                 {% endif %}
                 
                 {% if page < total_pages %}
                 <li class="page-item">
-                    <a class="page-link pagination-link" href="#" data-page="{{ page+1 }}">다음</a>
+                    <a class="page-link pagination-link" href="#" data-page="{{ page+1 }}" data-original-page="{{ request.args.get('page', 1) }}" data-original-search-type="{{ request.args.get('search_type', '') }}" data-original-search-query="{{ request.args.get('search_query', '') }}">다음</a>
                 </li>
                 {% else %}
                 <li class="page-item disabled">
@@ -832,14 +832,17 @@
             if (e.target.classList.contains('pagination-link')) {
                 e.preventDefault();
                 const page = e.target.getAttribute('data-page');
+                const originalPage = e.target.getAttribute('data-original-page');
+                const originalSearchType = e.target.getAttribute('data-original-search-type');
+                const originalSearchQuery = e.target.getAttribute('data-original-search-query');
                 const boardRoute = '{{ board.route }}';
                 
                 // AJAX 요청
                 fetch(`/board/${boardRoute}/posts?page=${page}`)
                     .then(response => response.json())
                     .then(data => {
-                        updatePostList(data);
-                        updatePagination(data);
+                        updatePostList(data, originalPage, originalSearchType, originalSearchQuery);
+                        updatePagination(data, originalPage, originalSearchType, originalSearchQuery);
                     })
                     .catch(error => {
                         console.error('Error:', error);
@@ -886,7 +889,7 @@
     }
     
     // 게시물 목록 업데이트 함수
-    function updatePostList(data) {
+    function updatePostList(data, originalPage, originalSearchType, originalSearchQuery) {
         const tbody = document.querySelector('.table-board tbody');
         const boardRoute = data.board.route;
         const now = data.now;
@@ -913,11 +916,14 @@
                 // 모바일 체크 (간단히 화면 크기로 판단)
                 const isMobile = window.innerWidth < 992;
                 
+                // 게시물 링크에 원본 페이지 정보 포함
+                const postUrl = `/board/${boardRoute}/${post.id}?page=${originalPage}&search_type=${originalSearchType}&search_query=${originalSearchQuery}`;
+                
                 if (isMobile) {
                     html += `
                         <tr>
                             <td colspan="5" style="padding: 5px !important;">
-                                <a href="/board/${boardRoute}/${post.id}" class="post-title">
+                                <a href="${postUrl}" class="post-title">
                                     <span class="post-title-text" data-full-title="${post.title}">
                                         ${post.title}
                                     </span>
@@ -939,7 +945,7 @@
                     html += `
                         <tr>
                             <td>
-                                <a href="/board/${boardRoute}/${post.id}" class="post-title">
+                                <a href="${postUrl}" class="post-title">
                                     <span class="post-title-text" data-full-title="${post.title}">
                                         ${post.title}
                                     </span>
@@ -961,7 +967,7 @@
     }
     
     // 페이지네이션 업데이트 함수
-    function updatePagination(data) {
+    function updatePagination(data, originalPage, originalSearchType, originalSearchQuery) {
         const pagination = document.getElementById('pagination');
         const currentPage = data.page;
         const totalPages = data.total_pages;
@@ -977,7 +983,7 @@
         if (currentPage > 1) {
             html += `
                 <li class="page-item">
-                    <a class="page-link pagination-link" href="#" data-page="${currentPage - 1}">이전</a>
+                    <a class="page-link pagination-link" href="#" data-page="${currentPage - 1}" data-original-page="${originalPage}" data-original-search-type="${originalSearchType}" data-original-search-query="${originalSearchQuery}">이전</a>
                 </li>
             `;
         } else {
@@ -996,7 +1002,7 @@
         if (startPage > 1) {
             html += `
                 <li class="page-item">
-                    <a class="page-link pagination-link" href="#" data-page="1">1</a>
+                    <a class="page-link pagination-link" href="#" data-page="1" data-original-page="${originalPage}" data-original-search-type="${originalSearchType}" data-original-search-query="${originalSearchQuery}">1</a>
                 </li>
             `;
             if (startPage > 2) {
@@ -1019,7 +1025,7 @@
             } else {
                 html += `
                     <li class="page-item">
-                        <a class="page-link pagination-link" href="#" data-page="${p}">${p}</a>
+                        <a class="page-link pagination-link" href="#" data-page="${p}" data-original-page="${originalPage}" data-original-search-type="${originalSearchType}" data-original-search-query="${originalSearchQuery}">${p}</a>
                     </li>
                 `;
             }
@@ -1036,7 +1042,7 @@
             }
             html += `
                 <li class="page-item">
-                    <a class="page-link pagination-link" href="#" data-page="${totalPages}">${totalPages}</a>
+                    <a class="page-link pagination-link" href="#" data-page="${totalPages}" data-original-page="${originalPage}" data-original-search-type="${originalSearchType}" data-original-search-query="${originalSearchQuery}">${totalPages}</a>
                 </li>
             `;
         }
@@ -1045,7 +1051,7 @@
         if (currentPage < totalPages) {
             html += `
                 <li class="page-item">
-                    <a class="page-link pagination-link" href="#" data-page="${currentPage + 1}">다음</a>
+                    <a class="page-link pagination-link" href="#" data-page="${currentPage + 1}" data-original-page="${originalPage}" data-original-search-type="${originalSearchType}" data-original-search-query="${originalSearchQuery}">다음</a>
                 </li>
             `;
         } else {
