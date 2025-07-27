@@ -111,12 +111,12 @@ a:hover {
 
 /* 페이지네이션 스타일 */
 .pagination .page-item.active .page-link {
-    background-color: #343a40;
+    background-color: #81c0ff;
     border-color: #343a40;
 }
 
 .pagination .page-link {
-    color: #81c0ff;
+    color: #343a40;
 }
 
 /* 게시글 상세 스타일 */
