@@ -270,7 +270,8 @@ def write_post(board_route):
     if not board:
         cur.close()
         abort(404)
-    # VIP 게시판 접근 권한 체크
+    
+    # BCN 게시판 접근 권한 체크
     if board['route'] == 'support' and ('loggedin' not in session or not session.get('is_vip') == 2):
         flash('BCN 게시판은 BCN 회원만 글을 작성할 수 있습니다.', 'danger')
         return redirect(url_for('board.board_main', board_route=board_route))
@@ -278,6 +279,21 @@ def write_post(board_route):
     # VIP 게시판 접근 권한 체크
     if board['route'] == 'vip' and ('loggedin' not in session or not session.get('is_vip') == 1):
         flash('VIP 게시판은 VIP 회원만 글을 작성할 수 있습니다.', 'danger')
+        return redirect(url_for('board.board_main', board_route=board_route))
+    
+    # 질문 게시판 접근 권한 체크 (노란 VIP만)
+    if board['route'] == 'question' and ('loggedin' not in session or not session.get('is_vip') == 1):
+        flash('질문 게시판은 VIP 회원만 글을 작성할 수 있습니다.', 'danger')
+        return redirect(url_for('board.board_main', board_route=board_route))
+    
+    # 경기예측/분석 게시판 접근 권한 체크 (파란 VIP만)
+    if board['route'] == 'analysis' and ('loggedin' not in session or not session.get('is_vip') == 2):
+        flash('경기예측/분석 게시판은 BCN 회원만 글을 작성할 수 있습니다.', 'danger')
+        return redirect(url_for('board.board_main', board_route=board_route))
+    
+    # 경기소식 게시판 접근 권한 체크 (파란 VIP만)
+    if board['route'] == 'game_news' and ('loggedin' not in session or not session.get('is_vip') == 2):
+        flash('경기소식 게시판은 BCN 회원만 글을 작성할 수 있습니다.', 'danger')
         return redirect(url_for('board.board_main', board_route=board_route))
     
     # 위치별 광고 선택

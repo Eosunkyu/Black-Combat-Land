@@ -1,7 +1,7 @@
 from flask import Flask, render_template, redirect, url_for, flash, request, session, jsonify
 from flask_mysqldb import MySQL
 from flask_bcrypt import Bcrypt
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_login import LoginManager, login_user, login_required, logout_user, current_user, UserMixin
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 from datetime import datetime, timedelta
 import os
@@ -12,6 +12,18 @@ import json
 import re
 import random
 import pytz
+
+# 커스텀 User 클래스 정의
+class User(UserMixin):
+    def __init__(self, user_id):
+        self.id = user_id
+        self.username = None
+        self.nickname = None
+        self.is_admin = False
+        self.is_vip = 0
+        
+    def get_id(self):
+        return str(self.id)
 
 # 애플리케이션 팩토리 패턴 적용
 def create_app():
@@ -59,11 +71,11 @@ def create_app():
     app.extensions['bcrypt'] = bcrypt
 
     # Blueprint 등록은 create_app 함수 내부에서
-    from routes.auth import auth
+    from routes.auth import auth_bp
     from routes.board import board_bp
     from routes.admin import admin_bp
 
-    app.register_blueprint(auth, url_prefix='/auth')
+    app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(board_bp)
     app.register_blueprint(admin_bp)
     
@@ -89,9 +101,8 @@ def load_user(user_id):
         cursor.close()
         
         if user:
-            # 실제 UserMixin 상속 클래스 반환
-            user_obj = UserMixin()
-            user_obj.id = user['id']
+            # 커스텀 User 클래스 사용
+            user_obj = User(user['id'])
             user_obj.username = user['username']
             user_obj.nickname = user['nickname']
             user_obj.is_admin = user['is_admin']

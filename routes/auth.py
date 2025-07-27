@@ -1,21 +1,35 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
-from flask_login import login_user, login_required, logout_user, current_user
+# type: ignore
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app, abort
+from flask_login import login_required, login_user, logout_user, current_user, UserMixin
 import re
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import secrets
-import datetime
+from datetime import datetime, timedelta
+import os
+from werkzeug.utils import secure_filename
+
+# 간단한 User 클래스
+class User(UserMixin):
+    def __init__(self, user_id):
+        self.id = user_id
+    
+    def get_id(self):
+        return str(self.id)
 
 auth_bp = Blueprint('auth', __name__)
 # app.py가 auth라는 이름으로 import하므로 별칭 추가
 auth = auth_bp
 
-# MySQL과 bcrypt 접근 함수
+# 필요한 객체는 current_app을 통해 접근
 def get_mysql():
     return current_app.extensions['mysql']
 
 def get_bcrypt():
     return current_app.extensions['bcrypt']
 
-# 최대 길이 제한 상수 정의
+# 입력값 검증을 위한 상수들
 MAX_USERNAME_LENGTH = 20
 MAX_PASSWORD_LENGTH = 20
 MAX_EMAIL_LENGTH = 30
@@ -171,9 +185,7 @@ def login():
             session['is_vip'] = user['is_vip']
             
             # Flask-Login 사용자 객체 생성 및 로그인
-            from flask_login import UserMixin
-            user_obj = UserMixin()
-            user_obj.id = user['id']
+            user_obj = User(user['id'])
             login_user(user_obj, remember=True)
             
             # 마지막 로그인 시간 업데이트
@@ -379,8 +391,8 @@ def reset_password():
         
         # 새 토큰 생성
         token = secrets.token_urlsafe(32)
-        now = datetime.datetime.now()
-        expires_at = now + datetime.timedelta(hours=24)  # 24시간 유효
+        now = datetime.now()
+        expires_at = now + timedelta(hours=24)  # 24시간 유효
         
         # 토큰 저장
         cur.execute('''

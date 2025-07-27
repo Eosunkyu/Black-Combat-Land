@@ -96,7 +96,38 @@
         <div class="card mb-3">
             <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">{{ board.name }} 게시판</h5>
+                {% set can_write = false %}
+                {% if session.loggedin %}
+                    {% if board.route == 'vip' and session.is_vip == 1 %}
+                        {% set can_write = true %}
+                    {% elif board.route == 'support' and session.is_vip == 2 %}
+                        {% set can_write = true %}
+                    {% elif board.route == 'question' and session.is_vip == 1 %}
+                        {% set can_write = true %}
+                    {% elif board.route == 'analysis' and session.is_vip == 2 %}
+                        {% set can_write = true %}
+                    {% elif board.route == 'game_news' and session.is_vip == 2 %}
+                        {% set can_write = true %}
+                    {% elif board.route not in ['vip', 'support', 'question', 'analysis', 'game_news'] %}
+                        {% set can_write = true %}
+                    {% endif %}
+                {% elif board.route in ['anonymous', 'free'] %}
+                    {% set can_write = true %}
+                {% endif %}
+                
+                {% if can_write %}
                 <a href="{{ url_for('board.write_post', board_route=board.route) }}" class="btn btn-sm btn-primary">글쓰기</a>
+                {% else %}
+                <span class="btn btn-sm btn-secondary disabled">
+                    {% if board.route == 'vip' %}VIP 전용
+                    {% elif board.route == 'support' %}BCN 전용
+                    {% elif board.route == 'question' %}VIP 전용
+                    {% elif board.route == 'analysis' %}BCN 전용
+                    {% elif board.route == 'game_news' %}BCN 전용
+                    {% else %}로그인 필요
+                    {% endif %}
+                </span>
+                {% endif %}
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
