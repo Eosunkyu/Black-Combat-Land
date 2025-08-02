@@ -1,0 +1,33 @@
+
++-----------------------+
+| Tables_in_blackcombat |
++-----------------------+
+| ads                   |
+| anonymous_users       |
+| blocked_ips           |
+| blocked_users         |
+| boards                |
+| comments              |
+| friendships           |
+| messages              |
+| notices               |
+| password_reset_tokens |
+| post_likes            |
+| posts                 |
+| users                 |
++-----------------------+
+
+
+Notices 테이블
+
++------------+--------------+------+-----+---------+----------------+
+| Field      | Type         | Null | Key | Default | Extra          |
++------------+--------------+------+-----+---------+----------------+
+| id         | int          | NO   | PRI | NULL    | auto_increment |
+| title      | varchar(255) | NO   |     | NULL    |                |
+| content    | text         | NO   |     | NULL    |                |
+| user_id    | int          | NO   | MUL | NULL    |                |
+| created_at | datetime     | NO   |     | NULL    |                |
+| updated_at | datetime     | YES  |     | NULL    |                |
+| is_active  | tinyint(1)   | NO   |     | 1       |                |
++------------+--------------+------+-----+---------+----------------+

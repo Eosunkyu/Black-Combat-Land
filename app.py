@@ -74,10 +74,12 @@ def create_app():
     from routes.auth import auth_bp
     from routes.board import board_bp
     from routes.admin import admin_bp
+    from routes.notice import notice_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(board_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(notice_bp)
     
     return app, mysql, bcrypt, login_manager, csrf
 

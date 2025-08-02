@@ -154,7 +154,7 @@
                                 <td colspan="5">
 				                    <div class="notice-title-container">
                                         <span class="badge bg-danger notice-badge">공지</span>
-                                        <a href="#" class="post-title fw-bold" data-bs-toggle="modal" data-bs-target="#noticeModal{{ notice.id }}">
+                                        <a href="{{ url_for('notice.view_notice', notice_id=notice.id) }}" class="post-title fw-bold">
                                             <span class="post-title-text" data-full-title="{{ notice.title }}">
                                                 {{ notice.title }}
                                             </span>
@@ -165,7 +165,7 @@
                                 <td>
 				                    <div class="notice-title-container">
                                         <span class="badge bg-danger notice-badge">공지</span>
-                                        <a href="#" class="post-title fw-bold" data-bs-toggle="modal" data-bs-target="#noticeModal{{ notice.id }}">
+                                        <a href="{{ url_for('notice.view_notice', notice_id=notice.id) }}" class="post-title fw-bold">
                                             <span class="post-title-text" data-full-title="{{ notice.title }}">
                                                 {{ notice.title }}
                                             </span>
@@ -440,30 +440,7 @@
 </div>
 {% endif %}
 
-<!-- 공지사항 모달 -->
-{% for notice in notices %}
-<div class="modal fade" id="noticeModal{{ notice.id }}" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-dark text-white">
-                <h5 class="modal-title">공지사항: {{ notice.title }}</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <small>작성자: {{ notice.nickname }} | 작성일: {{ notice.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
-                </div>
-                <div class="notice-content">
-                    {{ notice.content|nl2br }}
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
-            </div>
-        </div>
-    </div>
-</div>
-{% endfor %}
+<!-- 공지사항 모달 제거됨 - 이제 별도 페이지로 이동 -->
 
 <style>
     .post-title-text {

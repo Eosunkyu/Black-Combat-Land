@@ -7,20 +7,26 @@
 -- 2. 게시판 명칭 변경
 -- 2-1. 경기예측/분석 → EVENT (회색 VIP 전용)
 UPDATE boards 
+SET name = 'VIP', 
+    description = 'vip게시판입니다.'
+WHERE route = 'vip';
+
+
+UPDATE boards 
 SET name = 'EVENT', 
-    description = 'EVENT 관련 정보를 공유하는 게시판입니다. (회색 VIP 전용)'
+    description = 'EVENT 관련 정보를 공유하는 게시판입니다.'
 WHERE route = 'analysis';
 
 -- 2-2. 경기소식 → 넘버링 (회색 VIP 전용)
 UPDATE boards 
-SET name = '넘버링', 
-    description = '넘버링 관련 정보를 공유하는 게시판입니다. (회색 VIP 전용)'
-WHERE route = 'game_news';
+SET name = '넘버링', 블컴소식식
+    description = '넘버링 관련 정보를 공유하는 게시판입니다.'
+WHERE route = 'news';
 
 -- 2-3. BCN → STORE (노란색 VIP 전용)
 UPDATE boards 
-SET name = 'STORE', 
-    description = 'STORE 관련 정보를 공유하는 게시판입니다. (노란색 VIP 전용)'
+SET name = 'BCN', 
+    description = '기자 관련 게시판입니다.'
 WHERE route = 'support';
 
 -- 3. VIP 시스템 확장
