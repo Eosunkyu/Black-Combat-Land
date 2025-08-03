@@ -266,6 +266,8 @@
                                             <span class="vip-badge yellow-vip"></span>
                                             {% elif board.route != 'anonymous' and post.is_vip == 2 %}
                                             <span class="vip-badge blue-vip"></span>
+                                            {% elif board.route != 'anonymous' and post.is_vip == 3 %}
+                                            <span class="vip-badge black-vip"></span>
                                             {% endif %}
                                         </span>
                                         <span class="text-muted">
@@ -298,6 +300,8 @@
                                 <span class="vip-badge yellow-vip"></span>
                                 {% elif board.route != 'anonymous' and post.is_vip == 2 %}
                                 <span class="vip-badge blue-vip"></span>
+                                {% elif board.route != 'anonymous' and post.is_vip == 3 %}
+                                <span class="vip-badge black-vip"></span>
                                 {% endif %}</td>
 
                                 <td class="text-center" style="font-size: 0.5rem;">
