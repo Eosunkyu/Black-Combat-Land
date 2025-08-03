@@ -84,7 +84,7 @@
                 margin-bottom: 0.3rem !important;
             }
             
-            .board-navigation-section .col-3 {
+            .board-navigation-section .col-2 {
                 padding-left: 0.25rem;
                 padding-right: 0.25rem;
             }
@@ -155,30 +155,22 @@
                     <!-- 중앙: 게시판 버튼 네비게이션 (독립된 그리드 셀) -->
                     <div class="col-lg-6 board-navigation-section">
                         <div class="row mb-1">
-                            <div class="col-3 text-center px-1">
+                            <div class="col-2 text-center px-1">
                                 <a href="{{ url_for('board.board_main', board_route='free') }}" class="btn btn-sm btn-outline-secondary w-100 nav-btn" style="border-radius: 6px !important; background: #FFFFFF;">자유</a>
                             </div>
-                            <div class="col-3 text-center px-1">
-                                <a href="{{ url_for('board.board_main', board_route='anonymous') }}" class="btn btn-sm btn-outline-secondary w-100 nav-btn" style="border-radius: 6px !important; background: #FFFFFF;">익명</a>
-                            </div>
-                            <div class="col-3 text-center px-1">
+                            <div class="col-2 text-center px-1">
                                 <a href="{{ url_for('board.board_main', board_route='game_news') }}" class="btn btn-sm btn-outline-secondary w-100 nav-btn" style="border-radius: 6px !important; background: #FFFFFF;">넘버링</a>
                             </div>
-                            <div class="col-3 text-center px-1">
+                            <div class="col-2 text-center px-1">
                                 <a href="{{ url_for('board.board_main', board_route='vip') }}" class="btn btn-sm w-100 nav-btn" style="border-radius: 6px !important; background: #FFFFFF; color: #FBCC34; border: 1px solid #6c757d; font-weight: 900;">V I P</a>
                             </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-3 text-center px-1">
-                                <a href="{{ url_for('board.board_main', board_route='news') }}" class="btn btn-sm btn-outline-secondary w-100 nav-btn" style="border-radius: 6px !important; background: #FFFFFF;">블컴소식</a>
-                            </div>
-                            <div class="col-3 text-center px-1">
+                            <div class="col-2 text-center px-1">
                                 <a href="{{ url_for('board.board_main', board_route='analysis') }}" class="btn btn-sm btn-outline-secondary w-100 nav-btn" style="border-radius: 6px !important; background: #FFFFFF;">EVENT</a>
                             </div>
-                            <div class="col-3 text-center px-1">
+                            <div class="col-2 text-center px-1">
                                 <a href="{{ url_for('board.board_main', board_route='question') }}" class="btn btn-sm btn-outline-secondary w-100 nav-btn" style="border-radius: 6px !important; background: #FFFFFF;">STORE</a>
                             </div>
-                            <div class="col-3 text-center px-1">
+                            <div class="col-2 text-center px-1">
                                 <a href="{{ url_for('board.board_main', board_route='support') }}" class="btn btn-sm w-100 nav-btn" style="border-radius: 6px !important; background: #FFFFFF; color: #C3C3C3; border: 1px solid #6c757d; font-weight: 900;">B C N</a>
                             </div>
                         </div>
