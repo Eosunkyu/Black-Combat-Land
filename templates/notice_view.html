@@ -176,7 +176,7 @@
                             </div>
                         </div>
                         <div>
-                            {{ comment.content|nl2br }}
+                            <div class="comment-content">{{ comment.content|nl2br }}</div>
                         </div>
                     </div>
                     {% endfor %}
@@ -291,6 +291,17 @@
         text-decoration: underline !important;
     }
     
+    /* 댓글 내용에서 URL 링크 스타일 */
+    .comment-content a {
+        color: #0066cc !important;
+        text-decoration: underline !important;
+    }
+    
+    .comment-content a:hover {
+        color: #004499 !important;
+        text-decoration: underline !important;
+    }
+    
     /* 공지사항 제목 스타일 */
     .notice-title {
         color: #000000;
@@ -309,12 +320,19 @@
 </style>
 
 <script>
-    // 공지사항 내용의 URL을 자동으로 링크로 변환
+    // 공지사항 내용과 댓글 내용의 URL을 자동으로 링크로 변환
     document.addEventListener('DOMContentLoaded', function() {
+        // 공지사항 본문 URL 변환
         const noticeContent = document.querySelector('.notice-content');
         if (noticeContent) {
             convertUrlsToLinks(noticeContent);
         }
+        
+        // 댓글 내용 URL 변환
+        const commentContents = document.querySelectorAll('.comment-content');
+        commentContents.forEach(function(commentContent) {
+            convertUrlsToLinks(commentContent);
+        });
     });
     
     // URL을 링크로 변환하는 함수 (view.html에서 가져옴)

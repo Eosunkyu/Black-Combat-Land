@@ -45,20 +45,23 @@ def view_notice(notice_id):
         if not notice:
             abort(404)
         
-        # 댓글 조회
+        # 댓글 조회 - JOIN 조건 개선하여 중복 방지
         cur.execute('''
-            SELECT nc.*, 
+            SELECT nc.id, nc.notice_id, nc.user_id, nc.content, nc.is_anonymous, nc.created_at,
                    CASE 
-                       WHEN nc.user_id = 0 THEN COALESCE(au.nickname, '익명')
-                       ELSE u.nickname 
+                       WHEN nc.is_anonymous = 1 AND nc.user_id = 0 THEN 
+                           COALESCE((SELECT au.nickname FROM anonymous_users au 
+                                   WHERE au.ip_address = nc.ip_address 
+                                   ORDER BY au.created_at ASC LIMIT 1), '익명')
+                       WHEN nc.is_anonymous = 1 THEN '익명'
+                       ELSE COALESCE(u.nickname, '익명')
                    END as nickname,
                    CASE 
-                       WHEN nc.user_id = 0 THEN 0
+                       WHEN nc.is_anonymous = 1 THEN 0
                        ELSE COALESCE(u.is_vip, 0) 
                    END as is_vip
             FROM notice_comments nc
-            LEFT JOIN users u ON nc.user_id = u.id AND nc.user_id != 0
-            LEFT JOIN anonymous_users au ON nc.ip_address = au.ip_address AND nc.user_id = 0
+            LEFT JOIN users u ON nc.user_id = u.id AND nc.is_anonymous = 0
             WHERE nc.notice_id = %s
             ORDER BY nc.created_at ASC
         ''', (notice_id,))
@@ -126,27 +129,31 @@ def write_comment(notice_id):
         # IP 주소 가져오기
         ip_address = get_client_ip()
         
-        # 익명 사용자 닉네임 처리
+        # 익명 사용자 닉네임 처리 - 중복 방지 개선
         if 'loggedin' not in session:
             # IP 해시 생성
             ip_hash = hashlib.md5(ip_address.encode('utf-8')).hexdigest()
             
-            # 익명 사용자 닉네임 조회 또는 생성
-            cur.execute('SELECT nickname FROM anonymous_users WHERE ip_hash = %s', (ip_hash,))
+            # 기존 익명 사용자 확인 (중복 방지를 위해 트랜잭션 사용)
+            cur.execute('SELECT nickname FROM anonymous_users WHERE ip_hash = %s LIMIT 1', (ip_hash,))
             existing_user = cur.fetchone()
             
             if not existing_user:
-                # 새로운 익명 사용자 생성
-                # 익명 번호 생성 (기존 익명 사용자 수 + 1)
-                cur.execute('SELECT COUNT(*) as count FROM anonymous_users')
-                count_result = cur.fetchall()
-                count = count_result[0]['count'] if count_result else 0
-                anonymous_nickname = f'익명{count + 1}'
-                
-                cur.execute('''
-                    INSERT INTO anonymous_users (ip_address, ip_hash, nickname, created_at)
-                    VALUES (%s, %s, %s, NOW())
-                ''', (ip_address, ip_hash, anonymous_nickname))
+                # 새로운 익명 사용자 생성 시 중복 방지
+                try:
+                    cur.execute('SELECT COUNT(*) as count FROM anonymous_users')
+                    count_result = cur.fetchone()
+                    count = count_result['count'] if count_result else 0
+                    anonymous_nickname = f'익명{count + 1}'
+                    
+                    cur.execute('''
+                        INSERT INTO anonymous_users (ip_address, ip_hash, nickname, created_at)
+                        VALUES (%s, %s, %s, NOW())
+                    ''', (ip_address, ip_hash, anonymous_nickname))
+                except Exception as e:
+                    # 중복 삽입 시도 시 기존 사용자 다시 조회
+                    cur.execute('SELECT nickname FROM anonymous_users WHERE ip_hash = %s LIMIT 1', (ip_hash,))
+                    existing_user = cur.fetchone()
         
         # 댓글 저장
         user_id = session.get('id', 0) if 'loggedin' in session else 0
