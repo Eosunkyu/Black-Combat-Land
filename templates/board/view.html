@@ -217,7 +217,7 @@
                             </div>
                         </div>
                         <div>
-                            {{ comment.content|nl2br }}
+                            <div class="comment-content">{{ comment.content|nl2br }}</div>
                         </div>
                     </div>
                     {% endfor %}
@@ -565,6 +565,19 @@
         display: none !important;
     }
     
+    /* 게시글 내용과 댓글 내용에서 URL 링크 스타일 */
+    .post-content a,
+    .comment-content a {
+        color: #0066cc !important;
+        text-decoration: underline !important;
+    }
+    
+    .post-content a:hover,
+    .comment-content a:hover {
+        color: #004499 !important;
+        text-decoration: underline !important;
+    }
+    
     /* view.html에서 이미지 좌측 정렬 */
     .post-content img {
         max-width: 100vw; /* 모바일: 화면 너비를 넘지 않음 */
@@ -737,17 +750,6 @@
         flex-shrink: 0;
     }
     
-    /* 게시물 내용 링크 스타일 */
-    .post-content a {
-        color: #0066cc !important;
-        text-decoration: underline !important;
-    }
-    
-    .post-content a:hover {
-        color: #004499 !important;
-        text-decoration: underline !important;
-    }
-    
     /* 모바일에서 댓글 폼 여백 추가 */
     @media (max-width: 991px) {
         .card-body form {
@@ -869,6 +871,12 @@
         if (postContent) {
             convertUrlsToLinks(postContent);
         }
+        
+        // 댓글 내용의 URL을 자동으로 링크로 변환
+        const commentContents = document.querySelectorAll('.comment-content');
+        commentContents.forEach(function(commentContent) {
+            convertUrlsToLinks(commentContent);
+        });
         
         // 페이지네이션 링크 클릭 이벤트 처리
         document.addEventListener('click', function(e) {
