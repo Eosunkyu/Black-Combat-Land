@@ -123,8 +123,14 @@
         
         /* 활성화된 버튼에 적용할 스타일 */
         .nav-btn:hover, .nav-btn:focus {
-            transform: translateY(-2px);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            /* 호버링 효과 제거 */
+        }
+        
+        /* 현재 활성화된 게시판 버튼 스타일 */
+        .nav-btn.active {
+            color: #FFF200 !important;
+            font-weight: 900 !important;
+            text-shadow: 1px 1px 1px #000000;
         }
         
         /* 텍스트 아웃라인 스타일 */
@@ -156,22 +162,22 @@
                     <div class="col-lg-6 board-navigation-section">
                         <div class="row mb-1">
                             <div class="col-2 text-center px-1">
-                                <a href="{{ url_for('board.board_main', board_route='free') }}" class="btn btn-sm btn-outline-secondary w-100 nav-btn" style="border-radius: 6px !important; background: #909090; color: #ffffff; border: 1px solid #909090;">자유</a>
+                                <a href="{{ url_for('board.board_main', board_route='free') }}" class="btn btn-sm btn-outline-secondary w-100 nav-btn {% if request.endpoint == 'board.board_main' and request.args.get('board_route') == 'free' %}active{% endif %}" style="border-radius: 6px !important; background: #909090; color: #ffffff; border: 1px solid #909090;">자유</a>
                             </div>
                             <div class="col-2 text-center px-1">
-                                <a href="{{ url_for('board.board_main', board_route='game_news') }}" class="btn btn-sm btn-outline-secondary w-100 nav-btn" style="border-radius: 6px !important; background: #909090; color: #ffffff; border: 1px solid #909090;">넘버링</a>
+                                <a href="{{ url_for('board.board_main', board_route='game_news') }}" class="btn btn-sm btn-outline-secondary w-100 nav-btn {% if request.endpoint == 'board.board_main' and request.args.get('board_route') == 'game_news' %}active{% endif %}" style="border-radius: 6px !important; background: #909090; color: #ffffff; border: 1px solid #909090;">넘버링</a>
                             </div>
                             <div class="col-2 text-center px-1">
-                                <a href="{{ url_for('board.board_main', board_route='vip') }}" class="btn btn-sm w-100 nav-btn" style="border-radius: 6px !important; background: #909090; color: #FFF200; border: 1px solid #909090; font-weight: 900;">V I P</a>
+                                <a href="{{ url_for('board.board_main', board_route='analysis') }}" class="btn btn-sm btn-outline-secondary w-100 nav-btn {% if request.endpoint == 'board.board_main' and request.args.get('board_route') == 'analysis' %}active{% endif %}" style="border-radius: 6px !important; background: #909090; color: #ffffff; border: 1px solid #909090;">EVENT</a>
                             </div>
                             <div class="col-2 text-center px-1">
-                                <a href="{{ url_for('board.board_main', board_route='support') }}" class="btn btn-sm w-100 nav-btn" style="border-radius: 6px !important; background: #909090; color: #3F48CC; border: 1px solid #909090; font-weight: 900;">B C N</a>
+                                <a href="{{ url_for('board.board_main', board_route='question') }}" class="btn btn-sm btn-outline-secondary w-100 nav-btn {% if request.endpoint == 'board.board_main' and request.args.get('board_route') == 'question' %}active{% endif %}" style="border-radius: 6px !important; background: #909090; color: #ffffff; border: 1px solid #909090;">STORE</a>
                             </div>
                             <div class="col-2 text-center px-1">
-                                <a href="{{ url_for('board.board_main', board_route='analysis') }}" class="btn btn-sm btn-outline-secondary w-100 nav-btn" style="border-radius: 6px !important; background: #909090; color: #ffffff; border: 1px solid #909090;">EVENT</a>
+                                <a href="{{ url_for('board.board_main', board_route='vip') }}" class="btn btn-sm w-100 nav-btn {% if request.endpoint == 'board.board_main' and request.args.get('board_route') == 'vip' %}active{% endif %}" style="border-radius: 6px !important; background: #909090; color: #FFF200; border: 1px solid #909090; font-weight: 900;">V I P</a>
                             </div>
                             <div class="col-2 text-center px-1">
-                                <a href="{{ url_for('board.board_main', board_route='question') }}" class="btn btn-sm btn-outline-secondary w-100 nav-btn" style="border-radius: 6px !important; background: #909090; color: #ffffff; border: 1px solid #909090;">STORE</a>
+                                <a href="{{ url_for('board.board_main', board_route='support') }}" class="btn btn-sm w-100 nav-btn {% if request.endpoint == 'board.board_main' and request.args.get('board_route') == 'support' %}active{% endif %}" style="border-radius: 6px !important; background: #909090; color: #3F48CC; border: 1px solid #909090; font-weight: 900;">B C N</a>
                             </div>
                         </div>
                     </div>
