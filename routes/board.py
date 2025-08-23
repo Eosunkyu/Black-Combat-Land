@@ -620,7 +620,7 @@ def write_comment(board_route, post_id):
     # 비밀번호 처리 (익명 게시판 또는 비로그인 사용자)
     anonymous_password = None
     if board['route'] == 'anonymous' or 'loggedin' not in session:
-        password = request.form.get('post-key', '').strip()
+        password = request.form.get('anonymous_password', '').strip()
         if not password:
             flash('비밀번호를 입력해야 합니다.', 'danger')
             return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
