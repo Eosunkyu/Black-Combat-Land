@@ -160,7 +160,7 @@
         </div>
         
         <!-- 네비게이션 영역 -->
-        <div class="navigation-area py-2" style="background: #909090;">
+        <div class="navigation-area py-1" style="background: #909090;">
             <div class="container-fluid px-2 px-md-4">
                 <div class="row">
                     <!-- 좌측: 로그인/로그아웃 버튼 (좌측 정렬) -->
@@ -171,22 +171,22 @@
                     <div class="col-lg-6 board-navigation-section">
                         <div class="row mb-1">
                             <div class="col-2 text-center px-1">
-                                <a href="{{ url_for('board.board_main', board_route='free') }}" class="btn btn-sm btn-outline-secondary w-100 nav-btn {% if request.view_args.get('board_route') == 'free' or (request.endpoint == 'board.board_main' and request.args.get('board_route') == 'free') %}active{% endif %}" style="border-radius: 6px !important; background: #909090; color: #ffffff; border: 1px solid #909090;">자유</a>
+                                <a href="{{ url_for('board.board_main', board_route='free') }}" class="fw-light btn btn-sm w-100 nav-btn {% if request.view_args.get('board_route') == 'free' or (request.endpoint == 'board.board_main' and request.args.get('board_route') == 'free') %}active{% endif %}" style="border-radius: 6px !important; background: #000; color: #ffffff; font-size: 1rem; letter-spacing: 2px; ">자유</a>
                             </div>
                             <div class="col-2 text-center px-1">
-                                <a href="{{ url_for('board.board_main', board_route='game_news') }}" class="btn btn-sm btn-outline-secondary w-100 nav-btn {% if request.view_args.get('board_route') == 'game_news' or (request.endpoint == 'board.board_main' and request.args.get('board_route') == 'game_news') %}active{% endif %}" style="border-radius: 6px !important; background: #909090; color: #ffffff; border: 1px solid #909090;">넘버링</a>
+                                <a href="{{ url_for('board.board_main', board_route='game_news') }}" class="fw-light btn btn-sm w-100 nav-btn {% if request.view_args.get('board_route') == 'game_news' or (request.endpoint == 'board.board_main' and request.args.get('board_route') == 'game_news') %}active{% endif %}" style="border-radius: 6px !important; background: #000; color: #ffffff; font-size: 1rem; letter-spacing: 2px; ">넘버링</a>
                             </div>
                             <div class="col-2 text-center px-1">
-                                <a href="{{ url_for('board.board_main', board_route='analysis') }}" class="btn btn-sm btn-outline-secondary w-100 nav-btn {% if request.view_args.get('board_route') == 'analysis' or (request.endpoint == 'board.board_main' and request.args.get('board_route') == 'analysis') %}active{% endif %}" style="border-radius: 6px !important; background: #909090; color: #ffffff; border: 1px solid #909090;">EVENT</a>
+                                <a href="{{ url_for('board.board_main', board_route='analysis') }}" class="fw-light btn btn-sm w-100 nav-btn {% if request.view_args.get('board_route') == 'analysis' or (request.endpoint == 'board.board_main' and request.args.get('board_route') == 'analysis') %}active{% endif %}" style="border-radius: 6px !important; background: #000; color: #ffffff; font-size: 1rem; letter-spacing: 2px; ">EVENT</a>
                             </div>
                             <div class="col-2 text-center px-1">
-                                <a href="{{ url_for('board.board_main', board_route='question') }}" class="btn btn-sm btn-outline-secondary w-100 nav-btn {% if request.view_args.get('board_route') == 'question' or (request.endpoint == 'board.board_main' and request.args.get('board_route') == 'question') %}active{% endif %}" style="border-radius: 6px !important; background: #909090; color: #ffffff; border: 1px solid #909090;">STORE</a>
+                                <a href="{{ url_for('board.board_main', board_route='question') }}" class="fw-light btn btn-sm w-100 nav-btn {% if request.view_args.get('board_route') == 'question' or (request.endpoint == 'board.board_main' and request.args.get('board_route') == 'question') %}active{% endif %}" style="border-radius: 6px !important; background: #000; color: #ffffff; font-size: 1rem; letter-spacing: 2px; ">STORE</a>
                             </div>
                             <div class="col-2 text-center px-1">
-                                <a href="{{ url_for('board.board_main', board_route='vip') }}" class="btn btn-sm w-100 nav-btn {% if request.view_args.get('board_route') == 'vip' or (request.endpoint == 'board.board_main' and request.args.get('board_route') == 'vip') %}active{% endif %}" style="border-radius: 6px !important; background: #909090; color: #FFF200; border: 1px solid #909090; font-weight: 900;">V I P</a>
+                                <a href="{{ url_for('board.board_main', board_route='vip') }}" class="fw-light btn btn-sm w-100 nav-btn {% if request.view_args.get('board_route') == 'vip' or (request.endpoint == 'board.board_main' and request.args.get('board_route') == 'vip') %}active{% endif %}" style="border-radius: 6px !important; background: #000; color: #FFF200; font-weight: 900; font-size: 1rem; letter-spacing: 2px; ">MEDIA</a>
                             </div>
                             <div class="col-2 text-center px-1">
-                                <a href="{{ url_for('board.board_main', board_route='support') }}" class="btn btn-sm w-100 nav-btn {% if request.view_args.get('board_route') == 'support' or (request.endpoint == 'board.board_main' and request.args.get('board_route') == 'support') %}active{% endif %}" style="border-radius: 6px !important; background: #909090; color: #3F48CC; border: 1px solid #909090; font-weight: 900;">B C N</a>
+                                <a href="{{ url_for('board.board_main', board_route='support') }}" class="fw-light btn btn-sm w-100 nav-btn {% if request.view_args.get('board_route') == 'support' or (request.endpoint == 'board.board_main' and request.args.get('board_route') == 'support') %}active{% endif %}" style="border-radius: 6px !important; background: #000; color: #FFF200; font-weight: 900; font-size: 1rem; letter-spacing: 2px; ">NEWS</a>
                             </div>
                         </div>
                     </div>
