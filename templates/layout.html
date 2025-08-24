@@ -48,37 +48,11 @@
         .black-vip {
           color: #000000;
         }
-        /* 네비게이션 버튼 스타일 */
-        .board-navigation-section .nav-btn, 
-        .board-navigation-section .btn.nav-btn,
-        .board-navigation-section .btn-sm,
-        .board-navigation-section .btn-outline-secondary,
-        .board-navigation-section .btn-warning {
-            transition: none !important;
-            border-radius: 6px !important;
-            font-size: 0.85rem;
-            padding: 0.25rem 0.5rem;
-            margin: 0.1rem 0;
-        }
-        
         /* Bootstrap 버튼 오버라이드 */
         .board-navigation-section .btn {
             border-radius: 6px !important;
         }
         
-        /* 호버링 효과 완전 제거 */
-        .board-navigation-section .nav-btn:hover,
-        .board-navigation-section .nav-btn:focus,
-        .board-navigation-section .btn:hover,
-        .board-navigation-section .btn:focus,
-        .board-navigation-section .btn-outline-secondary:hover,
-        .board-navigation-section .btn-outline-secondary:focus {
-            transform: none !important;
-            box-shadow: none !important;
-            background-color: inherit !important;
-            border-color: inherit !important;
-            color: inherit !important;
-        }
         
         /* 현재 활성화된 게시판 버튼 스타일 */
         .board-navigation-section .nav-btn.active {
@@ -89,17 +63,6 @@
         
         /* 모바일 환경에서 네비게이션 버튼 스타일 조정 */
         @media (max-width: 767.98px) {
-            .board-navigation-section .nav-btn,
-            .board-navigation-section .btn.nav-btn {
-                font-size: 0.7rem;
-                padding: 0.4rem 0.2rem;
-                height: 2.2rem;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                margin-bottom: 0.15rem;
-                border-radius: 6px !important;
-            }
             
             .board-navigation-section .row {
                 margin-bottom: 0.3rem !important;
