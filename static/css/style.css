@@ -230,8 +230,11 @@ a:hover {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.nav-btn:hover {
+.nav-btn:hover,
+.nav-btn:hover a,
+a.nav-btn:hover {
     color: #ffff00 !important;
+    text-decoration: none !important;
 }
 
 /* 게시판 제목 조정 */
