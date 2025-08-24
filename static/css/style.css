@@ -224,6 +224,17 @@ a:hover {
     font-weight: bold;
 }
 
+/* 네비게이션 버튼 스타일 */
+.nav-btn {
+    border: none !important;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.nav-btn:hover {
+    background-color: #ffff00 !important;
+    color: #000000 !important;
+}
+
 /* 게시판 제목 조정 */
 .board-title {
     font-size: 1.1rem;
