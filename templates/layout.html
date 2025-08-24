@@ -171,22 +171,22 @@
                     <div class="col-lg-6 board-navigation-section">
                         <div class="row mb-1">
                             <div class="col-2 text-center px-1">
-                                <a href="{{ url_for('board.board_main', board_route='free') }}" class="fw-light btn-sm w-100 nav-btn {% if request.view_args.get('board_route') == 'free' or (request.endpoint == 'board.board_main' and request.args.get('board_route') == 'free') %}active{% endif %}" style="background: #000; color: #ffffff; font-size: 0.85rem; letter-spacing: 2px; ">자유</a>
+                                <a href="{{ url_for('board.board_main', board_route='free') }}" class="fw-light btn-sm w-100 {% if request.view_args.get('board_route') == 'free' or (request.endpoint == 'board.board_main' and request.args.get('board_route') == 'free') %}active{% endif %}" style="background: #000; color: #ffffff; font-size: 0.85rem; letter-spacing: 2px; ">자유</a>
                             </div>
                             <div class="col-2 text-center px-1">
-                                <a href="{{ url_for('board.board_main', board_route='game_news') }}" class="fw-light btn-sm w-100 nav-btn {% if request.view_args.get('board_route') == 'game_news' or (request.endpoint == 'board.board_main' and request.args.get('board_route') == 'game_news') %}active{% endif %}" style=" background: #000; color: #ffffff; font-size: 0.85rem; letter-spacing: 2px; ">넘버링</a>
+                                <a href="{{ url_for('board.board_main', board_route='game_news') }}" class="fw-light btn-sm w-100 {% if request.view_args.get('board_route') == 'game_news' or (request.endpoint == 'board.board_main' and request.args.get('board_route') == 'game_news') %}active{% endif %}" style=" background: #000; color: #ffffff; font-size: 0.85rem; letter-spacing: 2px; ">넘버링</a>
                             </div>
                             <div class="col-2 text-center px-1">
-                                <a href="{{ url_for('board.board_main', board_route='analysis') }}" class="fw-light btn-sm w-100 nav-btn {% if request.view_args.get('board_route') == 'analysis' or (request.endpoint == 'board.board_main' and request.args.get('board_route') == 'analysis') %}active{% endif %}" style="background: #000; color: #ffffff; font-size: 0.85rem; letter-spacing: 2px; ">EVENT</a>
+                                <a href="{{ url_for('board.board_main', board_route='analysis') }}" class="fw-light btn-sm w-100 {% if request.view_args.get('board_route') == 'analysis' or (request.endpoint == 'board.board_main' and request.args.get('board_route') == 'analysis') %}active{% endif %}" style="background: #000; color: #ffffff; font-size: 0.85rem; letter-spacing: 2px; ">EVENT</a>
                             </div>
                             <div class="col-2 text-center px-1">
-                                <a href="{{ url_for('board.board_main', board_route='question') }}" class="fw-light btn-sm w-100 nav-btn {% if request.view_args.get('board_route') == 'question' or (request.endpoint == 'board.board_main' and request.args.get('board_route') == 'question') %}active{% endif %}" style="background: #000; color: #ffffff; font-size: 0.85rem; letter-spacing: 2px; ">STORE</a>
+                                <a href="{{ url_for('board.board_main', board_route='question') }}" class="fw-light btn-sm w-100 {% if request.view_args.get('board_route') == 'question' or (request.endpoint == 'board.board_main' and request.args.get('board_route') == 'question') %}active{% endif %}" style="background: #000; color: #ffffff; font-size: 0.85rem; letter-spacing: 2px; ">STORE</a>
                             </div>
                             <div class="col-2 text-center px-1">
-                                <a href="{{ url_for('board.board_main', board_route='vip') }}" class="fw-light btn-sm w-100 nav-btn {% if request.view_args.get('board_route') == 'vip' or (request.endpoint == 'board.board_main' and request.args.get('board_route') == 'vip') %}active{% endif %}" style="background: #000; color: #FFFFFF; font-weight: 900; font-size: 0.85rem; letter-spacing: 2px; ">MEDIA</a>
+                                <a href="{{ url_for('board.board_main', board_route='vip') }}" class="fw-light btn-sm w-100 {% if request.view_args.get('board_route') == 'vip' or (request.endpoint == 'board.board_main' and request.args.get('board_route') == 'vip') %}active{% endif %}" style="background: #000; color: #FFFFFF; font-weight: 900; font-size: 0.85rem; letter-spacing: 2px; ">MEDIA</a>
                             </div>
                             <div class="col-2 text-center px-1">
-                                <a href="{{ url_for('board.board_main', board_route='support') }}" class="fw-light btn-sm w-100 nav-btn {% if request.view_args.get('board_route') == 'support' or (request.endpoint == 'board.board_main' and request.args.get('board_route') == 'support') %}active{% endif %}" style="background: #000; color: #FFFFFF; font-weight: 900; font-size: 0.85rem; letter-spacing: 2px; ">NEWS</a>
+                                <a href="{{ url_for('board.board_main', board_route='support') }}" class="fw-light btn-sm w-100 {% if request.view_args.get('board_route') == 'support' or (request.endpoint == 'board.board_main' and request.args.get('board_route') == 'support') %}active{% endif %}" style="background: #000; color: #FFFFFF; font-weight: 900; font-size: 0.85rem; letter-spacing: 2px; ">NEWS</a>
                             </div>
                         </div>
                     </div>
