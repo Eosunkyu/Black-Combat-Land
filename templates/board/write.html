@@ -963,6 +963,38 @@
         document.getElementById('thumbnail-preview').classList.add('d-none');
         document.getElementById('thumbnail-uploading').classList.remove('d-none');
     }
+    
+    // 비밀번호 입력 제한 (영문자, 숫자만 허용)
+    function restrictPasswordInput() {
+        const passwordInput = document.getElementById('anonymous_password');
+        if (passwordInput) {
+            passwordInput.addEventListener('input', function(e) {
+                // 영문자와 숫자가 아닌 문자 제거
+                this.value = this.value.replace(/[^A-Za-z0-9]/g, '');
+            });
+            
+            // 키보드 입력 시 실시간 제한
+            passwordInput.addEventListener('keypress', function(e) {
+                const char = String.fromCharCode(e.which);
+                if (!/[A-Za-z0-9]/.test(char)) {
+                    e.preventDefault();
+                }
+            });
+            
+            // 붙여넣기 시에도 제한 적용
+            passwordInput.addEventListener('paste', function(e) {
+                e.preventDefault();
+                const paste = (e.clipboardData || window.clipboardData).getData('text');
+                const filtered = paste.replace(/[^A-Za-z0-9]/g, '');
+                this.value = filtered.substring(0, 20); // maxlength 적용
+            });
+        }
+    }
+    
+    // 페이지 로드 시 실행
+    document.addEventListener('DOMContentLoaded', function() {
+        restrictPasswordInput();
+    });
 </script>
 
 <style>
