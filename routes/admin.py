@@ -146,7 +146,12 @@ def posts():
     
     # 페이지네이션
     page = request.args.get('page', 1, type=int)
-    per_page = 20
+    per_page = request.args.get('per_page', 20, type=int)
+    
+    # per_page 값 검증 (허용된 값만)
+    if per_page not in [20, 50, 100]:
+        per_page = 20
+    
     offset = (page - 1) * per_page
     
     # 게시판 필터
@@ -193,7 +198,8 @@ def posts():
     cur.close()
     
     return render_template('admin/posts.html', posts=posts, boards=boards,
-                          selected_board=board_id, page=page, total_pages=total_pages)
+                          selected_board=board_id, page=page, total_pages=total_pages,
+                          per_page=per_page, total_count=total_count)
 
 # 게시글 일괄 처리
 @admin_bp.route('/admin/posts/bulk', methods=['POST'])
