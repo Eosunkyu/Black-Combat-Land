@@ -32,25 +32,26 @@ def dashboard():
     cur.execute('SELECT COUNT(*) as count FROM users')
     user_count = cur.fetchone()['count']
     
-    cur.execute('SELECT COUNT(*) as count FROM posts')
+    cur.execute('SELECT COUNT(*) as count FROM posts WHERE is_deleted = 0')
     post_count = cur.fetchone()['count']
     
-    cur.execute('SELECT COUNT(*) as count FROM comments')
+    cur.execute('SELECT COUNT(*) as count FROM comments WHERE is_deleted = 0')
     comment_count = cur.fetchone()['count']
     
-    cur.execute("SELECT COUNT(*) as count FROM posts WHERE DATE(created_at) = CURDATE()")
+    cur.execute("SELECT COUNT(*) as count FROM posts WHERE DATE(created_at) = CURDATE() AND is_deleted = 0")
     today_post_count = cur.fetchone()['count']
     
     # 최근 등록된 회원
     cur.execute('SELECT * FROM users ORDER BY created_at DESC LIMIT 5')
     recent_users = cur.fetchall()
     
-    # 최근 작성된 게시글
+    # 최근 작성된 게시글 (삭제되지 않은 것만)
     cur.execute('''
         SELECT posts.*, users.nickname, boards.name as board_name
         FROM posts
         JOIN users ON posts.user_id = users.id
         JOIN boards ON posts.board_id = boards.id
+        WHERE posts.is_deleted = 0
         ORDER BY posts.created_at DESC
         LIMIT 10
     ''')
@@ -156,39 +157,51 @@ def posts():
     
     # 게시판 필터
     board_id = request.args.get('board_id', type=int)
+    # 삭제된 게시물 보기 옵션
+    show_deleted = request.args.get('show_deleted', '0') == '1'
     
     # 게시판 목록 조회
     cur.execute('SELECT * FROM boards')
     boards = cur.fetchall()
     
+    # 삭제 상태에 따른 조건 설정
+    deleted_condition = "posts.is_deleted = 1" if show_deleted else "posts.is_deleted = 0"
+    
     # 총 게시글 수 조회 (페이지네이션용)
     if board_id:
-        cur.execute('SELECT COUNT(*) as count FROM posts WHERE board_id = %s', (board_id,))
+        cur.execute(f'SELECT COUNT(*) as count FROM posts WHERE board_id = %s AND {deleted_condition}', (board_id,))
     else:
-        cur.execute('SELECT COUNT(*) as count FROM posts')
+        cur.execute(f'SELECT COUNT(*) as count FROM posts WHERE {deleted_condition}')
     
     total_count = cur.fetchone()['count']
     total_pages = (total_count + per_page - 1) // per_page
     
     # 게시글 조회
     if board_id:
-        cur.execute('''
-            SELECT posts.*, CASE WHEN posts.is_anonymous = 1 THEN '익명' ELSE users.nickname END as nickname, 
-                  boards.name as board_name, boards.route as board_route
+        cur.execute(f'''
+            SELECT posts.*, 
+                   CASE WHEN posts.is_anonymous = 1 THEN '익명' ELSE users.nickname END as nickname, 
+                   boards.name as board_name, boards.route as board_route,
+                   deleted_user.nickname as deleted_by_nickname
             FROM posts
             LEFT JOIN users ON posts.user_id = users.id
+            LEFT JOIN users as deleted_user ON posts.deleted_by = deleted_user.id
             JOIN boards ON posts.board_id = boards.id
-            WHERE posts.board_id = %s
+            WHERE posts.board_id = %s AND {deleted_condition}
             ORDER BY posts.created_at DESC
             LIMIT %s OFFSET %s
         ''', (board_id, per_page, offset))
     else:
-        cur.execute('''
-            SELECT posts.*, CASE WHEN posts.is_anonymous = 1 THEN '익명' ELSE users.nickname END as nickname, 
-                  boards.name as board_name, boards.route as board_route
+        cur.execute(f'''
+            SELECT posts.*, 
+                   CASE WHEN posts.is_anonymous = 1 THEN '익명' ELSE users.nickname END as nickname, 
+                   boards.name as board_name, boards.route as board_route,
+                   deleted_user.nickname as deleted_by_nickname
             FROM posts
             LEFT JOIN users ON posts.user_id = users.id
+            LEFT JOIN users as deleted_user ON posts.deleted_by = deleted_user.id
             JOIN boards ON posts.board_id = boards.id
+            WHERE {deleted_condition}
             ORDER BY posts.created_at DESC
             LIMIT %s OFFSET %s
         ''', (per_page, offset))
@@ -199,7 +212,7 @@ def posts():
     
     return render_template('admin/posts.html', posts=posts, boards=boards,
                           selected_board=board_id, page=page, total_pages=total_pages,
-                          per_page=per_page, total_count=total_count)
+                          per_page=per_page, total_count=total_count, show_deleted=show_deleted)
 
 # 게시글 일괄 처리
 @admin_bp.route('/admin/posts/bulk', methods=['POST'])
@@ -224,34 +237,63 @@ def bulk_posts_action():
             flash('잘못된 게시글 ID입니다.', 'danger')
             return redirect(url_for('admin.posts'))
         
-        if action == 'delete':
-            # 게시글 삭제 (연관된 댓글도 함께 삭제)
+        if action == 'soft_delete':
+            # 소프트 삭제 (게시글과 댓글을 숨김, 데이터는 보존)
             placeholders = ','.join(['%s'] * len(post_ids))
             
-            # 먼저 댓글 삭제
+            # 먼저 댓글 소프트 삭제
+            cur.execute(f'''
+                UPDATE comments 
+                SET is_deleted = 1, deleted_at = NOW(), deleted_by = %s 
+                WHERE post_id IN ({placeholders}) AND is_deleted = 0
+            ''', [session['id']] + post_ids)
+            
+            # 게시글 소프트 삭제
+            cur.execute(f'''
+                UPDATE posts 
+                SET is_deleted = 1, deleted_at = NOW(), deleted_by = %s 
+                WHERE id IN ({placeholders})
+            ''', [session['id']] + post_ids)
+            
+            mysql.connection.commit()
+            flash(f'{len(post_ids)}개의 게시글이 삭제되었습니다. (복구 가능)', 'success')
+            
+        elif action == 'restore':
+            # 삭제된 게시글 복구
+            placeholders = ','.join(['%s'] * len(post_ids))
+            
+            # 댓글 복구
+            cur.execute(f'''
+                UPDATE comments 
+                SET is_deleted = 0, deleted_at = NULL, deleted_by = NULL 
+                WHERE post_id IN ({placeholders})
+            ''', post_ids)
+            
+            # 게시글 복구
+            cur.execute(f'''
+                UPDATE posts 
+                SET is_deleted = 0, deleted_at = NULL, deleted_by = NULL 
+                WHERE id IN ({placeholders})
+            ''', post_ids)
+            
+            mysql.connection.commit()
+            flash(f'{len(post_ids)}개의 게시글이 복구되었습니다.', 'success')
+            
+        elif action == 'permanent_delete':
+            # 완전 삭제 (복구 불가능)
+            placeholders = ','.join(['%s'] * len(post_ids))
+            
+            # 먼저 댓글 완전 삭제
             cur.execute(f'DELETE FROM comments WHERE post_id IN ({placeholders})', post_ids)
             
-            # 게시글 삭제
+            # 좋아요 삭제
+            cur.execute(f'DELETE FROM post_likes WHERE post_id IN ({placeholders})', post_ids)
+            
+            # 게시글 완전 삭제
             cur.execute(f'DELETE FROM posts WHERE id IN ({placeholders})', post_ids)
             
             mysql.connection.commit()
-            flash(f'{len(post_ids)}개의 게시글이 삭제되었습니다.', 'success')
-            
-        elif action == 'hide':
-            # 게시글 숨기기 (is_active = 0)
-            placeholders = ','.join(['%s'] * len(post_ids))
-            cur.execute(f'UPDATE posts SET is_active = 0 WHERE id IN ({placeholders})', post_ids)
-            
-            mysql.connection.commit()
-            flash(f'{len(post_ids)}개의 게시글이 숨겨졌습니다.', 'success')
-            
-        elif action == 'show':
-            # 게시글 보이기 (is_active = 1)
-            placeholders = ','.join(['%s'] * len(post_ids))
-            cur.execute(f'UPDATE posts SET is_active = 1 WHERE id IN ({placeholders})', post_ids)
-            
-            mysql.connection.commit()
-            flash(f'{len(post_ids)}개의 게시글이 공개되었습니다.', 'success')
+            flash(f'{len(post_ids)}개의 게시글이 완전히 삭제되었습니다. (복구 불가능)', 'warning')
             
         else:
             flash('잘못된 작업입니다.', 'danger')
@@ -263,6 +305,107 @@ def bulk_posts_action():
         cur.close()
     
     return redirect(url_for('admin.posts'))
+
+# 삭제된 게시글 관리 (관리자 전용)
+@admin_bp.route('/admin/deleted_posts')
+@admin_required
+def deleted_posts():
+    mysql = get_mysql()
+    cur = mysql.connection.cursor()
+    
+    # 페이지네이션
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+    offset = (page - 1) * per_page
+    
+    # 삭제된 게시글 조회
+    cur.execute('''
+        SELECT posts.*, 
+               CASE WHEN posts.is_anonymous = 1 THEN '익명' ELSE users.nickname END as nickname,
+               boards.name as board_name,
+               deleted_user.nickname as deleted_by_nickname
+        FROM posts
+        LEFT JOIN users ON posts.user_id = users.id
+        LEFT JOIN users as deleted_user ON posts.deleted_by = deleted_user.id
+        JOIN boards ON posts.board_id = boards.id
+        WHERE posts.is_deleted = 1
+        ORDER BY posts.deleted_at DESC
+        LIMIT %s OFFSET %s
+    ''', (per_page, offset))
+    
+    deleted_posts = cur.fetchall()
+    
+    # 총 삭제된 게시글 수
+    cur.execute('SELECT COUNT(*) as count FROM posts WHERE is_deleted = 1')
+    total_count = cur.fetchone()['count']
+    total_pages = (total_count + per_page - 1) // per_page
+    
+    cur.close()
+    
+    return render_template('admin/deleted_posts.html', 
+                          posts=deleted_posts, page=page, 
+                          total_pages=total_pages, total_count=total_count)
+
+# 게시글 복구
+@admin_bp.route('/admin/posts/<int:post_id>/restore', methods=['POST'])
+@admin_required
+def restore_post(post_id):
+    mysql = get_mysql()
+    cur = mysql.connection.cursor()
+    
+    try:
+        # 댓글 복구
+        cur.execute('''
+            UPDATE comments 
+            SET is_deleted = 0, deleted_at = NULL, deleted_by = NULL 
+            WHERE post_id = %s
+        ''', (post_id,))
+        
+        # 게시글 복구
+        cur.execute('''
+            UPDATE posts 
+            SET is_deleted = 0, deleted_at = NULL, deleted_by = NULL 
+            WHERE id = %s
+        ''', (post_id,))
+        
+        mysql.connection.commit()
+        flash('게시글이 복구되었습니다.', 'success')
+        
+    except Exception as e:
+        mysql.connection.rollback()
+        flash(f'게시글 복구 중 오류가 발생했습니다: {str(e)}', 'danger')
+    finally:
+        cur.close()
+    
+    return redirect(url_for('admin.deleted_posts'))
+
+# 게시글 완전 삭제
+@admin_bp.route('/admin/posts/<int:post_id>/permanent_delete', methods=['POST'])
+@admin_required
+def permanent_delete_post(post_id):
+    mysql = get_mysql()
+    cur = mysql.connection.cursor()
+    
+    try:
+        # 댓글 완전 삭제
+        cur.execute('DELETE FROM comments WHERE post_id = %s', (post_id,))
+        
+        # 좋아요 삭제
+        cur.execute('DELETE FROM post_likes WHERE post_id = %s', (post_id,))
+        
+        # 게시글 완전 삭제
+        cur.execute('DELETE FROM posts WHERE id = %s', (post_id,))
+        
+        mysql.connection.commit()
+        flash('게시글이 완전히 삭제되었습니다. (복구 불가능)', 'warning')
+        
+    except Exception as e:
+        mysql.connection.rollback()
+        flash(f'게시글 삭제 중 오류가 발생했습니다: {str(e)}', 'danger')
+    finally:
+        cur.close()
+    
+    return redirect(url_for('admin.deleted_posts'))
 
 # 광고 관리
 @admin_bp.route('/admin/ads')
@@ -422,7 +565,7 @@ def add_ad():
                         if file_ext in allowed_extensions:
                             filename = secure_filename(file.filename)
                             # 파일명이 중복되지 않도록 타임스탬프 추가
-                            filename = f"ad_{datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}"
+                                                        filename = f"ad_{datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}"
                             # 업로드 폴더 경로 확인 및 생성
                             upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'ads')
                             if not os.path.exists(upload_dir):
@@ -496,21 +639,25 @@ def edit_ad(ad_id):
                 # 허용된 파일 확장자 체크
                 allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
                 try:
-                    file_ext = file.filename.rsplit('.', 1)[1].lower()
-                    if file_ext in allowed_extensions:
-                        filename = secure_filename(file.filename)
-                        # 파일명이 중복되지 않도록 타임스탬프 추가
-                        filename = f"ad_{datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}"
-                        # 업로드 폴더 경로 확인 및 생성
-                        upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'ads')
-                        if not os.path.exists(upload_dir):
-                            os.makedirs(upload_dir)
-                        file_path = os.path.join(upload_dir, filename)
-                        file.save(file_path)
-                        image_path = f"uploads/ads/{filename}"
-                        print(f"광고 이미지 업데이트 성공: {file_path}")
+                    if file.filename and '.' in file.filename:
+                        file_ext = file.filename.rsplit('.', 1)[1].lower()
+                        if file_ext in allowed_extensions:
+                            filename = secure_filename(file.filename)
+                            # 파일명이 중복되지 않도록 타임스탬프 추가
+                            filename = f"ad_{datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}"
+                            # 업로드 폴더 경로 확인 및 생성
+                            upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'ads')
+                            if not os.path.exists(upload_dir):
+                                os.makedirs(upload_dir)
+                            file_path = os.path.join(upload_dir, filename)
+                            file.save(file_path)
+                            image_path = f"uploads/ads/{filename}"
+                            print(f"광고 이미지 업데이트 성공: {file_path}")
+                        else:
+                            flash('허용되지 않는 파일 형식입니다. (PNG, JPG, JPEG, GIF만 가능)', 'danger')
+                            return render_template('admin/edit_ad.html', ad=ad)
                     else:
-                        flash('허용되지 않는 파일 형식입니다. (PNG, JPG, JPEG, GIF만 가능)', 'danger')
+                        flash('올바른 파일 형식이 아닙니다.', 'danger')
                         return render_template('admin/edit_ad.html', ad=ad)
                 except Exception as e:
                     print(f"파일 업로드 오류: {str(e)}")

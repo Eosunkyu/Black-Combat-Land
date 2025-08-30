@@ -159,11 +159,11 @@ def board_main(board_route):
         # 익명 게시판은 단순히 '익명'으로 표시
         query = '''
             SELECT posts.*, posts.ip_address, posts.images_data, posts.content, posts.created_at,
-                  (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
+                  (SELECT COUNT(*) FROM comments WHERE post_id = posts.id AND is_deleted = 0) as comment_count,
                   (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count, boards.name as board_name
             FROM posts
             JOIN boards ON posts.board_id = boards.id
-            WHERE posts.board_id = %s{}
+            WHERE posts.board_id = %s AND posts.is_deleted = 0{}
             ORDER BY posts.created_at DESC
             LIMIT %s OFFSET %s
         '''.format(search_condition)
@@ -188,13 +188,13 @@ def board_main(board_route):
                        ELSE users.is_vip 
                    END as is_vip,
                    posts.images_data, posts.content, posts.created_at,
-                   (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
+                   (SELECT COUNT(*) FROM comments WHERE post_id = posts.id AND is_deleted = 0) as comment_count,
                    (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count,
                    boards.name as board_name, boards.route as route
             FROM posts
             LEFT JOIN users ON posts.user_id = users.id AND posts.is_anonymous = 0
             JOIN boards ON posts.board_id = boards.id
-            WHERE posts.board_id = %s{}
+            WHERE posts.board_id = %s AND posts.is_deleted = 0{}
             ORDER BY posts.created_at DESC
             LIMIT %s OFFSET %s
         '''.format(search_condition)
@@ -208,7 +208,7 @@ def board_main(board_route):
         count_query = '''
             SELECT COUNT(*) as count 
             FROM posts 
-            WHERE board_id = %s{}
+            WHERE board_id = %s AND is_deleted = 0{}
         '''.format(search_condition)
         cur.execute(count_query, [board['id']] + search_params)
     else:
@@ -218,13 +218,13 @@ def board_main(board_route):
                 SELECT COUNT(*) as count 
                 FROM posts 
                 LEFT JOIN users ON posts.user_id = users.id AND posts.is_anonymous = 0
-                WHERE posts.board_id = %s{}
+                WHERE posts.board_id = %s AND posts.is_deleted = 0{}
             '''.format(search_condition)
         else:
             count_query = '''
                 SELECT COUNT(*) as count 
                 FROM posts 
-                WHERE board_id = %s{}
+                WHERE board_id = %s AND is_deleted = 0{}
             '''.format(search_condition)
         cur.execute(count_query, [board['id']] + search_params)
     
@@ -427,7 +427,7 @@ def view_post(board_route, post_id):
                END as is_vip
         FROM posts
         LEFT JOIN users ON posts.user_id = users.id AND posts.is_anonymous = 0
-        WHERE posts.id = %s AND posts.board_id = %s
+        WHERE posts.id = %s AND posts.board_id = %s AND posts.is_deleted = 0
     ''', (board['route'], post_id, board['id']))
     
     post = cur.fetchone()
@@ -485,7 +485,7 @@ def view_post(board_route, post_id):
                END as is_vip
         FROM comments
         LEFT JOIN users ON comments.user_id = users.id AND comments.is_anonymous = 0
-        WHERE comments.post_id = %s
+        WHERE comments.post_id = %s AND comments.is_deleted = 0
         ORDER BY comments.created_at ASC
     ''', (board['route'], post_id))
     
@@ -904,14 +904,19 @@ def delete_post(board_route, post_id):
         
         # 트랜잭션 시작
         try:
-            # 댓글 삭제
-            cur.execute('DELETE FROM comments WHERE post_id = %s', (post_id,))
+            # 댓글 소프트 삭제 (관련 댓글들을 모두 숨김)
+            cur.execute('''
+                UPDATE comments 
+                SET is_deleted = 1, deleted_at = NOW(), deleted_by = %s 
+                WHERE post_id = %s AND is_deleted = 0
+            ''', (session.get('id'), post_id))
             
-            # 좋아요 삭제
-            cur.execute('DELETE FROM post_likes WHERE post_id = %s', (post_id,))
-            
-            # 게시글 삭제
-            cur.execute('DELETE FROM posts WHERE id = %s', (post_id,))
+            # 게시글 소프트 삭제
+            cur.execute('''
+                UPDATE posts 
+                SET is_deleted = 1, deleted_at = NOW(), deleted_by = %s 
+                WHERE id = %s
+            ''', (session.get('id'), post_id))
             
             # 변경사항 커밋
             mysql.connection.commit()
@@ -969,8 +974,12 @@ def delete_comment(board_route, post_id, comment_id):
             cur.close()
             return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
     
-    # 댓글 삭제
-    cur.execute('DELETE FROM comments WHERE id = %s', (comment_id,))
+    # 댓글 소프트 삭제
+    cur.execute('''
+        UPDATE comments 
+        SET is_deleted = 1, deleted_at = NOW(), deleted_by = %s 
+        WHERE id = %s
+    ''', (session.get('id'), comment_id))
     mysql.connection.commit()
     cur.close()
     
@@ -1027,7 +1036,7 @@ def board_posts_json(board_route):
         count_query = '''
             SELECT COUNT(*) as count 
             FROM posts 
-            WHERE board_id = %s{}
+            WHERE board_id = %s AND is_deleted = 0{}
         '''.format(search_condition)
         cur.execute(count_query, [board['id']] + search_params)
     else:
@@ -1037,13 +1046,13 @@ def board_posts_json(board_route):
                 SELECT COUNT(*) as count 
                 FROM posts 
                 LEFT JOIN users ON posts.user_id = users.id AND posts.is_anonymous = 0
-                WHERE posts.board_id = %s{}
+                WHERE posts.board_id = %s AND posts.is_deleted = 0{}
             '''.format(search_condition)
         else:
             count_query = '''
                 SELECT COUNT(*) as count 
                 FROM posts 
-                WHERE board_id = %s{}
+                WHERE board_id = %s AND is_deleted = 0{}
             '''.format(search_condition)
         cur.execute(count_query, [board['id']] + search_params)
     
@@ -1299,14 +1308,19 @@ def delete_anonymous_post(board_route, post_id):
     
     # POST 요청일 때 실제 삭제 수행
     try:
-        # 댓글 삭제
-        cur.execute('DELETE FROM comments WHERE post_id = %s', (post_id,))
+        # 댓글 소프트 삭제
+        cur.execute('''
+            UPDATE comments 
+            SET is_deleted = 1, deleted_at = NOW(), deleted_by = NULL 
+            WHERE post_id = %s AND is_deleted = 0
+        ''', (post_id,))
         
-        # 좋아요 삭제
-        cur.execute('DELETE FROM post_likes WHERE post_id = %s', (post_id,))
-        
-        # 게시글 삭제
-        cur.execute('DELETE FROM posts WHERE id = %s AND is_anonymous = 1', (post_id,))
+        # 게시글 소프트 삭제
+        cur.execute('''
+            UPDATE posts 
+            SET is_deleted = 1, deleted_at = NOW(), deleted_by = NULL 
+            WHERE id = %s AND is_anonymous = 1
+        ''', (post_id,))
         
         mysql.connection.commit()
         
@@ -1358,8 +1372,12 @@ def verify_anonymous_comment_password(board_route, post_id, comment_id):
         cur.close()
         return redirect(url_for('board.view_post', board_route=board_route, post_id=post_id))
     
-    # 댓글 삭제
-    cur.execute('DELETE FROM comments WHERE id = %s AND is_anonymous = 1', (comment_id,))
+    # 댓글 소프트 삭제
+    cur.execute('''
+        UPDATE comments 
+        SET is_deleted = 1, deleted_at = NOW(), deleted_by = NULL 
+        WHERE id = %s AND is_anonymous = 1
+    ''', (comment_id,))
     mysql.connection.commit()
     cur.close()
     
