@@ -1,0 +1,267 @@
+{% extends 'layout.html' %}
+
+{% block title %}삭제된 게시글 관리 - 관리자 페이지{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- 관리자 메뉴 사이드바 -->
+        <div class="col-md-2">
+            {% include 'admin/sidebar.html' %}
+        </div>
+        
+        <!-- 메인 컨텐츠 영역 -->
+        <div class="col-md-10">
+            <h2 class="mb-4">삭제된 게시글 관리</h2>
+            
+            <!-- 안내 메시지 -->
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                삭제된 게시글들을 관리할 수 있습니다. 복구하거나 완전히 삭제할 수 있습니다.
+            </div>
+            
+            <!-- 통계 정보 -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-warning text-white">
+                    <h3 class="h5 mb-0">삭제된 게시글 통계</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="text-primary">총 삭제된 게시글: {{ total_count }}개</h5>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <a href="{{ url_for('admin.posts') }}" class="btn btn-primary">활성 게시글 관리</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 삭제된 게시글 목록 -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h3 class="h5 mb-0">삭제된 게시글 목록</h3>
+                </div>
+                <div class="card-body">
+                    {% if posts %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>게시판</th>
+                                    <th>제목</th>
+                                    <th>작성자</th>
+                                    <th>작성일</th>
+                                    <th>삭제일</th>
+                                    <th>삭제자</th>
+                                    <th>조회수</th>
+                                    <th>관리</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for post in posts %}
+                                <tr>
+                                    <td>{{ post.id }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ post.board_name }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-decoration-line-through text-muted">
+                                            {{ post.title[:50] }}{% if post.title|length > 50 %}...{% endif %}
+                                        </span>
+                                    </td>
+                                    <td>{{ post.nickname }}</td>
+                                    <td>{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        {% if post.deleted_at %}
+                                        <span class="text-danger">{{ post.deleted_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if post.deleted_by_nickname %}
+                                        <span class="badge bg-warning">{{ post.deleted_by_nickname }}</span>
+                                        {% else %}
+                                        <span class="text-muted">시스템</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ post.view_count }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <!-- 복구 버튼 -->
+                                            <form action="{{ url_for('admin.restore_post', post_id=post.id) }}" method="POST" style="display: inline;">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="btn btn-success btn-sm" 
+                                                        onclick="return confirm('이 게시글을 복구하시겠습니까?');" 
+                                                        title="게시글 복구">
+                                                    <i class="bi bi-arrow-clockwise"></i> 복구
+                                                </button>
+                                            </form>
+                                            
+                                            <!-- 완전 삭제 버튼 -->
+                                            <form action="{{ url_for('admin.permanent_delete_post', post_id=post.id) }}" method="POST" style="display: inline;">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="btn btn-danger btn-sm" 
+                                                        onclick="return confirm('정말로 완전히 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다!');" 
+                                                        title="완전 삭제 (복구 불가능)">
+                                                    <i class="bi bi-trash"></i> 완전삭제
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- 페이지네이션 -->
+                    {% if total_pages > 1 %}
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center">
+                            <!-- 이전 페이지 -->
+                            <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('admin.deleted_posts', page=page-1) }}" tabindex="-1">이전</a>
+                            </li>
+                            
+                            {% set start_page = ((page - 1) // 20) * 20 + 1 %}
+                            {% set end_page = [start_page + 19, total_pages] | min %}
+                            
+                            <!-- 첫 페이지로 가기 (현재 블록이 첫 번째가 아닐 때) -->
+                            {% if start_page > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin.deleted_posts', page=1) }}">1</a>
+                            </li>
+                            {% if start_page > 2 %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                            {% endif %}
+                            {% endif %}
+                            
+                            <!-- 페이지 번호들 (최대 20개) -->
+                            {% for i in range(start_page, end_page + 1) %}
+                            <li class="page-item {% if page == i %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('admin.deleted_posts', page=i) }}">{{ i }}</a>
+                            </li>
+                            {% endfor %}
+                            
+                            <!-- 마지막 페이지로 가기 (현재 블록이 마지막이 아닐 때) -->
+                            {% if end_page < total_pages %}
+                            {% if end_page < total_pages - 1 %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                            {% endif %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin.deleted_posts', page=total_pages) }}">{{ total_pages }}</a>
+                            </li>
+                            {% endif %}
+                            
+                            <!-- 다음 페이지 -->
+                            <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('admin.deleted_posts', page=page+1) }}">다음</a>
+                            </li>
+                        </ul>
+                    </nav>
+                    
+                    <!-- 페이지 정보 -->
+                    <div class="text-center text-muted mt-2">
+                        <small>
+                            {{ page }} / {{ total_pages }} 페이지 
+                            (총 {{ total_count }}개 중 {{ ((page-1) * 20 + 1) }}~{{ ((page-1) * 20 + posts|length) }}번째 게시글)
+                        </small>
+                    </div>
+                    {% endif %}
+                    
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+                        <h4 class="text-muted mt-3">삭제된 게시글이 없습니다</h4>
+                        <p class="text-muted">모든 게시글이 활성 상태입니다.</p>
+                        <a href="{{ url_for('admin.posts') }}" class="btn btn-primary">게시글 관리로 이동</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 도움말 -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h3 class="h5 mb-0">도움말</h3>
+                </div>
+                <div class="card-body">
+                    <h6>복구 기능</h6>
+                    <p class="small text-muted">삭제된 게시글을 다시 활성화시킵니다. 게시글과 관련된 댓글도 함께 복구됩니다.</p>
+                    
+                    <h6>완전 삭제 기능</h6>
+                    <p class="small text-muted">게시글을 데이터베이스에서 완전히 제거합니다. 이 작업은 되돌릴 수 없으니 신중하게 사용하세요.</p>
+                    
+                    <h6>주의사항</h6>
+                    <ul class="small text-muted">
+                        <li>삭제된 게시글은 일반 사용자에게 보이지 않습니다.</li>
+                        <li>완전 삭제 시 관련된 댓글과 좋아요도 함께 삭제됩니다.</li>
+                        <li>복구된 게시글은 원래 작성일자와 조회수를 유지합니다.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* 삭제된 게시글 특별 스타일 */
+.text-decoration-line-through {
+    text-decoration: line-through !important;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* 버튼 간격 조정 */
+.btn-group-sm .btn {
+    margin-right: 2px;
+}
+
+.btn-group-sm .btn:last-child {
+    margin-right: 0;
+}
+
+/* 배지 스타일 */
+.badge {
+    font-size: 0.8em;
+}
+
+/* 아이콘 정렬 */
+.bi {
+    vertical-align: -0.125em;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 복구 확인 강화
+    document.querySelectorAll('form[action*="restore"]').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const confirmed = confirm('이 게시글을 복구하시겠습니까?\n\n복구하면 일반 사용자에게 다시 보여집니다.');
+            if (!confirmed) {
+                e.preventDefault();
+            }
+        });
+    });
+    
+    // 완전 삭제 확인 강화
+    document.querySelectorAll('form[action*="permanent_delete"]').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const confirmed = confirm('정말로 완전히 삭제하시겠습니까?\n\n⚠️ 이 작업은 되돌릴 수 없습니다!\n⚠️ 게시글과 모든 댓글이 영구적으로 삭제됩니다!');
+            if (!confirmed) {
+                e.preventDefault();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

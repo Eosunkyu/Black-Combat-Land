@@ -275,7 +275,7 @@ def index():
     user_agent = request.headers.get('User-Agent')
     is_mobile = 'Mobile' in user_agent
     
-    # 베스트 게시글 가져오기 (좋아요 수 기준)
+    # 베스트 게시글 가져오기 (좋아요 수 기준) - 삭제된 게시물 제외
     cur.execute('''
         SELECT posts.id, posts.title, posts.created_at, posts.view_count,
                CASE 
@@ -290,10 +290,11 @@ def index():
                END as is_vip,
                boards.name as board_name, boards.route as board_route,
                (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count,
-               (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count
+               (SELECT COUNT(*) FROM comments WHERE post_id = posts.id AND is_deleted = 0) as comment_count
         FROM posts 
         LEFT JOIN users ON posts.user_id = users.id AND posts.is_anonymous = 0
         JOIN boards ON posts.board_id = boards.id 
+        WHERE posts.is_deleted = 0
         ORDER BY like_count DESC, posts.created_at DESC
         LIMIT 8
     ''')
@@ -311,7 +312,7 @@ def index():
         board_list = inject_board_list()['boards']
     
     for board in board_list:
-        # 모든 게시판에서 통일된 쿼리 사용 - thumbnail_path 추가
+        # 모든 게시판에서 통일된 쿼리 사용 - thumbnail_path 추가, 삭제된 게시물 제외
         cur.execute('''
             SELECT posts.id, posts.title, posts.created_at, posts.view_count, images_data, thumbnail_path,
                    CASE 
@@ -325,18 +326,18 @@ def index():
                        ELSE users.is_vip 
                    END as is_vip,
                    boards.route as board_route, boards.name as board_name,
-                   (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
+                   (SELECT COUNT(*) FROM comments WHERE post_id = posts.id AND is_deleted = 0) as comment_count,
                    (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
             FROM posts 
             LEFT JOIN users ON posts.user_id = users.id AND posts.is_anonymous = 0
             JOIN boards ON posts.board_id = boards.id
-            WHERE posts.board_id = %s
+            WHERE posts.board_id = %s AND posts.is_deleted = 0
             ORDER BY posts.created_at DESC
             LIMIT 8
         ''', (board['route'], board['id']))
         board_posts[board['route']] = cur.fetchall()
     
-    # 실시간 게시글 (모든 게시판에서 최신순으로)
+    # 실시간 게시글 (모든 게시판에서 최신순으로) - 삭제된 게시물 제외
     cur.execute('''
         SELECT 
             posts.id, 
@@ -356,10 +357,11 @@ def index():
             boards.name as board_name, 
             boards.route as board_route,
             (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count,
-            (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count
+            (SELECT COUNT(*) FROM comments WHERE post_id = posts.id AND is_deleted = 0) as comment_count
         FROM posts 
         LEFT JOIN users ON posts.user_id = users.id AND posts.is_anonymous = 0
         JOIN boards ON posts.board_id = boards.id
+        WHERE posts.is_deleted = 0
         ORDER BY posts.created_at DESC
         LIMIT 15
     ''')
