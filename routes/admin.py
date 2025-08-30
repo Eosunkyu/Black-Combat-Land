@@ -195,6 +195,69 @@ def posts():
     return render_template('admin/posts.html', posts=posts, boards=boards,
                           selected_board=board_id, page=page, total_pages=total_pages)
 
+# 게시글 일괄 처리
+@admin_bp.route('/admin/posts/bulk', methods=['POST'])
+@admin_required
+def bulk_posts_action():
+    # 필요한 객체 가져오기
+    mysql = get_mysql()
+    cur = mysql.connection.cursor()
+    
+    try:
+        action = request.form.get('action')
+        post_ids = request.form.getlist('post_ids')
+        
+        if not post_ids:
+            flash('선택된 게시글이 없습니다.', 'warning')
+            return redirect(url_for('admin.posts'))
+        
+        # post_ids를 정수로 변환하고 유효성 검사
+        try:
+            post_ids = [int(pid) for pid in post_ids]
+        except ValueError:
+            flash('잘못된 게시글 ID입니다.', 'danger')
+            return redirect(url_for('admin.posts'))
+        
+        if action == 'delete':
+            # 게시글 삭제 (연관된 댓글도 함께 삭제)
+            placeholders = ','.join(['%s'] * len(post_ids))
+            
+            # 먼저 댓글 삭제
+            cur.execute(f'DELETE FROM comments WHERE post_id IN ({placeholders})', post_ids)
+            
+            # 게시글 삭제
+            cur.execute(f'DELETE FROM posts WHERE id IN ({placeholders})', post_ids)
+            
+            mysql.connection.commit()
+            flash(f'{len(post_ids)}개의 게시글이 삭제되었습니다.', 'success')
+            
+        elif action == 'hide':
+            # 게시글 숨기기 (is_active = 0)
+            placeholders = ','.join(['%s'] * len(post_ids))
+            cur.execute(f'UPDATE posts SET is_active = 0 WHERE id IN ({placeholders})', post_ids)
+            
+            mysql.connection.commit()
+            flash(f'{len(post_ids)}개의 게시글이 숨겨졌습니다.', 'success')
+            
+        elif action == 'show':
+            # 게시글 보이기 (is_active = 1)
+            placeholders = ','.join(['%s'] * len(post_ids))
+            cur.execute(f'UPDATE posts SET is_active = 1 WHERE id IN ({placeholders})', post_ids)
+            
+            mysql.connection.commit()
+            flash(f'{len(post_ids)}개의 게시글이 공개되었습니다.', 'success')
+            
+        else:
+            flash('잘못된 작업입니다.', 'danger')
+            
+    except Exception as e:
+        mysql.connection.rollback()
+        flash(f'작업 중 오류가 발생했습니다: {str(e)}', 'danger')
+    finally:
+        cur.close()
+    
+    return redirect(url_for('admin.posts'))
+
 # 광고 관리
 @admin_bp.route('/admin/ads')
 @admin_required

@@ -34,62 +34,87 @@
                 </div>
             </div>
             
+            <!-- 일괄 처리 도구 -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h3 class="h5 mb-0">일괄 처리</h3>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <button type="button" id="selectAll" class="btn btn-outline-primary btn-sm me-2">전체 선택</button>
+                        <button type="button" id="deselectAll" class="btn btn-outline-secondary btn-sm me-3">선택 해제</button>
+                        <div class="btn-group me-2" role="group">
+                            <button type="button" id="bulkHide" class="btn btn-warning btn-sm">선택 항목 숨기기</button>
+                            <button type="button" id="bulkShow" class="btn btn-success btn-sm">선택 항목 보이기</button>
+                            <button type="button" id="bulkDelete" class="btn btn-danger btn-sm">선택 항목 삭제</button>
+                        </div>
+                        <span id="selectedCount" class="text-muted">선택된 항목: 0개</span>
+                    </div>
+                </div>
+            </div>
+
             <!-- 게시글 목록 -->
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-primary text-white">
                     <h3 class="h5 mb-0">게시글 목록</h3>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>ID</th>
-                                    <th>게시판</th>
-                                    <th>제목</th>
-                                    <th>작성자</th>
-                                    <th>IP 주소</th>
-                                    <th>작성일</th>
-                                    <th>조회수</th>
-                                    <th>공개여부</th>
-                                    <th>관리</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for post in posts %}
-                                <tr>
-                                    <td>{{ post.id }}</td>
-                                    <td>{{ post.board_name }}</td>
-                                    <td>
-                                        <a href="{{ url_for('board.view_post', board_route=post.board_route, post_id=post.id) }}" target="_blank">
-                                            {{ post.title }}
-                                        </a>
-                                    </td>
-                                    <td>{{ post.nickname }}</td>
-                                    <td>{{ post.ip_address }}</td>
-                                    <td>{{ post.created_at.strftime('%Y-%m-%d') }}</td>
-                                    <td>{{ post.view_count }}</td>
-                                    <td>
-                                        {% if post.is_active %}
-                                        <span class="badge bg-success">공개</span>
-                                        {% else %}
-                                        <span class="badge bg-danger">공개</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <a href="{{ url_for('board.edit_post', board_route=post.board_route, post_id=post.id) }}" class="btn btn-primary me-1" target="_blank">수정</a>
-                                            <form action="{{ url_for('board.delete_post', board_route=post.board_route, post_id=post.id) }}" method="POST" onsubmit="return confirm('정말 삭제하시겠습니까?');">
-						    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                                                <button type="submit" class="btn btn-danger">삭제</button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                    <form id="bulkForm" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <input type="hidden" id="bulkAction" name="action" value="">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th><input type="checkbox" id="checkAll" title="전체 선택/해제"></th>
+                                        <th>ID</th>
+                                        <th>게시판</th>
+                                        <th>제목</th>
+                                        <th>작성자</th>
+                                        <th>IP 주소</th>
+                                        <th>작성일</th>
+                                        <th>조회수</th>
+                                        <th>공개여부</th>
+                                        <th>관리</th>
+                                    </tr>
+                                </thead>
+                                                            <tbody>
+                                    {% for post in posts %}
+                                    <tr>
+                                        <td><input type="checkbox" name="post_ids" value="{{ post.id }}" class="post-checkbox"></td>
+                                        <td>{{ post.id }}</td>
+                                        <td>{{ post.board_name }}</td>
+                                        <td>
+                                            <a href="{{ url_for('board.view_post', board_route=post.board_route, post_id=post.id) }}" target="_blank">
+                                                {{ post.title }}
+                                            </a>
+                                        </td>
+                                        <td>{{ post.nickname }}</td>
+                                        <td>{{ post.ip_address }}</td>
+                                        <td>{{ post.created_at.strftime('%Y-%m-%d') }}</td>
+                                        <td>{{ post.view_count }}</td>
+                                        <td>
+                                            {% if post.is_active %}
+                                            <span class="badge bg-success">공개</span>
+                                            {% else %}
+                                            <span class="badge bg-danger">비공개</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ url_for('board.edit_post', board_route=post.board_route, post_id=post.id) }}" class="btn btn-primary me-1" target="_blank">수정</a>
+                                                <form action="{{ url_for('board.delete_post', board_route=post.board_route, post_id=post.id) }}" method="POST" onsubmit="return confirm('정말 삭제하시겠습니까?');" style="display: inline;">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                                    <button type="submit" class="btn btn-danger">삭제</button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </form>
                     
                     <!-- 페이지네이션 -->
                     {% if total_pages > 1 %}
@@ -116,4 +141,96 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkAll = document.getElementById('checkAll');
+    const postCheckboxes = document.querySelectorAll('.post-checkbox');
+    const selectedCount = document.getElementById('selectedCount');
+    const bulkForm = document.getElementById('bulkForm');
+    const bulkAction = document.getElementById('bulkAction');
+    
+    // 체크박스 카운트 업데이트
+    function updateSelectedCount() {
+        const checked = document.querySelectorAll('.post-checkbox:checked').length;
+        selectedCount.textContent = `선택된 항목: ${checked}개`;
+    }
+    
+    // 전체 선택/해제 체크박스
+    checkAll.addEventListener('change', function() {
+        postCheckboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+        updateSelectedCount();
+    });
+    
+    // 개별 체크박스 변경 시
+    postCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            // 전체 선택 체크박스 상태 업데이트
+            const allChecked = Array.from(postCheckboxes).every(cb => cb.checked);
+            const someChecked = Array.from(postCheckboxes).some(cb => cb.checked);
+            
+            checkAll.checked = allChecked;
+            checkAll.indeterminate = someChecked && !allChecked;
+            
+            updateSelectedCount();
+        });
+    });
+    
+    // 전체 선택 버튼
+    document.getElementById('selectAll').addEventListener('click', function() {
+        postCheckboxes.forEach(checkbox => {
+            checkbox.checked = true;
+        });
+        checkAll.checked = true;
+        checkAll.indeterminate = false;
+        updateSelectedCount();
+    });
+    
+    // 선택 해제 버튼
+    document.getElementById('deselectAll').addEventListener('click', function() {
+        postCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        checkAll.checked = false;
+        checkAll.indeterminate = false;
+        updateSelectedCount();
+    });
+    
+    // 일괄 처리 함수
+    function performBulkAction(action, confirmMessage) {
+        const checkedBoxes = document.querySelectorAll('.post-checkbox:checked');
+        
+        if (checkedBoxes.length === 0) {
+            alert('처리할 게시글을 선택해주세요.');
+            return;
+        }
+        
+        if (confirm(confirmMessage + ` (${checkedBoxes.length}개 게시글)`)) {
+            bulkAction.value = action;
+            bulkForm.action = '{{ url_for("admin.bulk_posts_action") }}';
+            bulkForm.submit();
+        }
+    }
+    
+    // 일괄 삭제
+    document.getElementById('bulkDelete').addEventListener('click', function() {
+        performBulkAction('delete', '선택한 게시글을 정말 삭제하시겠습니까?');
+    });
+    
+    // 일괄 숨기기
+    document.getElementById('bulkHide').addEventListener('click', function() {
+        performBulkAction('hide', '선택한 게시글을 숨기시겠습니까?');
+    });
+    
+    // 일괄 보이기
+    document.getElementById('bulkShow').addEventListener('click', function() {
+        performBulkAction('show', '선택한 게시글을 공개하시겠습니까?');
+    });
+    
+    // 초기 카운트 설정
+    updateSelectedCount();
+});
+</script>
 {% endblock %} 
