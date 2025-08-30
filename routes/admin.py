@@ -237,7 +237,7 @@ def bulk_posts_action():
             flash('잘못된 게시글 ID입니다.', 'danger')
             return redirect(url_for('admin.posts'))
         
-        if action == 'soft_delete':
+        if action == 'delete' or action == 'soft_delete':
             # 소프트 삭제 (게시글과 댓글을 숨김, 데이터는 보존)
             placeholders = ','.join(['%s'] * len(post_ids))
             
@@ -258,7 +258,7 @@ def bulk_posts_action():
             mysql.connection.commit()
             flash(f'{len(post_ids)}개의 게시글이 삭제되었습니다. (복구 가능)', 'success')
             
-        elif action == 'restore':
+        elif action == 'show' or action == 'restore':
             # 삭제된 게시글 복구
             placeholders = ','.join(['%s'] * len(post_ids))
             
@@ -278,6 +278,27 @@ def bulk_posts_action():
             
             mysql.connection.commit()
             flash(f'{len(post_ids)}개의 게시글이 복구되었습니다.', 'success')
+            
+        elif action == 'hide':
+            # 게시글 숨기기 (소프트 삭제와 동일)
+            placeholders = ','.join(['%s'] * len(post_ids))
+            
+            # 먼저 댓글 소프트 삭제
+            cur.execute(f'''
+                UPDATE comments 
+                SET is_deleted = 1, deleted_at = NOW(), deleted_by = %s 
+                WHERE post_id IN ({placeholders}) AND is_deleted = 0
+            ''', [session['id']] + post_ids)
+            
+            # 게시글 소프트 삭제
+            cur.execute(f'''
+                UPDATE posts 
+                SET is_deleted = 1, deleted_at = NOW(), deleted_by = %s 
+                WHERE id IN ({placeholders})
+            ''', [session['id']] + post_ids)
+            
+            mysql.connection.commit()
+            flash(f'{len(post_ids)}개의 게시글이 숨겨졌습니다. (복구 가능)', 'success')
             
         elif action == 'permanent_delete':
             # 완전 삭제 (복구 불가능)

@@ -38,6 +38,13 @@
                                 <option value="100" {% if per_page == 100 %}selected{% endif %}>100개</option>
                             </select>
                         </div>
+                        <div class="me-3 mb-2">
+                            <label class="form-label small text-muted mb-1">표시 유형</label>
+                            <select name="show_deleted" class="form-select">
+                                <option value="0" {% if not show_deleted %}selected{% endif %}>활성 게시물</option>
+                                <option value="1" {% if show_deleted %}selected{% endif %}>삭제된 게시물</option>
+                            </select>
+                        </div>
                         <div class="mb-2">
                             <label class="form-label small text-muted mb-1">&nbsp;</label>
                             <button type="submit" class="btn btn-primary d-block">적용</button>
@@ -56,9 +63,13 @@
                         <button type="button" id="selectAll" class="btn btn-outline-primary btn-sm me-2">전체 선택</button>
                         <button type="button" id="deselectAll" class="btn btn-outline-secondary btn-sm me-3">선택 해제</button>
                         <div class="btn-group me-2" role="group">
+                            {% if show_deleted %}
+                            <button type="button" id="bulkRestore" class="btn btn-success btn-sm">선택 항목 복구</button>
+                            <button type="button" id="bulkPermanentDelete" class="btn btn-danger btn-sm">완전 삭제</button>
+                            {% else %}
                             <button type="button" id="bulkHide" class="btn btn-warning btn-sm">선택 항목 숨기기</button>
-                            <button type="button" id="bulkShow" class="btn btn-success btn-sm">선택 항목 보이기</button>
                             <button type="button" id="bulkDelete" class="btn btn-danger btn-sm">선택 항목 삭제</button>
+                            {% endif %}
                         </div>
                         <span id="selectedCount" class="text-muted">선택된 항목: 0개</span>
                     </div>
@@ -86,7 +97,7 @@
                                         <th>IP 주소</th>
                                         <th>작성일</th>
                                         <th>조회수</th>
-                                        <th>공개여부</th>
+                                        <th>상태</th>
                                         <th>관리</th>
                                     </tr>
                                 </thead>
@@ -106,19 +117,36 @@
                                         <td>{{ post.created_at.strftime('%Y-%m-%d') }}</td>
                                         <td>{{ post.view_count }}</td>
                                         <td>
-                                            {% if post.is_active %}
-                                            <span class="badge bg-success">공개</span>
+                                            {% if post.is_deleted %}
+                                            <span class="badge bg-danger">삭제됨</span>
+                                            {% if post.deleted_by_nickname %}
+                                            <br><small class="text-muted">by {{ post.deleted_by_nickname }}</small>
+                                            {% endif %}
+                                            {% if post.deleted_at %}
+                                            <br><small class="text-muted">{{ post.deleted_at.strftime('%m-%d %H:%M') }}</small>
+                                            {% endif %}
                                             {% else %}
-                                            <span class="badge bg-danger">비공개</span>
+                                            <span class="badge bg-success">활성</span>
                                             {% endif %}
                                         </td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                <a href="{{ url_for('board.edit_post', board_route=post.board_route, post_id=post.id) }}" class="btn btn-primary me-1" target="_blank">수정</a>
+                                                {% if post.is_deleted %}
+                                                <form action="{{ url_for('admin.restore_post', post_id=post.id) }}" method="POST" style="display: inline;">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                                    <button type="submit" class="btn btn-success btn-sm">복구</button>
+                                                </form>
+                                                <form action="{{ url_for('admin.permanent_delete_post', post_id=post.id) }}" method="POST" onsubmit="return confirm('정말 완전히 삭제하시겠습니까? 복구할 수 없습니다!');" style="display: inline;">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                                    <button type="submit" class="btn btn-danger btn-sm">완전삭제</button>
+                                                </form>
+                                                {% else %}
+                                                <a href="{{ url_for('board.edit_post', board_route=post.board_route, post_id=post.id) }}" class="btn btn-primary btn-sm me-1" target="_blank">수정</a>
                                                 <form action="{{ url_for('board.delete_post', board_route=post.board_route, post_id=post.id) }}" method="POST" onsubmit="return confirm('정말 삭제하시겠습니까?');" style="display: inline;">
                                                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                                                    <button type="submit" class="btn btn-danger">삭제</button>
+                                                    <button type="submit" class="btn btn-danger btn-sm">삭제</button>
                                                 </form>
+                                                {% endif %}
                                             </div>
                                         </td>
                                     </tr>
@@ -134,7 +162,7 @@
                         <ul class="pagination justify-content-center">
                             <!-- 이전 페이지 -->
                             <li class="page-item {% if page == 1 %}disabled{% endif %}">
-                                <a class="page-link" href="{{ url_for('admin.posts', page=page-1, board_id=selected_board, per_page=per_page) }}" tabindex="-1">이전</a>
+                                <a class="page-link" href="{{ url_for('admin.posts', page=page-1, board_id=selected_board, per_page=per_page, show_deleted=show_deleted) }}" tabindex="-1">이전</a>
                             </li>
                             
                             {% set start_page = ((page - 1) // 20) * 20 + 1 %}
@@ -143,7 +171,7 @@
                             <!-- 첫 페이지로 가기 (현재 블록이 첫 번째가 아닐 때) -->
                             {% if start_page > 1 %}
                             <li class="page-item">
-                                <a class="page-link" href="{{ url_for('admin.posts', page=1, board_id=selected_board, per_page=per_page) }}">1</a>
+                                <a class="page-link" href="{{ url_for('admin.posts', page=1, board_id=selected_board, per_page=per_page, show_deleted=show_deleted) }}">1</a>
                             </li>
                             {% if start_page > 2 %}
                             <li class="page-item disabled">
@@ -155,7 +183,7 @@
                             <!-- 페이지 번호들 (최대 20개) -->
                             {% for i in range(start_page, end_page + 1) %}
                             <li class="page-item {% if page == i %}active{% endif %}">
-                                <a class="page-link" href="{{ url_for('admin.posts', page=i, board_id=selected_board, per_page=per_page) }}">{{ i }}</a>
+                                <a class="page-link" href="{{ url_for('admin.posts', page=i, board_id=selected_board, per_page=per_page, show_deleted=show_deleted) }}">{{ i }}</a>
                             </li>
                             {% endfor %}
                             
@@ -167,13 +195,13 @@
                             </li>
                             {% endif %}
                             <li class="page-item">
-                                <a class="page-link" href="{{ url_for('admin.posts', page=total_pages, board_id=selected_board, per_page=per_page) }}">{{ total_pages }}</a>
+                                <a class="page-link" href="{{ url_for('admin.posts', page=total_pages, board_id=selected_board, per_page=per_page, show_deleted=show_deleted) }}">{{ total_pages }}</a>
                             </li>
                             {% endif %}
                             
                             <!-- 다음 페이지 -->
                             <li class="page-item {% if page == total_pages %}disabled{% endif %}">
-                                <a class="page-link" href="{{ url_for('admin.posts', page=page+1, board_id=selected_board, per_page=per_page) }}">다음</a>
+                                <a class="page-link" href="{{ url_for('admin.posts', page=page+1, board_id=selected_board, per_page=per_page, show_deleted=show_deleted) }}">다음</a>
                             </li>
                         </ul>
                     </nav>
@@ -264,20 +292,42 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // 일괄 삭제
-    document.getElementById('bulkDelete').addEventListener('click', function() {
-        performBulkAction('delete', '선택한 게시글을 정말 삭제하시겠습니까?');
-    });
+    // 현재 페이지가 삭제된 게시물을 보고 있는지 확인
+    const showDeleted = {{ 'true' if show_deleted else 'false' }};
     
-    // 일괄 숨기기
-    document.getElementById('bulkHide').addEventListener('click', function() {
-        performBulkAction('hide', '선택한 게시글을 숨기시겠습니까?');
-    });
-    
-    // 일괄 보이기
-    document.getElementById('bulkShow').addEventListener('click', function() {
-        performBulkAction('show', '선택한 게시글을 공개하시겠습니까?');
-    });
+    if (showDeleted) {
+        // 삭제된 게시물 페이지에서의 액션들
+        const bulkRestore = document.getElementById('bulkRestore');
+        const bulkPermanentDelete = document.getElementById('bulkPermanentDelete');
+        
+        if (bulkRestore) {
+            bulkRestore.addEventListener('click', function() {
+                performBulkAction('restore', '선택한 게시글을 복구하시겠습니까?');
+            });
+        }
+        
+        if (bulkPermanentDelete) {
+            bulkPermanentDelete.addEventListener('click', function() {
+                performBulkAction('permanent_delete', '선택한 게시글을 완전히 삭제하시겠습니까? 복구할 수 없습니다!');
+            });
+        }
+    } else {
+        // 활성 게시물 페이지에서의 액션들
+        const bulkDelete = document.getElementById('bulkDelete');
+        const bulkHide = document.getElementById('bulkHide');
+        
+        if (bulkDelete) {
+            bulkDelete.addEventListener('click', function() {
+                performBulkAction('delete', '선택한 게시글을 삭제하시겠습니까? (복구 가능)');
+            });
+        }
+        
+        if (bulkHide) {
+            bulkHide.addEventListener('click', function() {
+                performBulkAction('hide', '선택한 게시글을 숨기시겠습니까? (복구 가능)');
+            });
+        }
+    }
     
     // 초기 카운트 설정
     updateSelectedCount();
