@@ -565,7 +565,7 @@ def add_ad():
                         if file_ext in allowed_extensions:
                             filename = secure_filename(file.filename)
                             # 파일명이 중복되지 않도록 타임스탬프 추가
-                                                        filename = f"ad_{datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}"
+                            filename = f"ad_{datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}"
                             # 업로드 폴더 경로 확인 및 생성
                             upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'ads')
                             if not os.path.exists(upload_dir):
