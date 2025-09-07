@@ -118,7 +118,7 @@
                     {% elif not session.loggedin %}
                     <div class="mb-3">
                         <label for="post-key" class="form-label">비밀번호 <small class="text-muted">(수정/삭제 시 필요)</small></label>
-                        <input class="form-control" pattern="^[A-Za-z0-9]*$" id="anonymous_password" value="ab1234" name="anonymous_password" 
+                        <input class="form-control" id="anonymous_password" value="ab1234" name="anonymous_password" 
                                maxlength="20" required placeholder="4자리 이상 입력하세요" autocomplete="off">
                         <div class="form-text">비로그인 상태에서 글 작성 시 비밀번호가 필요합니다. 잊지 마세요!</div>
                     </div>
@@ -968,6 +968,9 @@
     function restrictPasswordInput() {
         const passwordInput = document.getElementById('anonymous_password');
         if (passwordInput) {
+            // 기본값이 있으면 유지
+            const defaultValue = passwordInput.value;
+            
             passwordInput.addEventListener('input', function(e) {
                 // 영문자와 숫자가 아닌 문자 제거
                 this.value = this.value.replace(/[^A-Za-z0-9]/g, '');
@@ -988,6 +991,11 @@
                 const filtered = paste.replace(/[^A-Za-z0-9]/g, '');
                 this.value = filtered.substring(0, 20); // maxlength 적용
             });
+            
+            // 기본값 복원 (필터링 후에도 유효한 경우)
+            if (defaultValue && /^[A-Za-z0-9]*$/.test(defaultValue)) {
+                passwordInput.value = defaultValue;
+            }
         }
     }
     
