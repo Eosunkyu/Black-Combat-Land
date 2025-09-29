@@ -235,7 +235,7 @@
                         <div class="board-highlighted"></div>
                     </div>
                     <div class="card-body p-0">
-                        <ul class="list-group list-group-flush post-list">
+                        <ul class="list-group list-group-flush">
                             {% for post in realtime_posts[:15] %}
                             <li class="list-group-item p-0 m-0">
                                 <a href="{{ url_for('board.view_post', board_route=post.board_route, post_id=post.id) }}" class="text-decoration-none post-link">
