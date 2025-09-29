@@ -293,6 +293,11 @@ a:hover {
     max-height: 270px; /* 일반 게시판은 기존 높이 유지 */
 }
 
+/* 실시간게시물 자동 높이 스타일 */
+.fixed-height-list {
+    /* 높이 제한 없이 내용에 맞춰 자동으로 늘어남 */
+}
+
 /* 회원 메뉴 스타일 */
 .member-info {
     padding: 10px;
