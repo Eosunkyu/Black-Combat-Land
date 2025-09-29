@@ -287,8 +287,8 @@ def write_post(board_route):
         return redirect(url_for('board.board_main', board_route=board_route))
     
     # 경기예측/분석 게시판 접근 권한 체크 (파란 VIP만)
-    if board['route'] == 'analysis' and ('loggedin' not in session or not session.get('is_vip') == 2):
-        flash('경기예측/분석 게시판은 BCN 회원만 글을 작성할 수 있습니다.', 'danger')
+    if board['route'] == 'analysis' and ('loggedin' not in session or (not session.get('is_vip') == 2 or not session.get('is_vip') == 1)):
+        flash('경기예측/분석 게시판은 VIP, BCN 회원만 글을 작성할 수 있습니다.', 'danger')
         return redirect(url_for('board.board_main', board_route=board_route))
     
     # 경기소식 게시판 접근 권한 체크 (파란 VIP만)
@@ -533,7 +533,7 @@ def view_post(board_route, post_id):
     offset = (page - 1) * per_page
     
     # 총 게시글 수 조회 (페이지네이션용)
-    cur.execute('SELECT COUNT(*) as count FROM posts WHERE board_id = %s', (board['id'],))
+    cur.execute('SELECT COUNT(*) as count FROM posts WHERE board_id = %s AND is_deleted = 0', (board['id'],))
     total_count = cur.fetchone()['count']
     total_pages = (total_count + per_page - 1) // per_page
     
@@ -543,7 +543,7 @@ def view_post(board_route, post_id):
                    (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
                    (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
             FROM posts
-            WHERE posts.board_id = %s
+            WHERE posts.board_id = %s AND posts.is_deleted = 0
             ORDER BY posts.created_at DESC
             LIMIT %s OFFSET %s
         ''', (board['id'], per_page, offset))
@@ -563,7 +563,7 @@ def view_post(board_route, post_id):
                    (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
             FROM posts
             LEFT JOIN users ON posts.user_id = users.id AND posts.is_anonymous = 0
-            WHERE posts.board_id = %s
+            WHERE posts.board_id = %s AND posts.is_deleted = 0
             ORDER BY posts.created_at DESC
             LIMIT %s OFFSET %s
         ''', (board['id'], per_page, offset))
@@ -769,7 +769,7 @@ def edit_post(board_route, post_id):
         SELECT posts.*, users.nickname
         FROM posts
         LEFT JOIN users ON posts.user_id = users.id
-        WHERE posts.id = %s AND posts.board_id = %s
+        WHERE posts.id = %s AND posts.board_id = %s AND posts.is_deleted = 0
     ''', (post_id, board['id']))
     
     post = cur.fetchone()
@@ -1066,7 +1066,7 @@ def board_posts_json(board_route):
                    (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comment_count,
                    (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
             FROM posts
-            WHERE posts.board_id = %s{}
+            WHERE posts.board_id = %s AND posts.is_deleted = 0{}
             ORDER BY posts.created_at DESC
             LIMIT %s OFFSET %s
         '''.format(search_condition)
@@ -1088,7 +1088,7 @@ def board_posts_json(board_route):
                    (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
             FROM posts
             LEFT JOIN users ON posts.user_id = users.id AND posts.is_anonymous = 0
-            WHERE posts.board_id = %s{}
+            WHERE posts.board_id = %s AND posts.is_deleted = 0{}
             ORDER BY posts.created_at DESC
             LIMIT %s OFFSET %s
         '''.format(search_condition)

@@ -233,6 +233,7 @@ def index():
         FROM posts 
         LEFT JOIN users ON posts.user_id = users.id AND posts.is_anonymous = 0
         JOIN boards ON posts.board_id = boards.id 
+        WHERE posts.is_deleted = 0
         ORDER BY like_count DESC, posts.created_at DESC
         LIMIT 8
     ''')
@@ -259,7 +260,7 @@ def index():
                        (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count
                 FROM posts 
                 JOIN boards ON posts.board_id = boards.id
-                WHERE posts.board_id = %s
+                WHERE posts.board_id = %s AND posts.is_deleted = 0
                 ORDER BY posts.created_at DESC
                 LIMIT 8
             ''', (board['id'],))
@@ -272,7 +273,7 @@ def index():
                 FROM posts 
                 JOIN users ON posts.user_id = users.id
                 JOIN boards ON posts.board_id = boards.id
-                WHERE posts.board_id = %s
+                WHERE posts.board_id = %s AND posts.is_deleted = 0
                 ORDER BY posts.created_at DESC
                 LIMIT 8
             ''', (board['id'],))
@@ -300,6 +301,7 @@ def index():
         FROM posts 
         LEFT JOIN users ON posts.user_id = users.id
         JOIN boards ON posts.board_id = boards.id
+        WHERE posts.is_deleted = 0
         ORDER BY posts.created_at DESC
         LIMIT 15
     ''')

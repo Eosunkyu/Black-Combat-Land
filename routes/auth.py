@@ -236,7 +236,7 @@ def profile():
         SELECT posts.*, boards.name as board_name, boards.route as board_route
         FROM posts
         JOIN boards ON posts.board_id = boards.id
-        WHERE posts.user_id = %s
+        WHERE posts.user_id = %s AND posts.is_deleted = 0
         ORDER BY posts.created_at DESC
     ''', (current_user.id,))
     
@@ -248,7 +248,7 @@ def profile():
         FROM comments
         JOIN posts ON comments.post_id = posts.id
         JOIN boards ON posts.board_id = boards.id
-        WHERE comments.user_id = %s
+        WHERE comments.user_id = %s AND comments.is_deleted = 0 AND posts.is_deleted = 0
         ORDER BY comments.created_at DESC
     ''', (current_user.id,))
     
