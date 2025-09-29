@@ -236,7 +236,7 @@
                     </div>
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush post-list fixed-height-list">
-                            {% for post in realtime_posts[:6] %}
+                            {% for post in realtime_posts[:15] %}
                             <li class="list-group-item p-0 m-0">
                                 <a href="{{ url_for('board.view_post', board_route=post.board_route, post_id=post.id) }}" class="text-decoration-none post-link">
                                     <span class="post-title">
@@ -263,14 +263,14 @@
                                 </a>
                             </li>
                             {% else %}
-                            {% for i in range(6) %}
+                            {% for i in range(15) %}
                             <li class="list-group-item empty-post">{% if i == 0 %}실시간게시글이 없습니다.{% endif %}</li>
                             {% endfor %}
                             {% endfor %}
                             
                             {# 게시글이 6개보다 적을 경우 빈 공간으로 채움 #}
-                            {% if realtime_posts|length > 0 and realtime_posts|length < 6 %}
-                                {% for i in range(6 - realtime_posts|length) %}
+                            {% if realtime_posts|length > 0 and realtime_posts|length < 15 %}
+                                {% for i in range(15 - realtime_posts|length) %}
                                 <li class="list-group-item empty-post"></li>
                                 {% endfor %}
                             {% endif %}
@@ -279,7 +279,7 @@
                 </div>
             </div>
             
-            <div class="col-md-6 p-1">
+            <!-- <div class="col-md-6 p-1">
                 <div class="card mb-4">
                     <div class="card-header bg-dark text-dark p-0">
                         <h5 class="mb-0 p-2">베스트</h5>
@@ -328,7 +328,7 @@
                         </ul>
                     </div>
                 </div>
-            </div>
+            </div> -->
             <div class="col-md-6 p-1">
                 <div class="card mb-4">
                     <div class="card-header bg-dark text-dark p-0">
@@ -378,14 +378,14 @@
                         </ul>
                     </div>
                 </div>
-            </div>
+            <!--/div-->
             
             
             <!-- 네번째 줄: 예측/분석, STORE -->
-            <div class="col-md-6 p-1">
+            <!--div class="col-md-6 p-1"-->
                 <div class="card mb-4">
                     <div class="card-header bg-dark text-dark p-0">
-                        <h5 class="mb-0 p-2">EVENT</h5>
+                        <h5 class="mb-0 p-2">POINT</h5>
                         <div class="board-highlighted"></div>
                     </div>
                     <div class="card-body p-0">
