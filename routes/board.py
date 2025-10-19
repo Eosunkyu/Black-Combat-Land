@@ -287,7 +287,7 @@ def write_post(board_route):
         return redirect(url_for('board.board_main', board_route=board_route))
     
     # 경기예측/분석 게시판 접근 권한 체크 (파란 VIP만)
-    if board['route'] == 'analysis' and ('loggedin' not in session or (not session.get('is_vip') == 2 or not session.get('is_vip') == 1)):
+    if board['route'] == 'analysis' and ('loggedin' not in session or (not session.get('is_vip') == 0)):
         flash('경기예측/분석 게시판은 VIP, BCN 회원만 글을 작성할 수 있습니다.', 'danger')
         return redirect(url_for('board.board_main', board_route=board_route))
     

@@ -106,7 +106,7 @@
                         {% set can_write = true %}
                     {% elif board.route == 'question' and session.is_vip == 1 %}
                         {% set can_write = true %}
-                    {% elif board.route == 'analysis' and session.is_vip == 2 %}
+                    {% elif board.route == 'analysis' and session.is_vip != 0 %}
                         {% set can_write = true %}
                     {% elif board.route == 'game_news' and session.is_vip == 2 %}
                         {% set can_write = true %}
